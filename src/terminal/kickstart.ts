@@ -304,7 +304,10 @@ function jupPoolToLaunch(pool: Rec): LiveLaunch | null {
  * no stable public REST API, so we try known endpoints and fall back to Jupiter's
  * aggregated DBC state (which reads the same on-chain pools).
  */
+const ENABLE_METEORA = false;
+
 async function enrichFromMeteora(found: Map<string, LiveLaunch>): Promise<void> {
+  if (!ENABLE_METEORA) return;
   const bondingTokens = [...found.values()].filter((c) => !c.graduatedAt && typeof c.bondingCurve !== "number");
   if (!bondingTokens.length) return;
   for (const c of bondingTokens.slice(0, 10)) {
@@ -340,7 +343,6 @@ async function enrichFromMeteora(found: Map<string, LiveLaunch>): Promise<void> 
 async function fetchJupiterFeed(found: Map<string, LiveLaunch>): Promise<boolean> {
   const urls = [
     "https://datapi.jup.ag/v1/pools/toptraded/24h?launchpads=easya-kickstart",
-    "https://datapi.jup.ag/v1/pools/recent?launchpads=easya-kickstart",
     "https://datapi.jup.ag/v1/pools/toptrending/24h?launchpads=easya-kickstart",
   ];
   let ok = false;
@@ -719,15 +721,28 @@ export async function fetchPortfolio(owner: string, feed: LiveLaunch[]):
   return { holdings, totalUsd: holdings.reduce((s, h) => s + h.valueUsd, 0), scanned: balances.size };
 }
 
+export type PhantomProvider = {
+  isPhantom?: boolean;
+  connect: (opts?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: { toString(): string } }>;
+};
+
+export function getPhantomProvider(): PhantomProvider | null {
+  const w = window as unknown as { solana?: PhantomProvider; phantom?: { solana?: PhantomProvider } };
+  if (w.solana?.isPhantom) return w.solana;
+  if (w.phantom?.solana?.isPhantom) return w.phantom.solana;
+  return null;
+}
+
 /** Connect Phantom in read-only mode (connect() shares the public key; no transaction signing requested). */
 export async function connectPhantomReadOnly(): Promise<string | null> {
+  const provider = getPhantomProvider();
+  if (!provider) return null;
   try {
-    const w = window as unknown as { solana?: { isPhantom?: boolean; connect: (o?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: { toString(): string } }> } };
-    if (!w.solana?.isPhantom) return null;
-    const res = await w.solana.connect();
-    return res.publicKey.toString();
-  } catch {
-    return null; // user rejected
+    const res = await provider.connect({ onlyIfTrusted: false });
+    return res.publicKey?.toString() ?? null;
+  } catch (error) {
+    console.error("Phantom connect failed", error);
+    return null; // user rejected or connection failed
   }
 }
 

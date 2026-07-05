@@ -281,7 +281,10 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
   /* Phantom sign-in: read-only connect, restores wallet-keyed watchlist, powers Portfolio */
   const signInPhantom = async () => {
     const addr = await connectPhantomReadOnly();
-    if (!addr) { setWalletErr("Phantom not detected or connection declined."); return; }
+    if (!addr) {
+      setWalletErr("Phantom not detected or connection declined.");
+      return;
+    }
     setPhantom(addr);
     try { localStorage.setItem("ezpulse:phantom", addr); } catch { /* noop */ }
     // restore cross-device watchlist if one exists under this wallet
@@ -295,7 +298,7 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
       syncWatchlist(watchlist, addr);
     }
     // auto-load portfolio for the signed-in wallet
-    watchWallet(addr);
+    await watchWallet(addr);
   };
 
   const signOutPhantom = () => {
@@ -1419,7 +1422,14 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
                       className="rounded-full border border-zinc-200 bg-white px-7 py-2.5 text-[12px] font-bold uppercase tracking-wide text-zinc-700 transition hover:border-indigo-300 hover:text-indigo-700">
                       👻 Connect Phantom · read-only
                     </button>
-                    {walletErr && <p className="mt-4 rounded-xl bg-red-50 px-4 py-2.5 text-[12px] text-red-600">{walletErr}</p>}
+                    {walletErr && (
+                      <p className="mt-4 rounded-xl bg-red-50 px-4 py-2.5 text-[12px] text-red-600">
+                        {walletErr}
+                        {walletErr === "Phantom not detected or connection declined." && (
+                          <span> <a href="https://phantom.app/download" target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-600 hover:text-indigo-800">Install Phantom</a> or enable it in your browser.</span>
+                        )}
+                      </p>
+                    )}
                     <p className="mt-4 text-[11px] text-zinc-400">Balances are read via public Solana RPC. Only tokens featured on ezpulse (…EASY contracts) are shown.</p>
                   </div>
                 </div>
