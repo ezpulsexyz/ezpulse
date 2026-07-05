@@ -61,9 +61,29 @@ function BootScreen({ slow, onSkip }: { slow: boolean; onSkip: () => void }) {
 import {
   ALUMNI, fetchLiveFeed, fmtPrice, isVerified, isGraduated, verifiedOf, bondedOf, trendingOf, tokenNote,
   tokenSignals, ecosystemSignals, INDEXES, indexStats, loadWatchlist, saveWatchlist, loadAlertPrefs, saveAlertPrefs,
-  fetchPortfolio, connectPhantomReadOnly, isValidSolAddress, kickstartUrl,
-  type LiveLaunch, type AlertPrefs, type Holding,
+  fetchPortfolio, connectPhantomReadOnly, isValidSolAddress, kickstartUrl, KNOWN_WALLETS, isPhantomAvailable,
+  type LiveLaunch, type AlertPrefs, type PortfolioResult,
 } from "./kickstart";
+
+/** Small hint shown when the Phantom extension isn't detected. */
+function PhantomHint({ compact = false }: { compact?: boolean }) {
+  return (
+    <div className={`flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50/70 ${compact ? "px-3 py-2" : "px-4 py-3"}`}>
+      <span className="mt-px text-[13px]">👻</span>
+      <div className="min-w-0 text-left">
+        <p className={`font-semibold text-amber-800 ${compact ? "text-[11.5px]" : "text-[12.5px]"}`}>
+          Phantom isn't detected in this browser.
+        </p>
+        <p className={`text-amber-700/80 ${compact ? "text-[10.5px]" : "text-[11.5px]"}`}>
+          Install Phantom or enable the browser extension, then reload.{" "}
+          <a href="https://phantom.com/download" target="_blank" rel="noopener noreferrer" className="font-bold underline underline-offset-2 hover:text-amber-900">
+            Get Phantom ↗
+          </a>
+        </p>
+      </div>
+    </div>
+  );
+}
 
 /** Lifecycle badge: real bonding-curve state from Jupiter. */
 function CurveBadge({ c }: { c: LiveLaunch }) {
@@ -254,7 +274,7 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
   const [wallet, setWallet] = useState<string | null>(null);
   const [addrInput, setAddrInput] = useState("");
   const [walletErr, setWalletErr] = useState<string | null>(null);
-  const [portfolio, setPortfolio] = useState<{ holdings: Holding[]; totalUsd: number; scanned: number } | null | "loading">(null);
+  const [portfolio, setPortfolio] = useState<PortfolioResult | null | "loading">(null);
   const [phantom, setPhantom] = useState<string | null>(() => { try { return localStorage.getItem("ezpulse:phantom"); } catch { return null; } });
   const [notifOpen, setNotifOpen] = useState(false);
   const [seenNotifs, setSeenNotifs] = useState<string[]>(() => loadSeenNotifs());
@@ -278,13 +298,17 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
     });
   };
 
+  const [phantomMissing, setPhantomMissing] = useState(false);
+
   /* Phantom sign-in: read-only connect, restores wallet-keyed watchlist, powers Portfolio */
   const signInPhantom = async () => {
-    const addr = await connectPhantomReadOnly();
-    if (!addr) {
-      setWalletErr("Phantom not detected or connection declined.");
+    if (!isPhantomAvailable()) {
+      setPhantomMissing(true);
+      setTimeout(() => setPhantomMissing(false), 6000);
       return;
     }
+    const addr = await connectPhantomReadOnly();
+    if (!addr) { setWalletErr("Connection declined in Phantom — try again."); return; }
     setPhantom(addr);
     try { localStorage.setItem("ezpulse:phantom", addr); } catch { /* noop */ }
     // restore cross-device watchlist if one exists under this wallet
@@ -298,11 +322,15 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
       syncWatchlist(watchlist, addr);
     }
     // auto-load portfolio for the signed-in wallet
-    await watchWallet(addr);
+    watchWallet(addr);
   };
 
   const signOutPhantom = () => {
+    // clear portfolio too if it was showing the signed-in wallet
+    setWallet((w) => (w === phantom ? null : w));
+    setPortfolio((p) => (wallet === phantom ? null : p));
     setPhantom(null);
+    setNotifOpen(false);
     try { localStorage.removeItem("ezpulse:phantom"); } catch { /* noop */ }
   };
 
@@ -349,6 +377,23 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
 
   const disconnectWallet = () => { setWallet(null); setPortfolio(null); setAddrInput(""); setWalletErr(null); };
 
+  // Restored Phantom session (page reload): re-pull wallet-keyed watchlist and auto-load portfolio.
+  useEffect(() => {
+    if (!phantom) return;
+    let alive = true;
+    pullWalletWatchlist(phantom).then((remote) => {
+      if (!alive || !remote?.length) return;
+      setWatchlist((wl) => {
+        const merged = [...new Set([...wl, ...remote])];
+        saveWatchlist(merged);
+        return merged;
+      });
+    });
+    if (!wallet) watchWallet(phantom); // portfolio follows the session
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phantom]);
+
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [booted, setBooted] = useState(false);
   const [bootSlow, setBootSlow] = useState(false);
@@ -371,7 +416,7 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "/" && document.activeElement !== searchRef.current) { e.preventDefault(); searchRef.current?.focus(); }
-      if (e.key === "Escape") { setSelected(null); setQuery(""); searchRef.current?.blur(); }
+      if (e.key === "Escape") { setSelected(null); setQuery(""); setNotifOpen(false); searchRef.current?.blur(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -598,6 +643,13 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
             )}
           </div>
         </header>
+
+        {/* Phantom-missing hint toast */}
+        {phantomMissing && (
+          <div className="fixed bottom-5 left-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 animate-fade-up">
+            <PhantomHint />
+          </div>
+        )}
 
         {/* sign-in nudge toast */}
         {signinNudge && (
@@ -1292,7 +1344,10 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
               {!phantom ? (
                 <EmptyState icon="👻" title="Sign in to use your watchlist"
                   body="Your watchlist is keyed to your wallet — sign in with Phantom (read-only, no signatures) to star tokens, get 🔔 alerts when their signals fire, and carry your list across devices."
-                  cta={<button onClick={signInPhantom} className="rounded-full px-6 py-2.5 text-[12px] font-bold uppercase tracking-wide text-white" style={{ background: BLUE }}>👻 Sign in with Phantom</button>} />
+                  cta={<div className="flex flex-col items-center gap-3">
+                    <button onClick={signInPhantom} className="rounded-full px-6 py-2.5 text-[12px] font-bold uppercase tracking-wide text-white" style={{ background: BLUE }}>👻 Sign in with Phantom</button>
+                    {!isPhantomAvailable() && <div className="max-w-sm"><PhantomHint compact /></div>}
+                  </div>} />
               ) : watchlist.length === 0 ? (
                 <EmptyState icon="★" title="Nothing watched yet"
                   body="Open any token's terminal page and hit ☆ Watch. Watched tokens appear here with live data, and alerts fire on the events you choose below."
@@ -1422,14 +1477,24 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
                       className="rounded-full border border-zinc-200 bg-white px-7 py-2.5 text-[12px] font-bold uppercase tracking-wide text-zinc-700 transition hover:border-indigo-300 hover:text-indigo-700">
                       👻 Connect Phantom · read-only
                     </button>
-                    {walletErr && (
-                      <p className="mt-4 rounded-xl bg-red-50 px-4 py-2.5 text-[12px] text-red-600">
-                        {walletErr}
-                        {walletErr === "Phantom not detected or connection declined." && (
-                          <span> <a href="https://phantom.app/download" target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-600 hover:text-indigo-800">Install Phantom</a> or enable it in your browser.</span>
-                        )}
-                      </p>
+                    {!isPhantomAvailable() && (
+                      <div className="mx-auto mt-3 max-w-sm">
+                        <PhantomHint compact />
+                      </div>
                     )}
+                    {/* try it: known ecosystem wallets */}
+                    <div className="mt-6 border-t border-zinc-100 pt-4">
+                      <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-zinc-400">Try it — watch a founder wallet</div>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {KNOWN_WALLETS.map((w) => (
+                          <button key={w.address} onClick={() => watchWallet(w.address)} title={w.note}
+                            className="rounded-full border border-zinc-200 bg-zinc-50 px-3.5 py-1.5 text-[11px] font-semibold text-zinc-600 transition hover:border-indigo-300 hover:text-indigo-700">
+                            {w.label} · {w.address.slice(0, 4)}…{w.address.slice(-4)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {walletErr && <p className="mt-4 rounded-xl bg-red-50 px-4 py-2.5 text-[12px] text-red-600">{walletErr}</p>}
                     <p className="mt-4 text-[11px] text-zinc-400">Balances are read via public Solana RPC. Only tokens featured on ezpulse (…EASY contracts) are shown.</p>
                   </div>
                 </div>
@@ -1441,6 +1506,11 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
                       <span className="h-2 w-2 rounded-full bg-emerald-500" />
                       <span className="font-mono text-[12px] text-zinc-600">{wallet.slice(0, 6)}…{wallet.slice(-6)}</span>
                       <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[9px] font-black tracking-widest text-emerald-600">👁 WATCH-ONLY</span>
+                      <a href={`https://solscan.io/account/${wallet}`} target="_blank" rel="noopener noreferrer"
+                        className="rounded-full border border-zinc-200 px-2.5 py-0.5 text-[9px] font-bold text-zinc-500 transition hover:border-indigo-300 hover:text-indigo-700"
+                        title="Verify these holdings independently on Solscan">
+                        🔍 Verify on Solscan ↗
+                      </a>
                     </span>
                     <div className="ml-auto flex gap-2">
                       <button
@@ -1481,22 +1551,29 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
                           </div>
                           <div className="mt-0.5 text-[11px] text-white/60">at live prices</div>
                         </div>
-                        <Stat label="Positions" value={String(portfolio.holdings.length)} sub="in featured tokens" />
-                        <Stat label="Tokens scanned" value={String(portfolio.scanned)} sub="total SPL balances in wallet" />
+                        <Stat label="◎ SOL balance"
+                          value={portfolio.sol ? `${portfolio.sol.amount < 0.001 && portfolio.sol.amount > 0 ? "<0.001" : portfolio.sol.amount.toFixed(portfolio.sol.amount >= 100 ? 1 : 3)} SOL` : "—"}
+                          sub={portfolio.sol?.valueUsd != null
+                            ? `≈ $${portfolio.sol.valueUsd.toFixed(2)} · via ${portfolio.source === "solscan" ? "Solscan" : "RPC"}`
+                            : "native balance"} />
+                        <Stat label="Positions" value={String(portfolio.holdings.length)} sub={`${portfolio.scanned} SPL balances scanned`} />
                         <Stat label="24h move" value={(() => {
                           const t = portfolio.totalUsd;
                           if (!t || !portfolio.holdings.length) return "—";
                           const w = portfolio.holdings.reduce((s, h) => s + h.coin.change24h * h.valueUsd, 0) / t;
                           return `${w >= 0 ? "+" : ""}${w.toFixed(1)}%`;
-                        })()} sub="value-weighted" />
+                        })()} sub="value-weighted · Kickstart only" />
                       </div>
 
                       {/* holdings */}
                       {portfolio.holdings.length === 0 ? (
                         <div className="mt-4">
                           <EmptyState icon="🪙" title="No featured Kickstart tokens in this wallet"
-                            body={`We scanned ${portfolio.scanned} token balance${portfolio.scanned !== 1 ? "s" : ""} in this wallet — none match the …EASY contracts currently featured on ezpulse. Holdings appear here the moment the wallet holds any listed token.`}
-                            cta={<button onClick={() => goto("market")} className="rounded-full px-6 py-2.5 text-[12px] font-bold uppercase tracking-wide text-white" style={{ background: BLUE }}>Browse the market →</button>} />
+                            body={`RPC verified: ${portfolio.scanned} SPL balance${portfolio.scanned !== 1 ? "s" : ""} scanned${portfolio.sol ? ` and ${portfolio.sol.amount.toFixed(3)} SOL found` : ""} — none match the …EASY contracts currently featured on ezpulse. Holdings appear here the moment the wallet holds any listed token.`}
+                            cta={<>
+                              <button onClick={() => goto("market")} className="rounded-full px-6 py-2.5 text-[12px] font-bold uppercase tracking-wide text-white" style={{ background: BLUE }}>Browse the market →</button>
+                              <a href={`https://solscan.io/account/${wallet}`} target="_blank" rel="noopener noreferrer" className="rounded-full border border-zinc-200 bg-white px-6 py-2.5 text-[12px] font-bold uppercase tracking-wide text-zinc-600 transition hover:border-indigo-300 hover:text-indigo-700">🔍 Verify on Solscan</a>
+                            </>} />
                         </div>
                       ) : (
                         <Card className="mt-4" title="Holdings · featured Kickstart tokens" right={<span className="text-[11px] text-zinc-400">valued live · DexScreener</span>}>
@@ -1529,6 +1606,11 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
                               <span className="w-20 text-right text-[13px] font-bold tabular-nums text-zinc-900">
                                 {h.valueUsd >= 0.01 ? `$${h.valueUsd.toFixed(2)}` : "<$0.01"}
                               </span>
+                              <a href={`https://solscan.io/account/${wallet}#portfolio`} target="_blank" rel="noopener noreferrer"
+                                title={`Verify ${h.coin.symbol} balance on Solscan`}
+                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-200 bg-white text-[11px] text-zinc-500 transition hover:-translate-y-px hover:border-indigo-300 hover:text-indigo-700">
+                                🔍
+                              </a>
                               <button onClick={() => openToken(h.coin)} className="rounded-lg bg-zinc-900 px-2.5 py-1.5 text-[10px] font-bold text-white transition hover:-translate-y-px">
                                 📟 Terminal
                               </button>
@@ -1537,7 +1619,11 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
                         </Card>
                       )}
                       <p className="mt-3 text-[11px] leading-relaxed text-zinc-400">
-                        Watch-only: balances are read from public Solana RPC ({portfolio.scanned} SPL balances scanned) and matched against tokens featured on ezpulse. No signature was requested; this connection cannot move funds. Values use live DexScreener prices and exclude tokens not listed here.
+                        Watch-only: balances read from {portfolio.source === "solscan"
+                          ? <>the <span className="font-mono">public-api.solscan.io</span> public API</>
+                          : <>public Solana RPC{portfolio.rpc ? <> (<span className="font-mono">{portfolio.rpc}</span>)</> : ""}</>}
+                        {" "}— {portfolio.scanned} SPL balances scanned, matched against tokens featured on ezpulse. SOL priced via Jupiter. No signature was requested; this connection cannot move funds.
+                        {" "}Cross-check anytime on <a href={`https://solscan.io/account/${wallet}`} target="_blank" rel="noopener noreferrer" className="font-semibold text-indigo-500 hover:text-indigo-700">Solscan ↗</a>.
                       </p>
                     </>
                   )}
