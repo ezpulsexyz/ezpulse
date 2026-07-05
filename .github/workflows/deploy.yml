@@ -32,8 +32,6 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       # SPA fallback: Pages serves 404.html for unknown paths
       - run: cp dist/index.html dist/404.html
-      # Custom domain (remove if serving from <user>.github.io/<repo>)
-      - run: echo "ezpulse.xyz" > dist/CNAME
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
