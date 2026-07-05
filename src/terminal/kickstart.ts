@@ -692,12 +692,67 @@ async function rpcCall(method: string, params: unknown[]): Promise<Rec | null> {
   return null;
 }
 
-/* ─── Solscan public API (public-api.solscan.io) ───
- * Tried first from the browser for SOL + token holdings; Cloudflare may gate
- * some origins, so every call falls back to direct Solana RPC. Whichever
- * source answers is surfaced in the UI (balanceSource).
+/* ─── Solscan (solscan.io) — primary balance source ───
+ * 1. Solscan Pro API v2 (pro-api.solscan.io) with an API key — the official,
+ *    reliable way to read balances from solscan.io. Key via VITE_SOLSCAN_API_KEY
+ *    (free tier available at solscan.io → API Management).
+ * 2. Solscan public API (public-api.solscan.io) — keyless attempt; Cloudflare
+ *    may gate some origins.
+ * 3. Direct Solana RPC — always-works fallback.
+ * Whichever source answers is surfaced in the UI (balanceSource).
  */
 export let balanceSource: "solscan" | "rpc" | null = null;
+
+const SOLSCAN_API_KEY = (import.meta.env?.VITE_SOLSCAN_API_KEY as string) || "";
+
+async function solscanProGet(path: string): Promise<Rec | null> {
+  if (!SOLSCAN_API_KEY) return null;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 8000);
+    const res = await fetch(`https://pro-api.solscan.io/v2.0${path}`, {
+      headers: { accept: "application/json", token: SOLSCAN_API_KEY },
+      signal: ctrl.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const data = (await res.json()) as Rec;
+    return data.success === false ? null : data;
+  } catch {
+    return null;
+  }
+}
+
+/** SOL balance via Solscan Pro /account/detail (lamports). */
+async function fetchSolBalanceSolscanPro(owner: string): Promise<number | null> {
+  const data = await solscanProGet(`/account/detail?address=${owner.trim()}`);
+  const d = (data?.data ?? data) as Rec | undefined;
+  const lamports = Number(d?.lamports ?? NaN);
+  return isFinite(lamports) && lamports >= 0 ? lamports / 1_000_000_000 : null;
+}
+
+/** Token holdings via Solscan Pro /account/token-accounts: mint → uiAmount. */
+async function fetchTokenBalancesSolscanPro(owner: string): Promise<Map<string, number> | null> {
+  const balances = new Map<string, number>();
+  let anyPage = false;
+  for (let page = 1; page <= 3; page++) { // up to 120 token accounts
+    const data = await solscanProGet(`/account/token-accounts?address=${owner.trim()}&type=token&page=${page}&page_size=40&hide_zero=true`);
+    const arr = Array.isArray(data?.data) ? (data!.data as Rec[]) : null;
+    if (!arr) break;
+    anyPage = true;
+    for (const t of arr) {
+      try {
+        const mint = String(t.token_address ?? t.tokenAddress ?? "");
+        const raw = Number(t.amount ?? NaN);
+        const decimals = Number(t.token_decimals ?? t.decimals ?? NaN);
+        const ui = isFinite(raw) && isFinite(decimals) ? raw / Math.pow(10, decimals) : Number(t.balance ?? NaN);
+        if (mint && isFinite(ui) && ui > 0) balances.set(mint, (balances.get(mint) ?? 0) + ui);
+      } catch { /* skip malformed entry */ }
+    }
+    if (arr.length < 40) break; // last page
+  }
+  return anyPage ? balances : null;
+}
 
 async function solscanGet(path: string): Promise<Rec | Rec[] | null> {
   try {
@@ -742,8 +797,10 @@ async function fetchTokenBalancesSolscan(owner: string): Promise<Map<string, num
   return balances;
 }
 
-/** Native SOL balance in SOL units — Solscan first, RPC fallback. */
+/** Native SOL balance in SOL units — Solscan Pro → Solscan public → RPC. */
 export async function fetchSolBalance(owner: string): Promise<number | null> {
+  const viaPro = await fetchSolBalanceSolscanPro(owner);
+  if (viaPro !== null) { balanceSource = "solscan"; return viaPro; }
   const viaSolscan = await fetchSolBalanceSolscan(owner);
   if (viaSolscan !== null) { balanceSource = "solscan"; return viaSolscan; }
   const result = await rpcCall("getBalance", [owner.trim(), { commitment: "confirmed" }]);
@@ -767,16 +824,23 @@ export async function fetchSolPrice(): Promise<number | null> {
   }
 }
 
-/** Fetch a wallet's raw SPL token balances: mint → uiAmount. Solscan first, RPC fallback. */
+/** Fetch a wallet's raw SPL token balances: mint → uiAmount. Solscan Pro → public → RPC. */
 async function fetchTokenBalances(owner: string): Promise<Map<string, number> | null> {
-  // 1 · Solscan public API (when reachable from this origin)
+  // 1 · Solscan Pro API (official, keyed — reads directly from solscan.io)
+  const viaPro = await fetchTokenBalancesSolscanPro(owner);
+  if (viaPro !== null) {
+    balanceSource = "solscan";
+    return viaPro;
+  }
+
+  // 2 · Solscan public API (keyless; may be origin-gated)
   const viaSolscan = await fetchTokenBalancesSolscan(owner);
   if (viaSolscan !== null && viaSolscan.size > 0) {
     balanceSource = "solscan";
     return viaSolscan;
   }
 
-  // 2 · Direct Solana RPC
+  // 3 · Direct Solana RPC
   const balances = new Map<string, number>();
   let anySuccess = false;
   for (const programId of [TOKEN_PROGRAM, TOKEN_2022_PROGRAM]) {
