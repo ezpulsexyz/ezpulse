@@ -632,7 +632,8 @@ export function saveAlertPrefs(p: AlertPrefs) {
 }
 
 /* ─── Read-only portfolio: watch any wallet, no signing ───
- * Balances come from Solana JSON-RPC getTokenAccountsByOwner (public, read-only).
+ * Balances prefer Solscan when a VITE_SOLSCAN_API_KEY is present, then fall back to
+ * Solana JSON-RPC getTokenAccountsByOwner (public, read-only).
  * Holdings are intersected with the live Kickstart feed and valued at live prices.
  */
 
@@ -659,6 +660,115 @@ export const KNOWN_WALLETS: { label: string; address: string; note: string }[] =
 
 const TOKEN_PROGRAM = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
 const TOKEN_2022_PROGRAM = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
+
+function getSolscanApiKey(): string | null {
+  const key = (import.meta.env?.VITE_SOLSCAN_API_KEY as string | undefined)?.trim();
+  return key ? key : null;
+}
+
+function coerceNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const parsed = Number(trimmed.replace(/,/g, ""));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function extractMint(record: Record<string, unknown>): string | null {
+  const candidates = [
+    record.tokenAddress,
+    record.mint,
+    record.address,
+    record.contract,
+    record.tokenMint,
+    record.token_address,
+    record.mint_address,
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim()) return candidate.trim();
+  }
+  return null;
+}
+
+function extractAmount(record: Record<string, unknown>): number | null {
+  const candidates = [
+    record.amount,
+    record.amountString,
+    record.uiAmount,
+    record.uiAmountString,
+    record.balance,
+    record.quantity,
+    record.tokenAmount,
+    record.token_amount,
+    record.value,
+  ];
+  for (const candidate of candidates) {
+    const parsed = coerceNumber(candidate);
+    if (parsed !== null && parsed > 0) return parsed;
+  }
+  return null;
+}
+
+function parseSolscanBalances(payload: unknown): Map<string, number> | null {
+  const balances = new Map<string, number>();
+  const stack: unknown[] = [payload];
+  while (stack.length > 0) {
+    const item = stack.pop();
+    if (Array.isArray(item)) {
+      stack.push(...item);
+      continue;
+    }
+    if (!item || typeof item !== "object") continue;
+
+    const record = item as Record<string, unknown>;
+    const mint = extractMint(record);
+    const amount = extractAmount(record);
+    if (mint && amount !== null) {
+      balances.set(mint, (balances.get(mint) ?? 0) + amount);
+    }
+
+    for (const value of Object.values(record)) stack.push(value);
+  }
+  return balances.size > 0 ? balances : null;
+}
+
+async function fetchTokenBalancesViaSolscan(owner: string): Promise<Map<string, number> | null> {
+  const key = getSolscanApiKey();
+  if (!key) return null;
+
+  const endpoints = [
+    "https://pro-api.solscan.io/v2.0/account/tokens",
+    "https://pro-api.solscan.io/v2.0/account/portfolio",
+    "https://pro-api.solscan.io/v2.0/account/summary",
+  ];
+
+  const headers: HeadersInit = {
+    accept: "application/json",
+    token: key,
+  };
+
+  for (const endpoint of endpoints) {
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 8000);
+      const url = new URL(endpoint);
+      url.searchParams.set("address", owner.trim());
+      const res = await fetch(url.toString(), { method: "GET", headers, signal: ctrl.signal });
+      clearTimeout(timer);
+      if (!res.ok) continue;
+      const payload = (await res.json()) as unknown;
+      const balances = parseSolscanBalances(payload);
+      if (balances) return balances;
+    } catch {
+      // Try the next endpoint if Solscan rejects or returns an unexpected schema.
+    }
+  }
+
+  return null;
+}
 
 export function isValidSolAddress(addr: string): boolean {
   return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr.trim());
@@ -878,7 +988,14 @@ export interface PortfolioResult {
  *  Includes native SOL balance. Verify any holding independently on solscan.io/account/{owner}. */
 export async function fetchPortfolio(owner: string, feed: LiveLaunch[]): Promise<PortfolioResult | null> {
   const [balances, solAmount, solPrice] = await Promise.all([
-    fetchTokenBalances(owner),
+    (async () => {
+      const key = getSolscanApiKey();
+      if (key) {
+        const viaSolscan = await fetchTokenBalancesViaSolscan(owner);
+        if (viaSolscan !== null) return viaSolscan;
+      }
+      return fetchTokenBalances(owner);
+    })(),
     fetchSolBalance(owner),
     fetchSolPrice(),
   ]);

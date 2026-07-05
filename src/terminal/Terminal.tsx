@@ -1495,7 +1495,7 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
                       </div>
                     </div>
                     {walletErr && <p className="mt-4 rounded-xl bg-red-50 px-4 py-2.5 text-[12px] text-red-600">{walletErr}</p>}
-                    <p className="mt-4 text-[11px] text-zinc-400">Balances are read via public Solana RPC. Only tokens featured on ezpulse (…EASY contracts) are shown.</p>
+                    <p className="mt-4 text-[11px] text-zinc-400">Balances prefer Solscan when configured and otherwise fall back to public Solana RPC. Only tokens featured on ezpulse (…EASY contracts) are shown.</p>
                   </div>
                 </div>
               ) : (
@@ -1531,7 +1531,7 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
                   {portfolio === "loading" && (
                     <Card pad>
                       <div className="flex items-center gap-3 text-[13px] text-zinc-500">
-                        <span className="term-blink h-2 w-2 rounded-full bg-indigo-500" /> Reading token balances from Solana RPC…
+                        <span className="term-blink h-2 w-2 rounded-full bg-indigo-500" /> Reading token balances from Solscan or Solana RPC…
                       </div>
                     </Card>
                   )}
