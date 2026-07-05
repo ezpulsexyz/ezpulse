@@ -1,6 +1,6 @@
 -- ezpulse · Supabase (Postgres) schema
 -- Frontend: GitHub Pages (static). Run this in the Supabase SQL editor,
--- then set VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY as GitHub Actions secrets.
+-- then set VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY as GitHub Actions secrets or local env values.
 
 -- ─── Device-synced watchlists (no accounts; anonymous device ids) ───
 create table if not exists public.watchlists (
