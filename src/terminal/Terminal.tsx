@@ -251,7 +251,7 @@ const LaunchCta = () => (
       className="rounded-full px-6 py-2.5 text-[12px] font-bold uppercase tracking-wide text-white" style={{ background: BLUE }}>
       Launch on Kickstart →
     </a>
-    <a href="https://t.me/+PYEPxw-L9n81NDA0" target="_blank" rel="noopener noreferrer"
+    <a href="https://t.me/+dye5SyxtRx1kYTll" target="_blank" rel="noopener noreferrer"
       className="rounded-full border border-zinc-200 bg-white px-6 py-2.5 text-[12px] font-bold uppercase tracking-wide text-zinc-600 transition hover:border-indigo-300 hover:text-indigo-700">
       ✈️ Join the chat
     </a>
