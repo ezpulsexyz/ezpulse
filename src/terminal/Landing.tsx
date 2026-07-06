@@ -59,9 +59,10 @@ const FEATURES: Feature[] = [
   // in progress
   { id: "alerts", title: "Alert delivery (email / Telegram)", body: "The bell, but off-site — watchlist alerts that reach your inbox even when ezpulse is closed.", status: "IN PROGRESS", area: "Tracking" },
   { id: "coverage", title: "Full Kickstart coverage", body: "Every bonded launch pinned as CAs are confirmed — targeting 100% of the board.", status: "IN PROGRESS", area: "Market" },
+  { id: "track-record", title: "🎯 Public signal track record", body: "Every signal archived to an append-only log and scored against the market 24h later. A hit-rate no one can fake retroactively.", status: "SHIPPED", area: "Signals", date: "Live" },
+  { id: "history", title: "Proprietary price history", body: "ezpulse snapshots every token every 15 min — historical charts for Kickstart micro-caps that exist nowhere else.", status: "SHIPPED", area: "Research", date: "Live" },
   // planned
   { id: "upcoming", title: "Upcoming-launches feed", body: "Pre-launch tracking the moment Kickstart exposes an announcements feed.", status: "PLANNED", area: "Market" },
-  { id: "track-record", title: "Public signal track record", body: "Every signal we fire, archived with outcomes — accountability as a feature.", status: "PLANNED", area: "Signals" },
   { id: "holders", title: "Holder & wallet-flow analytics", body: "Holder counts, concentration, smart-wallet inflows per token.", status: "PLANNED", area: "Research" },
   { id: "pnl", title: "Portfolio P&L history", body: "Cost-basis tracking and historical performance for watched wallets.", status: "PLANNED", area: "Portfolio" },
   // exploring
@@ -216,7 +217,7 @@ export default function Landing({ onOpenApp }: { onOpenApp: (t?: TerminalTarget)
           <header className="mx-auto max-w-6xl px-6 pb-20 pt-20 text-center md:pt-28">
             <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50/60 px-4 py-1.5 text-[12px] font-bold" style={{ color: BLUE }}>
               <span className="term-blink h-1.5 w-1.5 rounded-full bg-red-500" />
-              {feed === "loading" ? "Connecting to the live market…" : `CA 5d9VvLtAZQWtyL9EZ3cHWpgdfyeWetwYuiG6746EASY`}
+              {feed === "loading" ? "Connecting to the live market…" : `${coins.length} Kickstart tokens live · ${liveMcap > 0 ? fmtUsd(liveMcap) : "$—"} market cap`}
             </div>
             <h1 className="mx-auto max-w-3xl text-5xl font-semibold leading-[1.06] tracking-tight md:text-6xl">
               The Bloomberg Terminal for <span className="relative whitespace-nowrap">startup tokens<svg className="absolute -bottom-2 left-0 w-full" height="10" viewBox="0 0 300 10" preserveAspectRatio="none"><path d="M0 7 h95 l12 -5 l18 7 l14 -6 l8 3 H300" fill="none" stroke={BLUE} strokeWidth="2.5" strokeLinecap="round" opacity=".85" /></svg></span>
@@ -508,7 +509,7 @@ export default function Landing({ onOpenApp }: { onOpenApp: (t?: TerminalTarget)
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white transition hover:border-indigo-300">
                   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-zinc-500"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                 </a>
-                <a href="https://t.me/+dye5SyxtRx1kYTll" target="_blank" rel="noopener noreferrer" title="Telegram — community"
+                <a href="https://t.me/+PYEPxw-L9n81NDA0" target="_blank" rel="noopener noreferrer" title="Telegram — Kickstart community"
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-[13px] text-zinc-500 transition hover:border-indigo-300 hover:text-indigo-600">✈️</a>
                 <a href="https://kickstart.easya.io" target="_blank" rel="noopener noreferrer" title="EasyA Kickstart"
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-[11px] font-black text-zinc-500 transition hover:border-indigo-300 hover:text-indigo-600">K</a>

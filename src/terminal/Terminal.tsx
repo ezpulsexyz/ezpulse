@@ -2,7 +2,80 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { fmtUsd } from "./data";
 import { BLUE, Card, Delta, Stat } from "./components";
 import { Logo } from "./brand";
-import { syncWatchlist, pullWalletWatchlist } from "./backend";
+import {
+  syncWatchlist, pullWalletWatchlist, fetchPriceHistory, fetchSignalAccuracy, fetchResolvedSignals, backendReady,
+  type PricePoint, type AccuracyRow, type ResolvedSignal,
+} from "./backend";
+
+/** ezpulse-recorded price history chart (from Supabase snapshots). */
+function HistoryChart({ ca }: { ca: string }) {
+  const [range, setRange] = useState<24 | 168>(168);
+  const [points, setPoints] = useState<PricePoint[] | null | "loading">("loading");
+  useEffect(() => {
+    let alive = true;
+    setPoints("loading");
+    fetchPriceHistory(ca, range).then((p) => { if (alive) setPoints(p); });
+    return () => { alive = false; };
+  }, [ca, range]);
+
+  return (
+    <Card title="Price history · recorded by ezpulse" right={
+      <span className="flex gap-1">
+        {([[24, "24h"], [168, "7d"]] as [24 | 168, string][]).map(([h, label]) => (
+          <button key={h} onClick={() => setRange(h)}
+            className={`rounded-full px-2.5 py-1 text-[10px] font-bold transition ${range === h ? "text-white" : "bg-zinc-100 text-zinc-500 hover:text-zinc-800"}`}
+            style={range === h ? { background: BLUE } : undefined}>
+            {label}
+          </button>
+        ))}
+      </span>
+    }>
+      {points === "loading" && <div className="px-5 py-8 text-center text-[12px] text-zinc-400">Loading history…</div>}
+      {points === null && (
+        <div className="px-5 py-6 text-center">
+          <p className="text-[12.5px] text-zinc-500">
+            {backendReady
+              ? "History recording has just begun — the chart appears after a few snapshots (every 15 min)."
+              : "ezpulse records its own price history every 15 minutes — charts appear once the backend is connected."}
+          </p>
+          <p className="mt-1 text-[10px] text-zinc-400">Proprietary snapshots — this data exists nowhere else for Kickstart micro-caps.</p>
+        </div>
+      )}
+      {Array.isArray(points) && (() => {
+        const W = 800, H = 180;
+        const min = Math.min(...points.map((p) => p.price));
+        const max = Math.max(...points.map((p) => p.price));
+        const rng = max - min || 1;
+        const t0 = points[0].ts, t1 = points[points.length - 1].ts, tr = t1 - t0 || 1;
+        const pts = points.map((p) => [((p.ts - t0) / tr) * W, H - ((p.price - min) / rng) * (H - 30) - 15]);
+        const path = pts.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
+        const up = points[points.length - 1].price >= points[0].price;
+        const col = up ? "#10b981" : "#ef4444";
+        const chg = ((points[points.length - 1].price - points[0].price) / points[0].price) * 100;
+        return (
+          <div className="px-3 py-3">
+            <div className="flex items-baseline justify-between px-2">
+              <span className="text-[12px] text-zinc-400">{points.length} snapshots · every 15 min</span>
+              <span className={`text-[13px] font-bold tabular-nums ${up ? "text-emerald-600" : "text-red-500"}`}>{chg >= 0 ? "+" : ""}{chg.toFixed(1)}% over {range === 24 ? "24h" : "7d"}</span>
+            </div>
+            <svg viewBox={`0 0 ${W} ${H}`} className="mt-1 w-full">
+              <defs>
+                <linearGradient id={`hg-${ca.slice(0, 6)}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={col} stopOpacity=".15" />
+                  <stop offset="100%" stopColor={col} stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              {[0.25, 0.5, 0.75].map((f) => <line key={f} x1="0" x2={W} y1={H * f} y2={H * f} stroke="#f1f1f4" />)}
+              <path d={`${path} L${W},${H} L0,${H} Z`} fill={`url(#hg-${ca.slice(0, 6)})`} />
+              <path d={path} fill="none" stroke={col} strokeWidth="2" />
+              <circle cx={pts[pts.length - 1][0]} cy={pts[pts.length - 1][1]} r="4" fill={col} stroke="#fff" strokeWidth="2" />
+            </svg>
+          </div>
+        );
+      })()}
+    </Card>
+  );
+}
 
 /* ─── Watchlist notifications ─── */
 interface Notif { key: string; icon: string; strength: "BULLISH" | "BEARISH" | "NEUTRAL"; title: string; detail: string; token: LiveLaunch }
@@ -65,6 +138,112 @@ import {
   type LiveLaunch, type AlertPrefs, type PortfolioResult,
 } from "./kickstart";
 
+/** Public signal track record — accuracy no competitor can fake retroactively. */
+function TrackRecord({ onOpen }: { onOpen: (ca: string) => void }) {
+  const [acc, setAcc] = useState<AccuracyRow[] | null | "loading">("loading");
+  const [recent, setRecent] = useState<ResolvedSignal[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetchSignalAccuracy().then((a) => { if (alive) setAcc(a); });
+    fetchResolvedSignals().then((r) => { if (alive) setRecent(r); });
+    return () => { alive = false; };
+  }, []);
+
+  const totals = Array.isArray(acc)
+    ? acc.reduce((s, r) => ({ total: s.total + r.total, hits: s.hits + r.hits }), { total: 0, hits: 0 })
+    : null;
+  const KIND_ICON: Record<string, string> = { WHALE: "🐋", MOMENTUM: "📈", VOLUME: "🔊", LIQUIDITY: "💧", RANK: "👑", LAUNCH: "🚀" };
+
+  return (
+    <>
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900">Track Record</h1>
+          <p className="mt-0.5 text-[13px] text-zinc-500">Every signal we fire is archived and scored against the market 24h later — publicly, permanently.</p>
+        </div>
+        <span className="rounded-full bg-indigo-50 px-3 py-1.5 text-[11px] font-semibold text-indigo-700">🎯 Auto-resolved · no retroactive edits</span>
+      </div>
+
+      {acc === "loading" && <Card><div className="px-5 py-10 text-center text-[13px] text-zinc-400">Loading track record…</div></Card>}
+
+      {acc === null && (
+        <EmptyState icon="🎯" title="The record starts now"
+          body={backendReady
+            ? "Signal archiving has just begun. Every signal fires into a permanent log and resolves against the market 24 hours later — the first scored results appear within a day."
+            : "Once the backend is connected, every signal is archived and scored against the market 24h later. A public hit-rate no one can fake — accountability as a feature."}
+          cta={<span className="text-[11px] text-zinc-400">Recording via the ezpulse snapshot pipeline · every 15 min</span>} />
+      )}
+
+      {Array.isArray(acc) && totals && (
+        <>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div className="rounded-2xl px-5 py-4 text-white shadow-lg shadow-indigo-600/20" style={{ background: `linear-gradient(135deg, ${BLUE}, #4f2ff0)` }}>
+              <div className="text-[11px] font-semibold uppercase tracking-widest text-white/60">Overall hit rate</div>
+              <div className="mt-1 font-display text-3xl font-semibold tabular-nums">{totals.total ? `${((totals.hits / totals.total) * 100).toFixed(0)}%` : "—"}</div>
+              <div className="mt-0.5 text-[11px] text-white/60">{totals.hits}/{totals.total} signals correct at +24h</div>
+            </div>
+            <Stat label="Signals scored" value={String(totals.total)} sub="resolved against live prices" />
+            <Stat label="Best category" value={(() => {
+              const best = [...acc].filter((r) => r.total >= 3).sort((a, b) => b.hits / b.total - a.hits / a.total)[0];
+              return best ? `${KIND_ICON[best.kind] ?? ""} ${best.kind}` : "—";
+            })()} sub="min. 3 resolved signals" />
+            <Stat label="Methodology" value="+24h" sub="BULLISH hit = price up · BEARISH hit = price down" />
+          </div>
+
+          <Card className="mt-4" title="Accuracy by signal type">
+            <div className="hidden items-center gap-3 border-b border-zinc-100 px-5 py-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-400 sm:flex">
+              <span className="flex-1">Signal</span>
+              <span className="w-20 text-right">Scored</span>
+              <span className="w-20 text-right">Hit rate</span>
+              <span className="w-24 text-right">Avg 24h move</span>
+              <span className="w-32 text-right" />
+            </div>
+            {[...acc].sort((a, b) => b.total - a.total).map((r) => {
+              const rate = r.total ? r.hits / r.total : 0;
+              return (
+                <div key={`${r.kind}-${r.strength}`} className="flex flex-wrap items-center gap-3 border-b border-zinc-50 px-5 py-3 last:border-0">
+                  <span className="flex flex-1 items-center gap-2 text-[13px] font-semibold text-zinc-900">
+                    {KIND_ICON[r.kind] ?? "•"} {r.kind}
+                    <span className={`rounded-full px-1.5 py-0.5 text-[8px] font-black tracking-widest text-white ${r.strength === "BULLISH" ? "bg-emerald-600" : "bg-red-500"}`}>{r.strength}</span>
+                  </span>
+                  <span className="w-20 text-right text-[12px] tabular-nums text-zinc-500">{r.total}</span>
+                  <span className={`w-20 text-right text-[13px] font-bold tabular-nums ${rate >= 0.5 ? "text-emerald-600" : "text-red-500"}`}>{(rate * 100).toFixed(0)}%</span>
+                  <span className={`w-24 text-right text-[12px] tabular-nums ${r.avg_change_24h >= 0 ? "text-emerald-600" : "text-red-500"}`}>{r.avg_change_24h >= 0 ? "+" : ""}{r.avg_change_24h}%</span>
+                  <span className="hidden w-32 sm:block">
+                    <span className="block h-1.5 overflow-hidden rounded-full bg-zinc-100">
+                      <span className={`block h-full rounded-full ${rate >= 0.5 ? "bg-emerald-500" : "bg-red-400"}`} style={{ width: `${rate * 100}%` }} />
+                    </span>
+                  </span>
+                </div>
+              );
+            })}
+          </Card>
+
+          {recent && recent.length > 0 && (
+            <Card className="mt-4" title="Recently resolved" right={<span className="text-[11px] text-zinc-400">newest first</span>}>
+              {recent.map((r, i) => (
+                <button key={i} onClick={() => onOpen(r.ca)} className="flex w-full flex-wrap items-center gap-2.5 border-b border-zinc-50 px-5 py-3 text-left last:border-0 hover:bg-indigo-50/40">
+                  <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] ${r.hit ? "bg-emerald-50" : "bg-red-50"}`}>{r.hit ? "✓" : "✗"}</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] font-semibold text-zinc-900">{r.title}</span>
+                    <span className="text-[11px] text-zinc-400">${r.symbol} · {new Date(r.ts).toLocaleDateString()} · called {r.strength.toLowerCase()}</span>
+                  </span>
+                  <span className={`text-[13px] font-bold tabular-nums ${r.change_24h >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                    {r.change_24h >= 0 ? "+" : ""}{r.change_24h.toFixed(1)}% <span className="text-[10px] font-normal text-zinc-400">24h after</span>
+                  </span>
+                </button>
+              ))}
+            </Card>
+          )}
+          <p className="mt-3 text-[11px] text-zinc-400">
+            Signals fire automatically from live data and are written to an append-only log before outcomes are known. Hit = direction called correctly at +24h. Not investment advice.
+          </p>
+        </>
+      )}
+    </>
+  );
+}
+
 /** Small hint shown when the Phantom extension isn't detected. */
 function PhantomHint({ compact = false }: { compact?: boolean }) {
   return (
@@ -103,7 +282,7 @@ function CurveBadge({ c }: { c: LiveLaunch }) {
   );
 }
 
-type Section = "market" | "projects" | "signals" | "watchlist" | "portfolio" | "smart" | "indexes" | "thesis";
+type Section = "market" | "projects" | "signals" | "record" | "watchlist" | "portfolio" | "smart" | "indexes" | "thesis";
 type MarketTab = "ALL" | "TRENDING" | "VERIFIED" | "BONDED" | "BONDING" | "UPCOMING";
 
 /* Navigation mirrors the investment workflow: Discover → Research → Track → Invest */
@@ -115,6 +294,7 @@ const NAV_GROUPS: { workflow: string; items: { id: Section; icon: string; label:
   ]},
   { workflow: "Track", items: [
     { id: "signals", icon: "⚡", label: "Signals" },
+    { id: "record", icon: "🎯", label: "Track Record" },
     { id: "watchlist", icon: "★", label: "Watchlist" },
   ]},
   { workflow: "Invest", items: [
@@ -251,7 +431,7 @@ const LaunchCta = () => (
       className="rounded-full px-6 py-2.5 text-[12px] font-bold uppercase tracking-wide text-white" style={{ background: BLUE }}>
       Launch on Kickstart →
     </a>
-    <a href="https://t.me/+dye5SyxtRx1kYTll" target="_blank" rel="noopener noreferrer"
+    <a href="https://t.me/+PYEPxw-L9n81NDA0" target="_blank" rel="noopener noreferrer"
       className="rounded-full border border-zinc-200 bg-white px-6 py-2.5 text-[12px] font-bold uppercase tracking-wide text-zinc-600 transition hover:border-indigo-300 hover:text-indigo-700">
       ✈️ Join the chat
     </a>
@@ -1007,6 +1187,9 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
                         />
                       </Card>
 
+                      {/* ezpulse-recorded history — the data moat */}
+                      <HistoryChart ca={selected.ca} />
+
                       {/* AI INSIGHTS — under the chart */}
                       <Card title="✨ AI Insights · live" right={
                         <span className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-500">
@@ -1190,6 +1373,9 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
               )}
             </>
           )}
+
+          {/* ═══ TRACK RECORD ═══ */}
+          {section === "record" && <TrackRecord onOpen={(ca) => { const c = feed.find((x) => x.ca === ca); if (c) openToken(c); }} />}
 
           {/* ═══ INVESTOR THESIS (coming soon) ═══ */}
           {section === "thesis" && (
@@ -1495,7 +1681,7 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
                       </div>
                     </div>
                     {walletErr && <p className="mt-4 rounded-xl bg-red-50 px-4 py-2.5 text-[12px] text-red-600">{walletErr}</p>}
-                    <p className="mt-4 text-[11px] text-zinc-400">Balances prefer Solscan when configured and otherwise fall back to public Solana RPC. Only tokens featured on ezpulse (…EASY contracts) are shown.</p>
+                    <p className="mt-4 text-[11px] text-zinc-400">Balances are read via public Solana RPC. Only tokens featured on ezpulse (…EASY contracts) are shown.</p>
                   </div>
                 </div>
               ) : (
@@ -1531,7 +1717,7 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
                   {portfolio === "loading" && (
                     <Card pad>
                       <div className="flex items-center gap-3 text-[13px] text-zinc-500">
-                        <span className="term-blink h-2 w-2 rounded-full bg-indigo-500" /> Reading token balances from Solscan or Solana RPC…
+                        <span className="term-blink h-2 w-2 rounded-full bg-indigo-500" /> Reading token balances from Solana RPC…
                       </div>
                     </Card>
                   )}
