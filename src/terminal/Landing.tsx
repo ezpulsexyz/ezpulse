@@ -216,7 +216,7 @@ export default function Landing({ onOpenApp }: { onOpenApp: (t?: TerminalTarget)
           <header className="mx-auto max-w-6xl px-6 pb-20 pt-20 text-center md:pt-28">
             <div className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50/60 px-4 py-1.5 text-[12px] font-bold" style={{ color: BLUE }}>
               <span className="term-blink h-1.5 w-1.5 rounded-full bg-red-500" />
-              {feed === "loading" ? "Connecting to the live market…" : `${coins.length} Kickstart tokens live · ${liveMcap > 0 ? fmtUsd(liveMcap) : "$—"} market cap`}
+              {feed === "loading" ? "Connecting to the live market…" : `CA 5d9VvLtAZQWtyL9EZ3cHWpgdfyeWetwYuiG6746EASY`}
             </div>
             <h1 className="mx-auto max-w-3xl text-5xl font-semibold leading-[1.06] tracking-tight md:text-6xl">
               The Bloomberg Terminal for <span className="relative whitespace-nowrap">startup tokens<svg className="absolute -bottom-2 left-0 w-full" height="10" viewBox="0 0 300 10" preserveAspectRatio="none"><path d="M0 7 h95 l12 -5 l18 7 l14 -6 l8 3 H300" fill="none" stroke={BLUE} strokeWidth="2.5" strokeLinecap="round" opacity=".85" /></svg></span>

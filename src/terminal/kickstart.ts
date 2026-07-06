@@ -219,6 +219,7 @@ export const TRACKED_CAS: string[] = [
   "iu3A7azWTm3zQSk81SUC1JctB4zPYnxLmcmqq71EASY",  // BIT AGENTS $BITAGENTS — verified (Kickstart page on-chain)
   "6gnvghh8LKoM59p1WZSuTgYmdJrnZnhU7BzCcEaEASY",  // Switch Board $SWCH — bonded
   "EhkrQGCnGfVSJc118G1r1S9pxdFdPWJuSyz1iYKEASY",  // SCOUT AI $SCOUT — bonded
+  "5d9VvLtAZQWtyL9EZ3cHWpgdfyeWetwYuiG6746EASY",  // Requested project — tracked in terminal
   "9ufM9TJd1UEmi9awnGfxCkCHAgQ3JZ5Sw6YxeSeEASY",  // Inferra $INFERRA — bonded
   "VtZmMdFowJcaXAqaW951RVuH84WeLTQxfs83XZWEASY", // EZ Screener $EZSCREENER — …EASY suffix
   "y4JiNFzBPofqiCpuDTcVq11nhUDQoDzeK1UBCoXxF9y",  // Covenant Foundation $CVT
