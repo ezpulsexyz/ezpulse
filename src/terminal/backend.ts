@@ -89,6 +89,48 @@ export async function fetchVoteCounts(): Promise<Record<string, number> | null> 
   }
 }
 
+/* ─── Price history & signal track record (read-only; written by the snapshot cron) ─── */
+export interface PricePoint { ts: number; price: number; mcap: number }
+export async function fetchPriceHistory(ca: string, hours = 168): Promise<PricePoint[] | null> {
+  if (!supabase) return null;
+  try {
+    const since = new Date(Date.now() - hours * 3600_000).toISOString();
+    const { data } = await supabase.from("price_snapshots")
+      .select("ts, price_usd, mcap")
+      .eq("ca", ca).gte("ts", since)
+      .order("ts", { ascending: true }).limit(1000);
+    if (!Array.isArray(data) || data.length < 2) return null;
+    return data.map((r) => ({ ts: Date.parse(String(r.ts)), price: Number(r.price_usd), mcap: Number(r.mcap) }));
+  } catch {
+    return null;
+  }
+}
+
+export interface AccuracyRow { kind: string; strength: string; total: number; hits: number; avg_change_24h: number }
+export async function fetchSignalAccuracy(): Promise<AccuracyRow[] | null> {
+  if (!supabase) return null;
+  try {
+    const { data } = await supabase.from("signal_accuracy").select("*");
+    return Array.isArray(data) && data.length ? (data as AccuracyRow[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+export interface ResolvedSignal { ca: string; symbol: string; kind: string; strength: string; title: string; ts: string; change_24h: number; hit: boolean }
+export async function fetchResolvedSignals(limit = 30): Promise<ResolvedSignal[] | null> {
+  if (!supabase) return null;
+  try {
+    const { data } = await supabase.from("signal_events")
+      .select("ca, symbol, kind, strength, title, ts, change_24h, hit")
+      .eq("resolved", true)
+      .order("ts", { ascending: false }).limit(limit);
+    return Array.isArray(data) && data.length ? (data as ResolvedSignal[]) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Optional email capture for alert delivery (Track pillar). */
 export async function subscribeAlerts(email: string, cas: string[]): Promise<boolean> {
   if (!supabase) return false;
