@@ -46,6 +46,21 @@ npm run build   # single-file dist/index.html
 
 **Stack:** React + TypeScript + Vite + Tailwind. Deploys to GitHub Pages via `.github/workflows/deploy.yml`. Optional Supabase backend (watchlist sync, feature votes) via `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` secrets — see `supabase/ezpulse-schema.sql`. For local development, copy `.env.example` to `.env.local` and fill in your values. For GitHub Pages, set the same names as repository secrets in the Actions settings. Without them, the app runs fully local.
 
+## Activate the snapshot pipeline
+
+1. Run the updated schema in the Supabase SQL editor.
+2. Deploy the Edge Function:
+   ```bash
+   supabase functions deploy snapshot --no-verify-jwt
+   ```
+3. Add the cron schedule in the SQL editor:
+   ```sql
+   select cron.schedule('ezpulse-snapshot', '*/15 * * * *',
+     $$ select net.http_post(
+          url    := 'https://<PROJECT>.supabase.co/functions/v1/snapshot',
+          headers:= '{"Authorization": "Bearer <ANON_KEY>"}'::jsonb ) $$);
+   ```
+
 ## Disclaimer
 
 ezpulse is an independent analytics platform, not affiliated with EasyA. Nothing here is investment advice. Idea-coins are highly speculative — always verify the `…EASY` contract suffix and DYOR.
