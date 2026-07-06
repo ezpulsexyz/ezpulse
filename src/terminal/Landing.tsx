@@ -508,7 +508,7 @@ export default function Landing({ onOpenApp }: { onOpenApp: (t?: TerminalTarget)
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white transition hover:border-indigo-300">
                   <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 fill-zinc-500"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
                 </a>
-                <a href="https://t.me/+PYEPxw-L9n81NDA0" target="_blank" rel="noopener noreferrer" title="Telegram — Kickstart community"
+                <a href="https://t.me/+dye5SyxtRx1kYTll" target="_blank" rel="noopener noreferrer" title="Telegram — community"
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-[13px] text-zinc-500 transition hover:border-indigo-300 hover:text-indigo-600">✈️</a>
                 <a href="https://kickstart.easya.io" target="_blank" rel="noopener noreferrer" title="EasyA Kickstart"
                   className="flex h-8 w-8 items-center justify-center rounded-lg border border-zinc-200 bg-white text-[11px] font-black text-zinc-500 transition hover:border-indigo-300 hover:text-indigo-600">K</a>
