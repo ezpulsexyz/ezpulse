@@ -8,7 +8,9 @@ const MARKET_TABS = new Set<MarketTab>(["ALL", "TRENDING", "VERIFIED", "BONDED",
 
 /** App base path (`` at ezpulse.xyz root, `/ezpulse` on project Pages without custom domain). */
 export function appBase(): string {
-  const base = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+  let base = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
+  // vite-plugin-singlefile sets BASE_URL to "./" — treat as site root, not a path prefix.
+  if (base === "." || base === "./") base = "";
   return base;
 }
 
