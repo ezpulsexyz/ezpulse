@@ -5,7 +5,6 @@ import {
   isGraduated,
   kickstartUrl,
   type LiveLaunch,
-  type PortfolioResult,
 } from "../../kickstart";
 import type { Section } from "../types";
 import { FounderTerminal } from "../components/FounderTerminal";
@@ -25,8 +24,6 @@ export interface ProjectDetailProps {
   copyCa: (ca: string) => void;
   copiedCa: string | null;
   onOpenToken: (c: LiveLaunch) => void;
-  wallet: string | null;
-  portfolio: PortfolioResult | null | "loading";
   goto: (s: Section) => void;
 }
 
@@ -40,8 +37,6 @@ export default function ProjectDetail({
   copyCa,
   copiedCa,
   onOpenToken,
-  wallet,
-  portfolio,
   goto,
 }: ProjectDetailProps) {
   const [projTab, setProjTab] = useState<ProjTab>("overview");
@@ -207,8 +202,6 @@ export default function ProjectDetail({
           <OverviewTab
             token={token}
             feed={feed}
-            wallet={wallet}
-            portfolio={portfolio}
             goto={goto}
             openToken={onOpenToken}
             onViewSignals={() => setProjTab("signals")}

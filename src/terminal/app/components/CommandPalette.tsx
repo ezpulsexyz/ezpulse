@@ -127,12 +127,12 @@ export function CommandPalette() {
       },
       {
         id: "qa-portfolio",
-        label: "Watch a wallet",
-        hint: "Paste any Solana address",
+        label: "Open portfolio",
+        hint: "Connect Phantom · your holdings",
         icon: "💼",
         group: "Quick actions",
         run: () => { goto("portfolio"); close(); },
-        keywords: "portfolio wallet holdings phantom balance",
+        keywords: "portfolio wallet holdings phantom balance connect",
       },
       phantom
         ? {

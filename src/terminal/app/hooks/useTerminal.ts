@@ -3,13 +3,17 @@ import { syncWatchlist, pullWalletWatchlist } from "../../backend";
 import {
   fetchLiveFeed, isGraduated, verifiedOf, bondedOf, trendingOf, tokenNote, tokenSignals,
   loadWatchlist, saveWatchlist, loadAlertPrefs, saveAlertPrefs,
-  fetchPortfolio, revaluePortfolioFromFeed, fetchSolPrice, connectPhantomReadOnly, isValidSolAddress, isPhantomAvailable,
+  fetchConnectedWalletPortfolio, revaluePortfolioFromFeed, fetchSolPrice, isPhantomAvailable,
   type LiveLaunch, type AlertPrefs, type PortfolioResult,
 } from "../../kickstart";
+import { useWallet } from "../../hooks/useWallet";
 import { loadSeenNotifs, saveSeenNotifs } from "../notifs";
 import type { Notif, Section, MarketTab, TerminalTarget } from "../types";
 
 export function useTerminal(target?: TerminalTarget) {
+  const { wallet: connectedWallet, connecting, connect, disconnect } = useWallet();
+  const phantom = connectedWallet;
+
   const [section, setSection] = useState<Section>(target?.section ?? "market");
   const [marketTab, setMarketTab] = useState<MarketTab>(target?.marketTab ?? "ALL");
   const [selected, setSelected] = useState<LiveLaunch | null>(null);
@@ -19,11 +23,8 @@ export function useTerminal(target?: TerminalTarget) {
   const [copiedCa, setCopiedCa] = useState<string | null>(null);
   const [watchlist, setWatchlist] = useState<string[]>(() => loadWatchlist());
   const [alerts, setAlerts] = useState<AlertPrefs>(() => loadAlertPrefs());
-  const [wallet, setWallet] = useState<string | null>(null);
-  const [addrInput, setAddrInput] = useState("");
   const [walletErr, setWalletErr] = useState<string | null>(null);
   const [portfolio, setPortfolio] = useState<PortfolioResult | null | "loading">(null);
-  const [phantom, setPhantom] = useState<string | null>(() => { try { return localStorage.getItem("ezpulse:phantom"); } catch { return null; } });
   const [notifOpen, setNotifOpen] = useState(false);
   const [seenNotifs, setSeenNotifs] = useState<string[]>(() => loadSeenNotifs());
   const [shareToken, setShareToken] = useState<LiveLaunch | null>(null);
@@ -46,18 +47,32 @@ export function useTerminal(target?: TerminalTarget) {
 
   const [phantomMissing, setPhantomMissing] = useState(false);
 
-  /* Phantom sign-in: read-only connect, restores wallet-keyed watchlist, powers Portfolio */
+  const loadPortfolio = useCallback(async (addr: string, feedOverride?: LiveLaunch[]) => {
+    setWalletErr(null);
+    setPortfolio("loading");
+    let fd = feedOverride ?? (Array.isArray(liveFeed) ? liveFeed : []);
+    if (!feedOverride && liveFeed === "loading") {
+      const fresh = await fetchLiveFeed();
+      fd = fresh ? fresh.launches : [];
+      if (fresh) setLiveFeed(fresh.launches);
+    }
+    const p = await fetchConnectedWalletPortfolio(addr, fd);
+    setPortfolio(p);
+    if (p === null) setWalletErr("Couldn't read balances — try again in a moment.");
+  }, [liveFeed]);
+
   const signInPhantom = async () => {
     if (!isPhantomAvailable()) {
       setPhantomMissing(true);
       setTimeout(() => setPhantomMissing(false), 6000);
       return;
     }
-    const addr = await connectPhantomReadOnly();
-    if (!addr) { setWalletErr("Connection declined in Phantom — try again."); return; }
-    setPhantom(addr);
-    try { localStorage.setItem("ezpulse:phantom", addr); } catch { /* noop */ }
-    // restore cross-device watchlist if one exists under this wallet
+    const addr = await connect();
+    if (!addr) {
+      setWalletErr("Connection declined in Phantom — try again.");
+      return;
+    }
+    setWalletErr(null);
     const remote = await pullWalletWatchlist(addr);
     if (remote?.length) {
       const merged = [...new Set([...watchlist, ...remote])];
@@ -67,19 +82,15 @@ export function useTerminal(target?: TerminalTarget) {
     } else if (watchlist.length) {
       syncWatchlist(watchlist, addr);
     }
-    // auto-load portfolio for the signed-in wallet
-    watchWallet(addr);
+    await loadPortfolio(addr);
   };
 
   const signOutPhantom = () => {
-    // clear portfolio too if it was showing the signed-in wallet
-    setWallet((w) => (w === phantom ? null : w));
-    setPortfolio((p) => (wallet === phantom ? null : p));
-    setPhantom(null);
+    disconnect();
+    setPortfolio(null);
+    setWalletErr(null);
     setNotifOpen(false);
-    try { localStorage.removeItem("ezpulse:phantom"); } catch { /* noop */ }
   };
-
 
   const setAlert = (k: keyof AlertPrefs) => {
     setAlerts((a) => {
@@ -89,42 +100,49 @@ export function useTerminal(target?: TerminalTarget) {
     });
   };
 
-  const watchWallet = async (addr: string, feedOverride?: LiveLaunch[]) => {
-    const a = addr.trim();
-    if (!isValidSolAddress(a)) { setWalletErr("That doesn't look like a valid Solana address."); return; }
-    setWalletErr(null);
-    setWallet(a);
-    setPortfolio("loading");
-    // Wait for the live feed if it's still loading — otherwise holdings can never match.
-    let fd = feedOverride ?? (Array.isArray(liveFeed) ? liveFeed : []);
-    if (!feedOverride && liveFeed === "loading") {
-      const fresh = await fetchLiveFeed();
-      fd = fresh ? fresh.launches : [];
-      if (fresh) setLiveFeed(fresh.launches);
-    }
-    const p = await fetchPortfolio(a, fd);
-    setPortfolio(p);
-    if (p === null) setWalletErr("Couldn't reach a Solana RPC — try again in a moment.");
-  };
-
-  useEffect(() => { walletRef.current = wallet; }, [wallet]);
-
-  // Re-value holdings when the live feed updates (prices sync without re-scanning the wallet).
   useEffect(() => {
-    if (!wallet || !Array.isArray(liveFeed) || liveFeed.length === 0) return;
+    walletRef.current = connectedWallet;
+  }, [connectedWallet]);
+
+  useEffect(() => {
+    if (!connectedWallet) {
+      setPortfolio(null);
+      return;
+    }
+    let alive = true;
+    pullWalletWatchlist(connectedWallet).then((remote) => {
+      if (!alive || !remote?.length) return;
+      setWatchlist((wl) => {
+        const merged = [...new Set([...wl, ...remote])];
+        saveWatchlist(merged);
+        return merged;
+      });
+    });
+    void loadPortfolio(connectedWallet);
+    return () => {
+      alive = false;
+    };
+  }, [connectedWallet, loadPortfolio]);
+
+  useEffect(() => {
+    if (!connectedWallet || !Array.isArray(liveFeed) || liveFeed.length === 0) return;
     setPortfolio((current) => {
       if (!current || current === "loading" || !current.balanceSnapshot) return current;
       const next = revaluePortfolioFromFeed(current, liveFeed);
-      const changed = next.holdings.length !== current.holdings.length
+      const changed =
+        next.holdings.length !== current.holdings.length
         || Math.abs(next.totalUsd - current.totalUsd) > 0.001
-        || next.holdings.some((h, i) => h.coin.ca !== current.holdings[i]?.coin.ca || Math.abs(h.valueUsd - (current.holdings[i]?.valueUsd ?? 0)) > 0.001);
+        || next.holdings.some(
+          (h, i) =>
+            h.coin.ca !== current.holdings[i]?.coin.ca
+            || Math.abs(h.valueUsd - (current.holdings[i]?.valueUsd ?? 0)) > 0.001,
+        );
       return changed ? next : current;
     });
-  }, [liveFeed, wallet]);
+  }, [liveFeed, connectedWallet]);
 
-  // Keep SOL/USD mark fresh while a wallet is watched.
   useEffect(() => {
-    if (!wallet) return;
+    if (!connectedWallet) return;
     let alive = true;
     const refreshSol = () => {
       fetchSolPrice().then((price) => {
@@ -139,32 +157,11 @@ export function useTerminal(target?: TerminalTarget) {
     };
     refreshSol();
     const id = setInterval(refreshSol, 60_000);
-    return () => { alive = false; clearInterval(id); };
-  }, [wallet]);
-
-  const connectPhantom = async () => {
-    setWalletErr(null);
-    await signInPhantom(); // full sign-in: watchlist restore + portfolio load
-  };
-
-  const disconnectWallet = () => { setWallet(null); setPortfolio(null); setAddrInput(""); setWalletErr(null); };
-
-  // Restored Phantom session (page reload): re-pull wallet-keyed watchlist and auto-load portfolio.
-  useEffect(() => {
-    if (!phantom) return;
-    let alive = true;
-    pullWalletWatchlist(phantom).then((remote) => {
-      if (!alive || !remote?.length) return;
-      setWatchlist((wl) => {
-        const merged = [...new Set([...wl, ...remote])];
-        saveWatchlist(merged);
-        return merged;
-      });
-    });
-    if (!wallet) watchWallet(phantom); // portfolio follows the session
-    return () => { alive = false; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phantom]);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
+  }, [connectedWallet]);
 
   const [lastUpdated, setLastUpdated] = useState<number | null>(null);
   const [booted, setBooted] = useState(false);
@@ -172,32 +169,40 @@ export function useTerminal(target?: TerminalTarget) {
 
   useEffect(() => {
     let alive = true;
-    const load = () => fetchLiveFeed().then((feed) => {
-      if (!alive) return;
-      if (feed) {
-        setLiveFeed(feed.launches);
-        setLastUpdated(Date.now());
-        const w = walletRef.current;
-        if (w) {
-          setPortfolio((current) => {
-            if (!current || current === "loading" || !current.balanceSnapshot) return current;
-            return revaluePortfolioFromFeed(current, feed.launches);
-          });
-          balanceRefreshTick.current += 1;
-          if (balanceRefreshTick.current % 2 === 0) {
-            fetchPortfolio(w, feed.launches).then((p) => { if (alive && p) setPortfolio(p); });
+    const load = () =>
+      fetchLiveFeed().then((feed) => {
+        if (!alive) return;
+        if (feed) {
+          setLiveFeed(feed.launches);
+          setLastUpdated(Date.now());
+          const w = walletRef.current;
+          if (w) {
+            setPortfolio((current) => {
+              if (!current || current === "loading" || !current.balanceSnapshot) return current;
+              return revaluePortfolioFromFeed(current, feed.launches);
+            });
+            balanceRefreshTick.current += 1;
+            if (balanceRefreshTick.current % 2 === 0) {
+              fetchConnectedWalletPortfolio(w, feed.launches).then((p) => {
+                if (alive && p) setPortfolio(p);
+              });
+            }
           }
+        } else {
+          setLiveFeed((prev) => (Array.isArray(prev) ? prev : null));
         }
-      } else {
-        setLiveFeed((prev) => (Array.isArray(prev) ? prev : null));
-      }
-      setBooted(true); // fetch settled (success or not) — enter the terminal
-    });
+        setBooted(true);
+      });
     load();
-    const slowTimer = setTimeout(() => setBootSlow(true), 6000);   // offer escape hatch
-    const failTimer = setTimeout(() => setBooted(true), 15000);    // never trap the user
-    const timer = setInterval(load, 60_000); // auto-refresh every 60s
-    return () => { alive = false; clearInterval(timer); clearTimeout(slowTimer); clearTimeout(failTimer); };
+    const slowTimer = setTimeout(() => setBootSlow(true), 6000);
+    const failTimer = setTimeout(() => setBooted(true), 15000);
+    const timer = setInterval(load, 60_000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+      clearTimeout(slowTimer);
+      clearTimeout(failTimer);
+    };
   }, []);
 
   useEffect(() => {
@@ -212,7 +217,10 @@ export function useTerminal(target?: TerminalTarget) {
         searchRef.current?.focus();
       }
       if (e.key === "Escape") {
-        if (paletteOpen) { setPaletteOpen(false); return; }
+        if (paletteOpen) {
+          setPaletteOpen(false);
+          return;
+        }
         setSelected(null);
         setQuery("");
         setNotifOpen(false);
@@ -224,7 +232,11 @@ export function useTerminal(target?: TerminalTarget) {
   }, [paletteOpen]);
 
   const copyCa = async (ca: string) => {
-    try { await navigator.clipboard.writeText(ca); } catch { /* noop */ }
+    try {
+      await navigator.clipboard.writeText(ca);
+    } catch {
+      /* noop */
+    }
     setCopiedCa(ca);
     setTimeout(() => setCopiedCa(null), 1500);
   };
@@ -242,23 +254,38 @@ export function useTerminal(target?: TerminalTarget) {
   const totalMcap = feed.reduce((s, c) => s + c.mcap, 0);
   const totalVol = feed.reduce((s, c) => s + c.volume24h, 0);
 
-  /* Notifications: live signals firing on watched tokens */
   const notifs: Notif[] = useMemo(() => {
     if (!feed.length || !watchlist.length) return [];
     const out: Notif[] = [];
-    const day = new Date().toISOString().slice(0, 10); // re-notify daily per signal type
+    const day = new Date().toISOString().slice(0, 10);
     for (const c of feed.filter((x) => watchlist.includes(x.ca))) {
       for (const s of tokenSignals(c, feed)) {
         if (s.strength === "NEUTRAL") continue;
-        if (s.kind === "MOMENTUM" && Math.abs(c.change24h) < 10) continue; // alert prefs: ±10%
+        if (s.kind === "MOMENTUM" && Math.abs(c.change24h) < 10) continue;
         if (s.kind === "MOMENTUM" && !alerts.priceMove) continue;
         if (s.kind === "VOLUME" && !alerts.volumeSpike) continue;
         if (s.kind === "VERIFY" && !alerts.verification) continue;
         if (s.kind === "WHALE" && !alerts.whaleSignal) continue;
         out.push({
           key: `${c.ca}:${s.kind}:${s.strength}:${day}`,
-          icon: s.kind === "WHALE" ? "🐋" : s.kind === "MOMENTUM" ? (s.strength === "BULLISH" ? "📈" : "📉") : s.kind === "VOLUME" ? "🔊" : s.kind === "LIQUIDITY" ? "💧" : s.kind === "RANK" ? "👑" : "✓",
-          strength: s.strength, title: s.title, detail: s.detail, token: c,
+          icon:
+            s.kind === "WHALE"
+              ? "🐋"
+              : s.kind === "MOMENTUM"
+                ? s.strength === "BULLISH"
+                  ? "📈"
+                  : "📉"
+                : s.kind === "VOLUME"
+                  ? "🔊"
+                  : s.kind === "LIQUIDITY"
+                    ? "💧"
+                    : s.kind === "RANK"
+                      ? "👑"
+                      : "✓",
+          strength: s.strength,
+          title: s.title,
+          detail: s.detail,
+          token: c,
         });
       }
     }
@@ -297,23 +324,84 @@ export function useTerminal(target?: TerminalTarget) {
     }
   }, []);
 
-  const goto = (s: Section) => { setSection(s); setSelected(null); setMenuOpen(false); setQuery(""); setNotifOpen(false); window.scrollTo({ top: 0 }); };
-  const openToken = (c: LiveLaunch) => { setSelected(c); setSection("projects"); setMenuOpen(false); setQuery(""); window.scrollTo({ top: 0 }); };
+  const goto = (s: Section) => {
+    setSection(s);
+    setSelected(null);
+    setMenuOpen(false);
+    setQuery("");
+    setNotifOpen(false);
+    window.scrollTo({ top: 0 });
+  };
+  const openToken = (c: LiveLaunch) => {
+    setSelected(c);
+    setSection("projects");
+    setMenuOpen(false);
+    setQuery("");
+    window.scrollTo({ top: 0 });
+  };
 
   const note = selected ? tokenNote(selected, feed) : null;
   return {
-    section, setSection, marketTab, setMarketTab, selected, setSelected,
-    query, setQuery, menuOpen, setMenuOpen, liveFeed, setLiveFeed,
-    copiedCa, watchlist, alerts, wallet, addrInput, setAddrInput, walletErr,
-    portfolio, setPortfolio, phantom, notifOpen, setNotifOpen, seenNotifs,
-    shareToken, setShareToken, searchRef,
-    signinNudge, setSigninNudge, phantomMissing, paletteOpen, setPaletteOpen, lastUpdated,
-    booted, setBooted, bootSlow,
-    toggleWatch, signInPhantom, signOutPhantom, setAlert, watchWallet,
-    connectPhantom, disconnectWallet, copyCa, openNotifs,
-    feed, watchedCoins, loading, verified, bonded, bonding, trending, totalMcap, totalVol,
-    notifs, unseenCount, topMover, results, note,
-    goto, openToken, refreshFeed,
+    section,
+    setSection,
+    marketTab,
+    setMarketTab,
+    selected,
+    setSelected,
+    query,
+    setQuery,
+    menuOpen,
+    setMenuOpen,
+    liveFeed,
+    setLiveFeed,
+    copiedCa,
+    watchlist,
+    alerts,
+    wallet: connectedWallet,
+    walletConnecting: connecting,
+    walletErr,
+    portfolio,
+    setPortfolio,
+    phantom,
+    notifOpen,
+    setNotifOpen,
+    seenNotifs,
+    shareToken,
+    setShareToken,
+    searchRef,
+    signinNudge,
+    setSigninNudge,
+    phantomMissing,
+    paletteOpen,
+    setPaletteOpen,
+    lastUpdated,
+    booted,
+    setBooted,
+    bootSlow,
+    toggleWatch,
+    signInPhantom,
+    signOutPhantom,
+    setAlert,
+    loadPortfolio,
+    copyCa,
+    openNotifs,
+    feed,
+    watchedCoins,
+    loading,
+    verified,
+    bonded,
+    bonding,
+    trending,
+    totalMcap,
+    totalVol,
+    notifs,
+    unseenCount,
+    topMover,
+    results,
+    note,
+    goto,
+    openToken,
+    refreshFeed,
   };
 }
 

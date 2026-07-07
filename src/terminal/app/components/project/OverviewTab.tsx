@@ -8,26 +8,22 @@ import {
   tokenNote,
   tokenSignals,
   type LiveLaunch,
-  type PortfolioResult,
 } from "../../../kickstart";
 import { HistoryChart } from "../HistoryChart";
 import { ThesisGenerator } from "../ThesisGenerator";
+import { YourPositionCard } from "../YourPositionCard";
 import { PEER_GRID, TermNum, TermRowButton } from "../TermTable";
 import type { Section } from "../../types";
 
 export function OverviewTab({
   token,
   feed,
-  wallet,
-  portfolio,
   goto,
   openToken,
   onViewSignals,
 }: {
   token: LiveLaunch;
   feed: LiveLaunch[];
-  wallet: string | null;
-  portfolio: PortfolioResult | null | "loading";
   goto: (s: Section) => void;
   openToken: (c: LiveLaunch) => void;
   onViewSignals: () => void;
@@ -263,104 +259,7 @@ export function OverviewTab({
             })()}
           </Card>
 
-          <Card
-            title="💼 Your position"
-            right={
-              wallet ? (
-                <span className="flex items-center gap-1.5 font-mono text-[10px] text-zinc-400">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                  {wallet.slice(0, 4)}…{wallet.slice(-4)} · watch-only
-                </span>
-              ) : (
-                <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-                  No wallet watched
-                </span>
-              )
-            }
-          >
-            {!wallet && (
-              <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-                <p className="text-[13px] text-zinc-500">
-                  Watch a wallet to see your {`$${token.symbol}`} position here — read-only, no signatures.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => goto("portfolio")}
-                  className="rounded-full px-5 py-2 text-[11px] font-bold uppercase tracking-wide text-white"
-                  style={{ background: BLUE }}
-                >
-                  Watch a wallet →
-                </button>
-              </div>
-            )}
-            {wallet && portfolio === "loading" && (
-              <div className="flex items-center gap-3 px-5 py-4 text-[13px] text-zinc-500">
-                <span className="term-blink h-2 w-2 rounded-full bg-indigo-500" /> Reading balances…
-              </div>
-            )}
-            {wallet &&
-              portfolio &&
-              portfolio !== "loading" &&
-              (() => {
-                const pos = portfolio.holdings.find((h) => h.coin.ca === token.ca);
-                if (!pos) {
-                  return (
-                    <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-                      <p className="text-[13px] text-zinc-500">This wallet holds no ${token.symbol}.</p>
-                      <a
-                        href={token.links.dexscreener}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="rounded-full bg-zinc-900 px-5 py-2 text-[11px] font-bold uppercase tracking-wide text-white transition hover:-translate-y-px"
-                      >
-                        📊 Trade on DexScreener →
-                      </a>
-                    </div>
-                  );
-                }
-                const share = portfolio.totalUsd > 0 ? (pos.valueUsd / portfolio.totalUsd) * 100 : 0;
-                return (
-                  <div className="grid grid-cols-2 gap-px bg-zinc-100 sm:grid-cols-4">
-                    {[
-                      [
-                        "Balance",
-                        pos.amount >= 1_000_000
-                          ? `${(pos.amount / 1_000_000).toFixed(2)}M`
-                          : pos.amount >= 1000
-                            ? `${(pos.amount / 1000).toFixed(1)}K`
-                            : pos.amount.toFixed(2),
-                        `$${token.symbol}`,
-                      ],
-                      ["Value", pos.valueUsd >= 0.01 ? `$${pos.valueUsd.toFixed(2)}` : "<$0.01", "at live price"],
-                      [
-                        "24h move",
-                        `${token.change24h >= 0 ? "+" : ""}${token.change24h.toFixed(1)}%`,
-                        token.change24h >= 0 ? "▲ position up" : "▼ position down",
-                      ],
-                      ["Of portfolio", `${share.toFixed(0)}%`, "Kickstart value share"],
-                    ].map(([l, v, s]) => (
-                      <div key={l as string} className="bg-white px-5 py-4">
-                        <div className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">
-                          {l}
-                        </div>
-                        <div
-                          className={`mt-0.5 font-display text-lg font-semibold tabular-nums ${
-                            l === "24h move"
-                              ? token.change24h >= 0
-                                ? "text-emerald-600"
-                                : "text-red-500"
-                              : "text-zinc-900"
-                          }`}
-                        >
-                          {v}
-                        </div>
-                        <div className="text-[10px] text-zinc-400">{s}</div>
-                      </div>
-                    ))}
-                  </div>
-                );
-              })()}
-          </Card>
+          <YourPositionCard token={token} goto={goto} />
         </div>
 
         <div className="space-y-4">

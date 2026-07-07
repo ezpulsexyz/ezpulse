@@ -1272,8 +1272,36 @@ export async function fetchTokenBalance(
   }
 }
 
-/** Watch-only portfolio: wallet's holdings restricted to featured Kickstart tokens, valued live.
- *  Includes native SOL balance. Verify any holding independently on solscan.io/account/{owner}. */
+/** Connected-wallet portfolio: per-token RPC balance checks (same path as thesis / WalletGate). */
+export async function fetchConnectedWalletPortfolio(
+  owner: string,
+  feed: LiveLaunch[],
+): Promise<PortfolioResult | null> {
+  try {
+    const pairs = await Promise.all(
+      feed.map(async (coin) => [coin.ca, await fetchTokenBalance(owner, coin.ca)] as const),
+    );
+    const balances = new Map<string, number>();
+    for (const [ca, amount] of pairs) {
+      if (amount > 0) balances.set(ca, amount);
+    }
+    const [solAmount, solPrice] = await Promise.all([fetchSolBalance(owner), fetchSolPrice()]);
+    const portfolio = buildPortfolioFromBalances(balances, feed, {
+      sol:
+        solAmount !== null
+          ? { amount: solAmount, priceUsd: solPrice, valueUsd: solPrice !== null ? solAmount * solPrice : null }
+          : null,
+      rpc: lastRpcUsed,
+      source: "rpc",
+      fetchedAt: Date.now(),
+    });
+    return { ...portfolio, scanned: feed.length };
+  } catch {
+    return null;
+  }
+}
+
+/** Full SPL scan portfolio — used for founder wallet forensics, not user watch flows. */
 export async function fetchPortfolio(owner: string, feed: LiveLaunch[]): Promise<PortfolioResult | null> {
   const [balances, solAmount, solPrice] = await Promise.all([
     fetchTokenBalances(owner),

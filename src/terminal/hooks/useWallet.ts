@@ -29,10 +29,10 @@ export function useWallet() {
     };
   }, []);
 
-  const connect = useCallback(async () => {
+  const connect = useCallback(async (): Promise<string | null> => {
     if (!isPhantomAvailable()) {
       alert("Phantom wallet not found. Please install it.");
-      return;
+      return null;
     }
 
     setConnecting(true);
@@ -42,9 +42,12 @@ export function useWallet() {
         localStorage.setItem("ezpulse:phantom", address);
         setWallet(address);
         emit(address);
+        return address;
       }
+      return null;
     } catch (err) {
       console.error(err);
+      return null;
     } finally {
       setConnecting(false);
     }

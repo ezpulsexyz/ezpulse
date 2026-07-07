@@ -20,8 +20,6 @@ export function ProjectsSection() {
     toggleWatch,
     setShareToken,
     openToken,
-    wallet,
-    portfolio,
     goto,
   } = useTerminalContext();
 
@@ -113,8 +111,6 @@ export function ProjectsSection() {
           copyCa={copyCa}
           copiedCa={copiedCa}
           onOpenToken={openToken}
-          wallet={wallet}
-          portfolio={portfolio}
           goto={goto}
         />
       )}
