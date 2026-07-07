@@ -1,4 +1,4 @@
-import { isPhantomAvailable } from "../../kickstart";
+import { isPhantomAvailable, type AlertPrefs } from "../../kickstart";
 import { BLUE, Card } from "../../components";
 import { PageHead, EmptyState } from "../components/PageLayout";
 import { PhantomHint } from "../components/PhantomHint";
@@ -6,7 +6,7 @@ import { TerminalCoinTable } from "../components/TerminalCoinTable";
 import { useTerminalContext } from "../TerminalContext";
 
 export function WatchlistSection() {
-  const { watchlist, phantom, alerts, signInPhantom, goto, setAlert } = useTerminalContext();
+  const { feed, watchlist, phantom, alerts, signInPhantom, goto, setAlert } = useTerminalContext();
 
   return (
             <>
