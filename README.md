@@ -44,7 +44,7 @@ npm run dev     # localhost:5173
 npm run build   # single-file dist/index.html
 ```
 
-**Stack:** React + TypeScript + Vite + Tailwind. Deploys to GitHub Pages via `.github/workflows/deploy.yml`. Optional Supabase backend (watchlist sync, feature votes) via `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` secrets and optional circulating supply override via `VITE_CIRCULATING_SUPPLY_URL` — see `supabase/ezpulse-schema.sql` and `supabase/functions/circulating-supply/index.ts`. For local development, copy `.env.example` to `.env.local` and fill in your values. For GitHub Pages, set the same names as repository secrets in the Actions settings. Without them, the app runs fully local.
+**Stack:** React + TypeScript + Vite + Tailwind. Deploys to GitHub Pages via `.github/workflows/deploy.yml`. Optional Supabase backend (watchlist sync, feature votes) via `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` secrets and optional circulating supply override via `VITE_CIRCULATING_SUPPLY_URL` — see `supabase/ezpulse-schema.sql` and `supabase/functions/circulating-supply/index.ts`. For local development, copy `.env.example` to `.env.local` and fill in your values. Do not add `SUPABASE_SECRET_KEY` into `.env.local` or frontend env files; that key is server-only. For GitHub Pages, set the same Vite names as repository secrets in Actions settings. Without these env vars, the app runs fully local.
 
 ## Activate the snapshot pipeline
 
