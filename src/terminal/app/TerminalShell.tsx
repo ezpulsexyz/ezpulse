@@ -17,7 +17,7 @@ function TerminalBody() {
   return (
     <div className="boot-fade flex min-h-screen overflow-x-hidden bg-[#fbfbfd] font-sans text-zinc-900" style={{ colorScheme: "light" }}>
       <Sidebar />
-      <div className="min-w-0 flex-1 lg:ml-60">
+      <div className="min-w-0 flex-1 lg:ml-72">
         <Header />
         <CommandPalette />
         <Toasts />

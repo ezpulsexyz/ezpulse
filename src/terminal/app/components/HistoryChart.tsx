@@ -1,23 +1,12 @@
 import { useEffect, useState } from "react";
-import { BLUE, Card, Num } from "../../components";
-import { fmtPrice } from "../../kickstart";
-import { fetchPriceHistory, backendReady, type PricePoint } from "../../backend";
+import { BLUE, Card } from "../../components";
+import { fetchPriceHistory, type PricePoint } from "../../backend";
 
-function fmtAxisPrice(p: number): string {
-  if (p >= 1) return `$${p.toFixed(2)}`;
-  if (p >= 0.01) return `$${p.toFixed(4)}`;
-  return `$${p.toExponential(2)}`;
-}
-
-function fmtAxisTime(ts: number, range: 24 | 168): string {
-  const d = new Date(ts);
-  if (range === 24) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  return d.toLocaleDateString([], { month: "short", day: "numeric" });
-}
-
+/** ezpulse-recorded price history chart with improved visuals */
 export function HistoryChart({ ca }: { ca: string }) {
   const [range, setRange] = useState<24 | 168>(168);
   const [points, setPoints] = useState<PricePoint[] | null | "loading">("loading");
+
   useEffect(() => {
     let alive = true;
     setPoints("loading");
@@ -25,113 +14,130 @@ export function HistoryChart({ ca }: { ca: string }) {
     return () => { alive = false; };
   }, [ca, range]);
 
+  const rangeLabel = range === 24 ? "24h" : "7d";
+  const gradId = `chartGrad-${ca.slice(0, 8)}`;
+
+  const rangeButtons = (
+    <div className="flex gap-1 text-xs">
+      {([24, 168] as const).map((h) => (
+        <button
+          key={h}
+          type="button"
+          onClick={() => setRange(h)}
+          className={`rounded-full px-3 py-1 font-mono transition ${range === h ? "text-white" : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200"}`}
+          style={range === h ? { background: BLUE } : undefined}
+        >
+          {h === 24 ? "24H" : "7D"}
+        </button>
+      ))}
+    </div>
+  );
+
+  if (points === "loading") {
+    return (
+      <Card title="Price history · recorded by ezpulse" right={rangeButtons}>
+        <div className="flex h-[240px] items-center justify-center rounded-xl bg-zinc-50">
+          <div className="term-shimmer h-36 w-4/5 rounded" />
+        </div>
+      </Card>
+    );
+  }
+
+  if (!points || points.length < 2) {
+    return (
+      <Card title="Price history · recorded by ezpulse" right={rangeButtons}>
+        <div className="px-6 py-12 text-center text-sm text-zinc-500">
+          Not enough snapshots yet. Data appears after a few 15-min intervals.
+        </div>
+      </Card>
+    );
+  }
+
+  const W = 860;
+  const H = 240;
+  const minP = Math.min(...points.map((p) => p.price));
+  const maxP = Math.max(...points.map((p) => p.price));
+  const priceRange = maxP - minP || 1;
+
+  const first = points[0];
+  const last = points[points.length - 1];
+  const change = ((last.price - first.price) / first.price) * 100;
+
+  const svgPoints = points.map((p, i) => {
+    const x = (i / (points.length - 1)) * W;
+    const y = H - ((p.price - minP) / priceRange) * (H - 50);
+    return { x: Math.round(x), y: Math.round(y), price: p.price, ts: p.ts };
+  });
+
+  const pathD = svgPoints.map((pt, i) => `${i === 0 ? "M" : "L"}${pt.x},${pt.y}`).join(" ");
+
+  const isUp = last.price >= first.price;
+  const lineColor = isUp ? "#10b981" : "#ef4444";
+  const lastPt = svgPoints[svgPoints.length - 1];
+
   return (
-    <Card title="Price history · recorded by ezpulse" right={
-      <span className="flex gap-1">
-        {([[24, "24h"], [168, "7d"]] as [24 | 168, string][]).map(([h, label]) => (
-          <button key={h} onClick={() => setRange(h)}
-            className={`rounded-full px-2.5 py-1 font-mono text-[10px] font-bold transition ${range === h ? "text-white" : "bg-zinc-100 text-zinc-500 hover:text-zinc-800"}`}
-            style={range === h ? { background: BLUE } : undefined}>
-            {label}
-          </button>
-        ))}
-      </span>
-    }>
-      {points === "loading" && (
-        <div className="space-y-3 px-5 py-6">
-          <div className="term-shimmer h-3 w-32 rounded" />
-          <div className="term-shimmer h-40 w-full rounded-xl" />
-        </div>
-      )}
-      {points === null && (
-        <div className="px-5 py-6 text-center">
-          <p className="text-[12.5px] text-zinc-500">
-            {backendReady
-              ? "History recording has just begun — the chart appears after a few snapshots (every 15 min)."
-              : "ezpulse records its own price history every 15 minutes — charts appear once the backend is connected."}
-          </p>
-          <p className="mt-1 text-[10px] text-zinc-400">Proprietary snapshots — this data exists nowhere else for Kickstart micro-caps.</p>
-        </div>
-      )}
-      {Array.isArray(points) && points.length >= 2 && (() => {
-        const W = 800;
-        const H = 200;
-        const PAD_L = 56;
-        const PAD_R = 12;
-        const PAD_T = 14;
-        const PAD_B = 28;
-        const plotW = W - PAD_L - PAD_R;
-        const plotH = H - PAD_T - PAD_B;
-
-        const prices = points.map((p) => p.price);
-        const rawMin = Math.min(...prices);
-        const rawMax = Math.max(...prices);
-        const pad = (rawMax - rawMin) * 0.08 || rawMin * 0.05 || 0.0001;
-        const min = rawMin - pad;
-        const max = rawMax + pad;
-        const rng = max - min || 1;
-
-        const t0 = points[0].ts;
-        const t1 = points[points.length - 1].ts;
-        const tr = t1 - t0 || 1;
-
-        const toX = (ts: number) => PAD_L + ((ts - t0) / tr) * plotW;
-        const toY = (price: number) => PAD_T + plotH - ((price - min) / rng) * plotH;
-
-        const pts = points.map((p) => [toX(p.ts), toY(p.price)]);
-        const path = pts.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`).join(" ");
-        const area = `${path} L${toX(t1)},${PAD_T + plotH} L${PAD_L},${PAD_T + plotH} Z`;
-
-        const up = points[points.length - 1].price >= points[0].price;
-        const col = up ? "#10b981" : "#ef4444";
-        const chg = ((points[points.length - 1].price - points[0].price) / points[0].price) * 100;
-        const last = points[points.length - 1];
-
-        const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => min + rng * f);
-        const xLabels = [0, 0.5, 1].map((f) => ({ ts: t0 + tr * f, x: PAD_L + plotW * f }));
-
-        return (
-          <div className="px-3 py-3">
-            <div className="flex flex-wrap items-baseline justify-between gap-2 px-2">
-              <span className="font-mono text-[11px] text-zinc-400">{points.length} snapshots · 15 min</span>
-              <div className="flex items-baseline gap-3">
-                <span className="font-mono text-[10px] text-zinc-400">now</span>
-                <Num bold className={up ? "text-emerald-600" : "text-red-500"}>{fmtPrice(last.price)}</Num>
-                <Num bold className={up ? "text-emerald-600" : "text-red-500"}>
-                  {chg >= 0 ? "+" : ""}{chg.toFixed(1)}%
-                </Num>
-              </div>
+    <Card title="Price history · ezpulse snapshots" right={rangeButtons}>
+      <div className="px-4 pb-4 pt-2">
+        <div className="mb-4 flex items-baseline justify-between">
+          <div>
+            <span className="text-sm text-zinc-500">Latest price</span>
+            <div className="font-mono text-2xl font-semibold tabular-nums text-zinc-900">
+              ${last.price.toFixed(6)}
             </div>
-            <svg viewBox={`0 0 ${W} ${H}`} className="mt-2 w-full" role="img" aria-label="Price history chart">
-              <defs>
-                <linearGradient id={`hg-${ca.slice(0, 6)}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={col} stopOpacity=".18" />
-                  <stop offset="100%" stopColor={col} stopOpacity="0" />
-                </linearGradient>
-              </defs>
-              {yTicks.map((price, i) => {
-                const y = toY(price);
-                return (
-                  <g key={i}>
-                    <line x1={PAD_L} x2={W - PAD_R} y1={y} y2={y} stroke="#f1f1f4" strokeDasharray={i === 0 || i === 4 ? "0" : "4 4"} />
-                    <text x={PAD_L - 6} y={y + 3} textAnchor="end" className="fill-zinc-400" style={{ fontSize: 9, fontFamily: "JetBrains Mono, ui-monospace, monospace" }}>
-                      {fmtAxisPrice(price)}
-                    </text>
-                  </g>
-                );
-              })}
-              <path d={area} fill={`url(#hg-${ca.slice(0, 6)})`} />
-              <path d={path} fill="none" stroke={col} strokeWidth="2" strokeLinejoin="round" />
-              <circle cx={pts[pts.length - 1][0]} cy={pts[pts.length - 1][1]} r="4" fill={col} stroke="#fff" strokeWidth="2" />
-              {xLabels.map(({ ts, x }, i) => (
-                <text key={i} x={x} y={H - 6} textAnchor="middle" className="fill-zinc-400" style={{ fontSize: 9, fontFamily: "JetBrains Mono, ui-monospace, monospace" }}>
-                  {fmtAxisTime(ts, range)}
-                </text>
-              ))}
-            </svg>
           </div>
-        );
-      })()}
+          <div className={`text-right ${isUp ? "text-emerald-600" : "text-red-500"}`}>
+            <div className="text-xl font-semibold">
+              {isUp ? "▲" : "▼"} {Math.abs(change).toFixed(1)}%
+            </div>
+            <div className="text-xs text-zinc-500">over {rangeLabel}</div>
+          </div>
+        </div>
+
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full overflow-visible" role="img" aria-label="Price history chart">
+          <defs>
+            <linearGradient id={gradId} x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor={lineColor} stopOpacity="0.25" />
+              <stop offset="100%" stopColor={lineColor} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+
+          {[0.15, 0.4, 0.65, 0.9].map((ratio, i) => {
+            const y = H * ratio;
+            const price = maxP - (maxP - minP) * ratio;
+            return (
+              <g key={i}>
+                <line x1="40" y1={y} x2={W} y2={y} stroke="#f4f4f5" strokeWidth="1" />
+                <text
+                  x="28"
+                  y={y + 4}
+                  className="fill-zinc-400 text-[10px] font-mono"
+                  textAnchor="end"
+                  style={{ fontFamily: "JetBrains Mono, ui-monospace, monospace" }}
+                >
+                  ${price.toFixed(6)}
+                </text>
+              </g>
+            );
+          })}
+
+          <path d={`${pathD} L${W},${H} L0,${H} Z`} fill={`url(#${gradId})`} />
+          <path d={pathD} fill="none" stroke={lineColor} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+          <circle
+            cx={lastPt.x}
+            cy={lastPt.y}
+            r="6"
+            fill="#fff"
+            stroke={lineColor}
+            strokeWidth="3"
+          />
+        </svg>
+
+        <div className="mt-2 flex justify-between font-mono text-xs text-zinc-400">
+          <div>{new Date(first.ts).toLocaleDateString([], { month: "short", day: "numeric" })}</div>
+          <div>{points.length} snapshots</div>
+          <div>{new Date(last.ts).toLocaleDateString([], { month: "short", day: "numeric" })}</div>
+        </div>
+      </div>
     </Card>
   );
 }
