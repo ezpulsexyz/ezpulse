@@ -27,7 +27,7 @@ export function useTerminal(target?: TerminalTarget) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [seenNotifs, setSeenNotifs] = useState<string[]>(() => loadSeenNotifs());
   const [shareToken, setShareToken] = useState<LiveLaunch | null>(null);
-  const [projTab, setProjTab] = useState<"overview" | "signals" | "founder">("overview");
+
   const searchRef = useRef<HTMLInputElement>(null);
   const walletRef = useRef<string | null>(null);
   const balanceRefreshTick = useRef(0);
@@ -306,7 +306,7 @@ export function useTerminal(target?: TerminalTarget) {
     query, setQuery, menuOpen, setMenuOpen, liveFeed, setLiveFeed,
     copiedCa, watchlist, alerts, wallet, addrInput, setAddrInput, walletErr,
     portfolio, setPortfolio, phantom, notifOpen, setNotifOpen, seenNotifs,
-    shareToken, setShareToken, projTab, setProjTab, searchRef,
+    shareToken, setShareToken, searchRef,
     signinNudge, setSigninNudge, phantomMissing, paletteOpen, setPaletteOpen, lastUpdated,
     booted, setBooted, bootSlow,
     toggleWatch, signInPhantom, signOutPhantom, setAlert, watchWallet,
