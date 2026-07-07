@@ -61,7 +61,7 @@ export function PortfolioSection() {
                     </div>
                     {walletErr && <p className="mt-4 rounded-xl bg-red-50 px-4 py-2.5 text-[12px] text-red-600">{walletErr}</p>}
                     <p className="mt-4 text-[11px] text-zinc-400">Balances are read via public Solana RPC. Only tokens featured on ezpulse (…EASY contracts) are shown.</p>
-                    <LaunchSimulator coins={feed} />
+                    <LaunchSimulator coins={feed} defaultCa={feed[0]?.ca} />
                   </div>
                 </div>
               ) : (
@@ -186,7 +186,11 @@ export function PortfolioSection() {
                           ))}
                         </Card>
                       )}
-                      <LaunchSimulator coins={portfolio.holdings.length ? portfolio.holdings.map((h) => h.coin) : feed} />
+                      <LaunchSimulator
+                        coins={portfolio.holdings.length ? portfolio.holdings.map((h) => h.coin) : feed}
+                        defaultCa={portfolio.holdings[0]?.coin.ca}
+                        holdingHints={portfolio.holdings.map((h) => ({ ca: h.coin.ca, valueUsd: h.valueUsd }))}
+                      />
 
                       <p className="mt-3 text-[11px] leading-relaxed text-zinc-400">
                         Watch-only: balances read from {portfolio.source === "solscan"
