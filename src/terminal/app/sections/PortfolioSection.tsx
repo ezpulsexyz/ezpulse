@@ -1,12 +1,13 @@
 import { fetchLiveFeed, fmtPrice, isVerified, isPhantomAvailable, KNOWN_WALLETS } from "../../kickstart";
 import { BLUE, Card, Delta, Stat } from "../../components";
+import { LaunchSimulator } from "../components/LaunchSimulator";
 import { PageHead, EmptyState } from "../components/PageLayout";
 import { PhantomHint } from "../components/PhantomHint";
 import { PORTFOLIO_COLS, PORTFOLIO_GRID, TermActions, TermHead, TermHeadCell, TermNum, TermRow } from "../components/TermTable";
 import { useTerminalContext } from "../TerminalContext";
 
 export function PortfolioSection() {
-  const { wallet, addrInput, setAddrInput, walletErr, portfolio, setLiveFeed, watchWallet, connectPhantom, disconnectWallet, goto, openToken } = useTerminalContext();
+  const { feed, wallet, addrInput, setAddrInput, walletErr, portfolio, setLiveFeed, watchWallet, connectPhantom, disconnectWallet, goto, openToken } = useTerminalContext();
 
   return (
             <>
@@ -60,6 +61,7 @@ export function PortfolioSection() {
                     </div>
                     {walletErr && <p className="mt-4 rounded-xl bg-red-50 px-4 py-2.5 text-[12px] text-red-600">{walletErr}</p>}
                     <p className="mt-4 text-[11px] text-zinc-400">Balances are read via public Solana RPC. Only tokens featured on ezpulse (…EASY contracts) are shown.</p>
+                    <LaunchSimulator coins={feed} />
                   </div>
                 </div>
               ) : (
@@ -184,6 +186,8 @@ export function PortfolioSection() {
                           ))}
                         </Card>
                       )}
+                      <LaunchSimulator coins={portfolio.holdings.length ? portfolio.holdings.map((h) => h.coin) : feed} />
+
                       <p className="mt-3 text-[11px] leading-relaxed text-zinc-400">
                         Watch-only: balances read from {portfolio.source === "solscan"
                           ? <>the <span className="font-mono">public-api.solscan.io</span> public API</>

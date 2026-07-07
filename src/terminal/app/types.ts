@@ -18,7 +18,7 @@ export const NAV_GROUPS: { workflow: string; items: { id: Section; icon: string;
   { workflow: "Discover", items: [{ id: "market", icon: "◉", label: "Market" }] },
   { workflow: "Research", items: [
     { id: "projects", icon: "📟", label: "Projects" },
-    { id: "thesis", icon: "🧠", label: "Investor Thesis", soon: true },
+    { id: "thesis", icon: "🧠", label: "Investor Thesis" },
   ]},
   { workflow: "Track", items: [
     { id: "signals", icon: "⚡", label: "Signals" },
