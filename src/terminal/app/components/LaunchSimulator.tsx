@@ -223,7 +223,7 @@ export function LaunchSimulator({
               className={`rounded-full px-3.5 py-1.5 text-[11px] font-bold transition ${entryMode === m ? "text-white" : "bg-zinc-100 text-zinc-500 hover:text-zinc-800"}`}
               style={entryMode === m ? { background: BLUE } : undefined}
             >
-              {m === "launch" ? "At launch" : "Days ago"}
+              {m === "launch" ? "$5K start + dev buy" : "Days ago"}
             </button>
           ))}
           {coins.length > 1 && (
@@ -317,7 +317,7 @@ export function LaunchSimulator({
         {compareOpen && (
           <div className="rounded-xl border border-zinc-200 bg-white">
             <div className="border-b border-zinc-100 px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-              Leaderboard · same ${investUsd} buy · {entryMode === "launch" ? "at launch" : `${daysAgo}d ago`}
+              Leaderboard · same ${investUsd} buy · {entryMode === "launch" ? "$5K start + dev buy" : `${daysAgo}d ago`}
             </div>
             {compare === "loading" && (
               <div className="space-y-2 px-4 py-4">
@@ -366,9 +366,22 @@ export function LaunchSimulator({
                     : "thin snapshot history; entry may be approximate"}.
               </div>
             )}
-            {result.source === "launch_mcap" && (
+            {(result.source === "launch_mcap" || result.source === "dev_buy_at_launch") && (
               <div className="rounded-xl border border-indigo-100 bg-indigo-50/80 px-4 py-2.5 text-[11px] text-indigo-800">
-                Entry synced to Kickstart curve start · <strong>{fmtUsd(result.entryMcap)}</strong> mcap
+                {result.source === "dev_buy_at_launch" ? (
+                  <>
+                    Entry at Kickstart <strong>{fmtUsd(result.startingMcap)}</strong> curve start
+                    {result.devBuyMcap > 0 && (
+                      <> + founder initial buy (<strong>+{fmtUsd(result.devBuyMcap)}</strong> mcap)</>
+                    )}
+                    {" "}→ <strong>{fmtUsd(result.entryMcap)}</strong> entry mcap
+                  </>
+                ) : (
+                  <>
+                    Entry at Kickstart curve start · <strong>{fmtUsd(result.startingMcap)}</strong> mcap
+                    {result.devBuyMcap <= 0 && " · no dev buy detected in early snapshots"}
+                  </>
+                )}
                 {coin.pairCreatedAt ? ` · ${new Date(coin.pairCreatedAt).toLocaleDateString()}` : ""}.
               </div>
             )}
@@ -420,7 +433,9 @@ export function LaunchSimulator({
 
             <p className="text-[11px] leading-relaxed text-zinc-500">
               Simulates <strong>${investUsd}</strong> into <strong>${coin.symbol}</strong> {result.entryLabel}
-              at {fmtUsd(result.entryMcap)} mcap
+              {result.entryMode === "launch" && result.devBuyMcap > 0
+                ? <> ({fmtUsd(result.startingMcap)} start + {fmtUsd(result.devBuyMcap)} dev buy → {fmtUsd(result.entryMcap)} mcap)</>
+                : <> at {fmtUsd(result.entryMcap)} mcap</>}
               ({result.entryPrice < 0.01 ? result.entryPrice.toExponential(2) : `$${result.entryPrice.toFixed(6)}`}/token)
               → {fmtUsd(result.currentMcap)} mcap today ({fmtUsd(result.currentPrice)}/token).
               {" "}Holdings: <strong>{result.tokensBought >= 1_000_000 ? `${(result.tokensBought / 1_000_000).toFixed(2)}M` : result.tokensBought >= 1_000 ? `${(result.tokensBought / 1000).toFixed(1)}K` : result.tokensBought.toFixed(0)}</strong> tokens · live feed synced.

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { syncWatchlist, pullWalletWatchlist } from "../../backend";
 import {
   fetchLiveFeed, isGraduated, verifiedOf, bondedOf, trendingOf, tokenNote, tokenSignals,
@@ -282,6 +282,21 @@ export function useTerminal(target?: TerminalTarget) {
     return feed.filter((c) => (c.name + c.symbol + c.ca).toLowerCase().includes(q));
   }, [q, feed]);
 
+  const refreshFeed = useCallback(async () => {
+    const fresh = await fetchLiveFeed();
+    if (fresh) {
+      setLiveFeed(fresh.launches);
+      setLastUpdated(Date.now());
+      const w = walletRef.current;
+      if (w) {
+        setPortfolio((current) => {
+          if (!current || current === "loading" || !current.balanceSnapshot) return current;
+          return revaluePortfolioFromFeed(current, fresh.launches);
+        });
+      }
+    }
+  }, []);
+
   const goto = (s: Section) => { setSection(s); setSelected(null); setMenuOpen(false); setQuery(""); setNotifOpen(false); window.scrollTo({ top: 0 }); };
   const openToken = (c: LiveLaunch) => { setSelected(c); setSection("projects"); setMenuOpen(false); setQuery(""); window.scrollTo({ top: 0 }); };
 
@@ -298,7 +313,7 @@ export function useTerminal(target?: TerminalTarget) {
     connectPhantom, disconnectWallet, copyCa, openNotifs,
     feed, watchedCoins, loading, verified, bonded, bonding, trending, totalMcap, totalVol,
     notifs, unseenCount, topMover, results, note,
-    goto, openToken,
+    goto, openToken, refreshFeed,
   };
 }
 

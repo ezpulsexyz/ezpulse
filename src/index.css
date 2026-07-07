@@ -190,9 +190,17 @@ input, textarea, select, button { color-scheme: light; }
   animation: termShimmer 1.4s ease-in-out infinite;
 }
 
-/* command palette entrance */
+/* command palette */
 .term-palette {
-  box-shadow: 0 25px 50px -12px rgba(39, 67, 240, 0.18), 0 0 0 1px rgba(39, 67, 240, 0.06);
+  box-shadow:
+    0 25px 50px -12px rgba(39, 67, 240, 0.2),
+    0 0 0 1px rgba(39, 67, 240, 0.07),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+  animation: termPaletteIn 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes termPaletteIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* Table rows: hover accent only on devices with real hover (avoids sticky "light" on tap) */
@@ -209,7 +217,7 @@ input, textarea, select, button { color-scheme: light; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .term-blink, .animate-fade-up, .term-shimmer, .animate-ping { animation: none !important; }
+  .term-blink, .animate-fade-up, .term-shimmer, .animate-ping, .term-palette { animation: none !important; }
   .fx-glow, .fx-scan-beam { animation: none !important; }
   .fx-glow, .fx-overlay { display: none !important; }
 }

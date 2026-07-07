@@ -4,11 +4,14 @@ import type { LiveLaunch } from "./kickstart";
 /** Kickstart / Meteora DBC curve start — used when no snapshot exists at pair creation. */
 export const KICKSTART_LAUNCH_MCAP_USD = 5_000;
 
-/** Max drift between pair creation and a history snapshot to treat it as launch entry. */
-const LAUNCH_SNAPSHOT_DRIFT_MS = 3 * 86400000;
+/** Window after pair creation to read earliest mcap uplift (founder initial buy on curve). */
+const DEV_BUY_SNAPSHOT_WINDOW_MS = 24 * 3600000;
+
+/** Min mcap uplift vs $5K start before we treat it as a dev buy at launch. */
+const DEV_BUY_MCAP_UPLIFT_RATIO = 1.05;
 
 export type SimEntryMode = "launch" | "days_ago";
-export type LaunchEntrySource = "history" | "launch_mcap" | "mcap_ratio" | "estimate";
+export type LaunchEntrySource = "history" | "launch_mcap" | "dev_buy_at_launch" | "mcap_ratio" | "estimate";
 
 export interface SimOptions {
   investUsd: number;
@@ -45,6 +48,10 @@ export interface LaunchSimResult {
   confidence: "high" | "low";
   entryMode: SimEntryMode;
   entryLabel: string;
+  /** Kickstart curve start ($5K) before any buys. */
+  startingMcap: number;
+  /** Mcap uplift from founder initial buy at launch (0 if none detected). */
+  devBuyMcap: number;
   /** @deprecated use entryPrice */
   launchPrice: number;
   /** @deprecated use entryTs */
@@ -80,101 +87,110 @@ function nearestSnapshot(history: PricePoint[], targetTs: number): { price: numb
   return { price: p.price, ts: p.ts, mcap: p.mcap, index: best };
 }
 
+function earliestPostLaunchSnapshot(
+  history: PricePoint[] | null,
+  launchTs: number | null,
+): { price: number; ts: number; mcap: number; index: number } | null {
+  if (!history?.length || !launchTs) return null;
+  const windowEnd = launchTs + DEV_BUY_SNAPSHOT_WINDOW_MS;
+  let best: { price: number; ts: number; mcap: number; index: number } | null = null;
+  for (let i = 0; i < history.length; i++) {
+    const p = history[i];
+    if (p.ts < launchTs - 60_000 || p.ts > windowEnd) continue;
+    if (!best || p.ts < best.ts) {
+      best = { price: p.price, ts: p.ts, mcap: p.mcap, index: i };
+    }
+  }
+  return best?.price > 0 ? best : null;
+}
+
+/** Entry at Kickstart $5K curve start, uplifted if founder initial buy is visible in early snapshots. */
 function launchEntryFromToken(
   c: LiveLaunch,
   history: PricePoint[] | null,
-): { price: number; ts: number | null; mcap: number; source: LaunchEntrySource; label: string; sliceFrom: number } {
+): {
+  price: number;
+  ts: number | null;
+  mcap: number;
+  startingMcap: number;
+  devBuyMcap: number;
+  source: LaunchEntrySource;
+  label: string;
+  sliceFrom: number;
+} {
   const launchTs = c.pairCreatedAt ?? null;
   const supply = tokenSupply(c);
+  const startingMcap = KICKSTART_LAUNCH_MCAP_USD;
+  const postLaunch = earliestPostLaunchSnapshot(history, launchTs);
 
-  if (history?.length && launchTs) {
-    const near = nearestSnapshot(history, launchTs);
-    if (near.price > 0 && Math.abs(near.ts - launchTs) <= LAUNCH_SNAPSHOT_DRIFT_MS) {
-      const mcap = near.mcap > 0 ? near.mcap : (supply ? near.price * supply : KICKSTART_LAUNCH_MCAP_USD);
-      return {
-        price: near.price,
-        ts: launchTs,
-        mcap,
-        source: "history",
-        label: "at launch",
-        sliceFrom: near.index,
-      };
+  let entryMcap = startingMcap;
+  let devBuyMcap = 0;
+  let source: LaunchEntrySource = "launch_mcap";
+  let label = `at launch · $${(startingMcap / 1000).toFixed(0)}K start`;
+  let sliceFrom = 0;
+  let priceHint: number | undefined;
+
+  if (
+    postLaunch &&
+    postLaunch.mcap > startingMcap * DEV_BUY_MCAP_UPLIFT_RATIO
+  ) {
+    entryMcap = postLaunch.mcap;
+    devBuyMcap = Math.max(0, entryMcap - startingMcap);
+    source = "dev_buy_at_launch";
+    label = `at launch · $${(startingMcap / 1000).toFixed(0)}K start + dev buy`;
+    sliceFrom = postLaunch.index;
+    priceHint = postLaunch.price;
+  } else if (postLaunch?.price > 0 && postLaunch.mcap > 0 && postLaunch.mcap >= startingMcap) {
+    entryMcap = Math.max(startingMcap, postLaunch.mcap);
+    devBuyMcap = Math.max(0, entryMcap - startingMcap);
+    if (devBuyMcap > 0) {
+      source = "dev_buy_at_launch";
+      label = `at launch · $${(startingMcap / 1000).toFixed(0)}K start + dev buy`;
+      sliceFrom = postLaunch.index;
+      priceHint = postLaunch.price;
     }
   }
 
-  const startPrice = priceFromMcap(KICKSTART_LAUNCH_MCAP_USD, supply);
-  if (startPrice && startPrice > 0) {
+  const price = priceFromMcap(entryMcap, supply, priceHint)
+    ?? priceFromMcap(startingMcap, supply)
+    ?? (c.priceUsd > 0 && c.mcap > 0 ? c.priceUsd * (entryMcap / c.mcap) : 0);
+
+  if (price <= 0) {
+    const fallbackPrice = c.priceUsd > 0 && c.mcap > 0
+      ? c.priceUsd * (startingMcap / c.mcap)
+      : 0.00001;
     return {
-      price: startPrice,
+      price: fallbackPrice,
       ts: launchTs,
-      mcap: KICKSTART_LAUNCH_MCAP_USD,
-      source: "launch_mcap",
-      label: `at launch · ${(KICKSTART_LAUNCH_MCAP_USD / 1000).toFixed(0)}K mcap`,
+      mcap: startingMcap,
+      startingMcap,
+      devBuyMcap: 0,
+      source: "estimate",
+      label: "at launch · estimated",
       sliceFrom: 0,
     };
   }
 
-  if (history?.length) {
-    const earliest = history[0];
-    if (earliest.mcap > 0 && c.mcap > earliest.mcap && c.priceUsd > 0) {
-      const ratioPrice = c.priceUsd * (earliest.mcap / c.mcap);
-      if (ratioPrice > 0) {
-        return {
-          price: ratioPrice,
-          ts: launchTs ?? earliest.ts,
-          mcap: earliest.mcap,
-          source: "mcap_ratio",
-          label: "at launch · earliest mcap",
-          sliceFrom: 0,
-        };
-      }
-    }
-    if (earliest.price > 0 && (!launchTs || earliest.ts - launchTs < LAUNCH_SNAPSHOT_DRIFT_MS)) {
-      return {
-        price: earliest.price,
-        ts: launchTs ?? earliest.ts,
-        mcap: earliest.mcap > 0 ? earliest.mcap : (supply ? earliest.price * supply : 0),
-        source: "history",
-        label: "at launch",
-        sliceFrom: 0,
-      };
-    }
-  }
-
-  if (launchTs && c.change24h !== 0 && c.priceUsd > 0) {
-    const implied = c.priceUsd / (1 + c.change24h / 100);
-    if (implied > 0) {
-      const mcap = supply ? implied * supply : KICKSTART_LAUNCH_MCAP_USD;
-      return {
-        price: implied,
-        ts: launchTs,
-        mcap,
-        source: "estimate",
-        label: "at launch · estimated",
-        sliceFrom: 0,
-      };
-    }
-  }
-
-  const fallbackPrice = c.priceUsd > 0 && c.mcap > 0
-    ? c.priceUsd * (KICKSTART_LAUNCH_MCAP_USD / c.mcap)
-    : 0.00001;
   return {
-    price: fallbackPrice,
-    ts: launchTs,
-    mcap: KICKSTART_LAUNCH_MCAP_USD,
-    source: "estimate",
-    label: "at launch · estimated",
-    sliceFrom: 0,
+    price,
+    ts: launchTs ?? postLaunch?.ts ?? null,
+    mcap: entryMcap,
+    startingMcap,
+    devBuyMcap,
+    source,
+    label,
+    sliceFrom,
   };
 }
+
+type ResolvedEntry = ReturnType<typeof launchEntryFromToken>;
 
 function resolveEntry(
   c: LiveLaunch,
   history: PricePoint[] | null,
   mode: SimEntryMode,
   daysAgo: number,
-): { price: number; ts: number | null; mcap: number; source: LaunchEntrySource; label: string; sliceFrom: number } {
+): ResolvedEntry {
   if (mode === "days_ago" && history?.length) {
     const targetTs = Date.now() - daysAgo * 86400000;
     const near = nearestSnapshot(history, targetTs);
@@ -185,6 +201,8 @@ function resolveEntry(
         price: near.price,
         ts: near.ts,
         mcap,
+        startingMcap: KICKSTART_LAUNCH_MCAP_USD,
+        devBuyMcap: 0,
         source: "history",
         label: `${daysAgo}d ago`,
         sliceFrom: near.index,
@@ -312,17 +330,17 @@ export function simulatePortfolio(
   }
 
   const confidence: "high" | "low" =
-    entry.source === "history" || entry.source === "launch_mcap"
-      ? entry.source === "history" && (history?.length ?? 0) >= 5
+    entry.source === "dev_buy_at_launch" || entry.source === "launch_mcap"
+      ? "high"
+      : entry.source === "history" && (history?.length ?? 0) >= 5
         ? "high"
-        : entry.source === "launch_mcap"
-          ? "high"
-          : "low"
-      : "low";
+        : "low";
 
   return {
     entryPrice: entry.price,
     entryMcap: entry.mcap,
+    startingMcap: entry.startingMcap,
+    devBuyMcap: entry.devBuyMcap,
     currentPrice,
     currentMcap,
     peakPrice,
