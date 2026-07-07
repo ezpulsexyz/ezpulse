@@ -6,6 +6,7 @@ import {
   kickstartUrl,
   type LiveLaunch,
 } from "../../kickstart";
+import { getRecentThesesCount } from "../../backend";
 import type { Section } from "../types";
 import { HistoryChart } from "../components/HistoryChart";
 import { FounderTerminal } from "../components/FounderTerminal";
@@ -41,6 +42,7 @@ export default function ProjectDetail({
   goto,
 }: ProjectDetailProps) {
   const [projTab, setProjTab] = useState<ProjTab>("overview");
+  const [recentThesesCount, setRecentThesesCount] = useState(0);
   const isWatching = watchlist.includes(token.ca);
   const verified = isVerified(token);
 
@@ -48,11 +50,21 @@ export default function ProjectDetail({
     setProjTab("overview");
   }, [token.ca]);
 
-  const tabs: { id: ProjTab; label: string }[] = [
+  useEffect(() => {
+    let alive = true;
+    void getRecentThesesCount(token.ca, 7).then((count) => {
+      if (alive) setRecentThesesCount(count);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [token.ca]);
+
+  const tabs: { id: ProjTab; label: string; count?: number }[] = [
     { id: "overview", label: "Overview" },
     { id: "signals", label: "Live Signals" },
     { id: "history", label: "Price History" },
-    { id: "thesis", label: "Investor Thesis" },
+    { id: "thesis", label: "Investor Thesis", count: recentThesesCount },
     ...(verified ? [{ id: "founder" as const, label: "Founder Terminal" }] : []),
   ];
 
@@ -189,13 +201,18 @@ export default function ProjectDetail({
             key={tab.id}
             type="button"
             onClick={() => setProjTab(tab.id)}
-            className={`shrink-0 border-b-2 px-6 py-4 font-medium transition-all sm:px-8 ${
+            className={`relative flex shrink-0 items-center gap-2 border-b-2 px-6 py-4 font-medium transition-all sm:px-8 ${
               projTab === tab.id
                 ? "border-blue-600 text-blue-700"
                 : "border-transparent text-zinc-500 hover:text-zinc-700"
             }`}
           >
             {tab.label}
+            {tab.count != null && tab.count > 0 && (
+              <span className="min-w-[18px] rounded-full bg-emerald-500 px-2 py-0.5 text-center text-[10px] font-black text-white">
+                +{tab.count}
+              </span>
+            )}
           </button>
         ))}
       </div>

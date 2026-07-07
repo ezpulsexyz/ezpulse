@@ -297,26 +297,43 @@ export async function saveInvestorThesis(payload: ThesisPayload): Promise<SaveTh
   }
 }
 
-export async function getThesesForToken(tokenCa: string): Promise<SavedInvestorThesis[]> {
+/** Latest theses for a token — capped for fast loads on busy tokens. */
+export async function getThesesForToken(
+  tokenCa: string,
+  limit = 20,
+): Promise<SavedInvestorThesis[]> {
   if (!supabase) return [];
 
-  try {
-    const { data, error } = await supabase
-      .from("investor_theses")
-      .select("*")
-      .eq("token_ca", tokenCa)
-      .order("created_at", { ascending: false });
+  const { data, error } = await supabase
+    .from("investor_theses")
+    .select("*")
+    .eq("token_ca", tokenCa)
+    .order("created_at", { ascending: false })
+    .limit(limit);
 
-    if (error) {
-      console.error("Failed to fetch theses:", error);
-      return [];
-    }
-
-    return (data as SavedInvestorThesis[]) || [];
-  } catch (err) {
-    console.error("Failed to fetch theses:", err);
+  if (error) {
+    console.error("Failed to fetch theses:", error);
     return [];
   }
+
+  return (data as SavedInvestorThesis[]) || [];
+}
+
+/** Theses posted in the last N days — via Postgres RPC (indexed count). */
+export async function getRecentThesesCount(tokenCa: string, days = 7): Promise<number> {
+  if (!supabase) return 0;
+
+  const { data, error } = await supabase.rpc("get_recent_theses_count", {
+    p_token_ca: tokenCa,
+    p_days: days,
+  });
+
+  if (error) {
+    console.error("Failed to fetch recent theses count:", error);
+    return 0;
+  }
+
+  return typeof data === "number" ? data : 0;
 }
 
 /** Upvote a thesis — one vote per wallet (UNIQUE on thesis_id + wallet_address). */
