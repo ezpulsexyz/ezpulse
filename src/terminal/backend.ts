@@ -1,3 +1,4 @@
+
 /**
  * ezpulse backend — Supabase (Postgres), with graceful local-only fallback.
  * Deployed frontend: GitHub Pages (static). Backend: Supabase project.
