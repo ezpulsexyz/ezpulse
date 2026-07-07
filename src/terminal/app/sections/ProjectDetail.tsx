@@ -49,10 +49,6 @@ export default function ProjectDetail({
   const [projTab, setProjTab] = useState<ProjTab>("overview");
   const isWatching = watchlist.includes(token.ca);
   const verified = isVerified(token);
-  const tradeHref = isGraduated(token)
-    ? token.links.dexscreener
-    : kickstartUrl(token.ca);
-
   useEffect(() => {
     setProjTab("overview");
   }, [token.ca]);
@@ -105,45 +101,64 @@ export default function ProjectDetail({
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
           <button
             type="button"
             onClick={() => setShareToken(token)}
-            className="rounded-2xl border border-zinc-200 px-6 py-3 transition hover:bg-zinc-50"
+            className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-wide text-zinc-600 transition hover:border-indigo-300 hover:text-indigo-700 sm:px-5 sm:py-2.5 sm:text-[12px]"
           >
             📤 Share
           </button>
-
           <button
             type="button"
             onClick={() => toggleWatch(token.ca)}
-            className={`rounded-2xl px-6 py-3 font-medium transition ${
+            className={`rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-wide transition sm:px-5 sm:py-2.5 sm:text-[12px] ${
               isWatching
-                ? "bg-amber-500 text-white"
-                : "border border-zinc-200 hover:bg-amber-50"
+                ? "text-white shadow-lg"
+                : "border border-zinc-200 bg-white text-zinc-600 hover:border-amber-300 hover:text-amber-600"
             }`}
+            style={isWatching ? { background: "#f59e0b" } : undefined}
           >
             {isWatching ? "★ Watching" : "☆ Watch"}
           </button>
-
+          {isGraduated(token) ? (
+            <a
+              href={token.links.dexscreener}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="col-span-2 rounded-full px-5 py-2 text-center text-[11px] font-bold uppercase tracking-wide text-white shadow-lg transition hover:-translate-y-px sm:col-span-1 sm:px-6 sm:py-2.5 sm:text-[12px]"
+              style={{ background: "#0b0e13" }}
+            >
+              📊 Trade →
+            </a>
+          ) : (
+            <a
+              href={kickstartUrl(token.ca)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="col-span-2 rounded-full px-5 py-2 text-center text-[11px] font-bold uppercase tracking-wide text-white shadow-lg shadow-indigo-600/25 transition hover:-translate-y-px sm:col-span-1 sm:px-6 sm:py-2.5 sm:text-[12px]"
+              style={{ background: BLUE }}
+            >
+              🚀 Buy on Kickstart →
+            </a>
+          )}
           {verified && (
             <button
               type="button"
               onClick={() => setProjTab("founder")}
-              className="rounded-2xl px-6 py-3 font-medium text-white transition hover:opacity-90"
+              className="col-span-2 rounded-full px-5 py-2 text-[11px] font-bold uppercase tracking-wide text-white shadow-lg shadow-indigo-600/20 transition hover:-translate-y-px sm:col-span-1 sm:py-2.5 sm:text-[12px]"
               style={{ background: `linear-gradient(135deg, ${BLUE}, #4f2ff0)` }}
             >
-              👤 Founder
+              👤 Founder Terminal
             </button>
           )}
-
           <a
-            href={tradeHref}
+            href={kickstartUrl(token.ca)}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-2xl bg-zinc-900 px-8 py-3 font-medium text-white transition hover:bg-black"
+            className="col-span-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-center text-[11px] font-bold uppercase tracking-wide text-zinc-600 transition hover:border-indigo-300 hover:text-indigo-700 sm:col-span-1 sm:px-5 sm:py-2.5 sm:text-[12px]"
           >
-            {isGraduated(token) ? "Trade →" : "Buy on Kickstart →"}
+            Kickstart ↗
           </a>
         </div>
       </div>
