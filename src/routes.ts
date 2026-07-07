@@ -45,9 +45,34 @@ export function isTerminalPath(pathname: string): boolean {
   return normalized === terminalPath;
 }
 
+type NavigationListener = () => void;
+const navigationListeners = new Set<NavigationListener>();
+
+/** Subscribe to client-side route changes (pushState + browser back/forward). */
+export function subscribeNavigation(onStoreChange: () => void): () => void {
+  navigationListeners.add(onStoreChange);
+  const onPopState = () => onStoreChange();
+  window.addEventListener("popstate", onPopState);
+  return () => {
+    navigationListeners.delete(onStoreChange);
+    window.removeEventListener("popstate", onPopState);
+  };
+}
+
+function notifyNavigation(): void {
+  for (const listener of navigationListeners) listener();
+}
+
 export function navigate(href: string): void {
-  window.history.pushState(null, "", href);
-  window.dispatchEvent(new PopStateEvent("popstate"));
+  const next = new URL(href, window.location.origin);
+  const current = `${window.location.pathname}${window.location.search}`;
+  const target = `${next.pathname}${next.search}`;
+  if (target === current) {
+    notifyNavigation();
+    return;
+  }
+  window.history.pushState(null, "", target);
+  notifyNavigation();
 }
 
 export function navigateToLanding(): void {
