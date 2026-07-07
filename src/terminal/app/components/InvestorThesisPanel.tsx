@@ -4,29 +4,17 @@ import WalletGate from "../../components/WalletGate";
 import ThesisEditorModal, { type ThesisEditorSubmission } from "../../components/ThesisEditorModal";
 import ThesesList from "../../components/ThesesList";
 import { useWallet } from "../../hooks/useWallet";
-import { backendReady, saveInvestorThesis } from "../../backend";
+import { backendReady } from "../../backend";
 import type { LiveLaunch } from "../../kickstart";
 import {
   addInvestorThesisComment,
-  addInvestorThesisPost,
   formatTokenAmount,
   loadInvestorTheses,
+  persistInvestorThesis,
   shortWallet,
   type InvestorThesisPost,
   type ThesisVerdict,
 } from "../../investorThesis";
-
-function mapEditorVerdict(verdict: ThesisEditorSubmission["verdict"]): ThesisVerdict {
-  if (verdict === "Bullish") return "BULL";
-  if (verdict === "Bearish") return "BEAR";
-  return "NEUTRAL";
-}
-
-function formatThesisBody(thesis: ThesisEditorSubmission): string {
-  if (thesis.keyPoints.length === 0) return thesis.content;
-  const bullets = thesis.keyPoints.map((p) => `• ${p}`).join("\n");
-  return `${thesis.content}\n\nKey points:\n${bullets}`;
-}
 
 function verdictStyle(v: ThesisVerdict): string {
   if (v === "BULL") return "bg-emerald-100 text-emerald-700";
@@ -245,32 +233,22 @@ export function InvestorThesisPanel({ token }: { token: LiveLaunch }) {
         onSubmit={async (thesis) => {
           if (!wallet) return;
 
-          const saved = await saveInvestorThesis({
-            token_ca: token.ca,
-            wallet_address: wallet,
-            verdict: thesis.verdict,
-            content: thesis.content,
-            key_points: thesis.keyPoints,
+          const result = await persistInvestorThesis({
+            tokenCa: token.ca,
+            wallet,
+            thesis,
+            holdingBalance,
+            holdingVerified,
           });
 
-          if (saved) {
-            alert("Thesis posted successfully!");
+          alert(result.message);
+          if (result.ok) {
             setShowThesisModal(false);
-            setThesesRefresh((k) => k + 1);
-          } else if (!backendReady) {
-            addInvestorThesisPost(token.ca, {
-              tokenCa: token.ca,
-              wallet,
-              verdict: mapEditorVerdict(thesis.verdict),
-              body: formatThesisBody(thesis),
-              holdingAmount: holdingBalance > 0 ? holdingBalance : null,
-              holdingVerified,
-            });
-            alert("Thesis saved locally (Supabase not configured).");
-            setShowThesisModal(false);
-            refreshLocal();
-          } else {
-            alert("Failed to save thesis. Please try again.");
+            if (result.remote) {
+              setThesesRefresh((k) => k + 1);
+            } else {
+              refreshLocal();
+            }
           }
         }}
       />

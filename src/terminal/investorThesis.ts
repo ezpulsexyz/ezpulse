@@ -1,4 +1,4 @@
-import type { SavedInvestorThesis } from "./backend";
+import { backendReady, saveInvestorThesis, type SavedInvestorThesis } from "./backend";
 import type { PortfolioResult } from "./kickstart";
 
 export type ThesisVerdict = "BULL" | "BEAR" | "NEUTRAL";
@@ -26,6 +26,78 @@ export interface InvestorThesisPost {
 }
 
 const STORAGE_KEY = "ezpulse:investor-theses";
+
+export type ThesisEditorVerdict = "Bullish" | "Bearish" | "Neutral";
+
+export interface ThesisSubmission {
+  verdict: ThesisEditorVerdict;
+  content: string;
+  keyPoints: string[];
+}
+
+export function mapEditorVerdict(verdict: ThesisEditorVerdict): ThesisVerdict {
+  if (verdict === "Bullish") return "BULL";
+  if (verdict === "Bearish") return "BEAR";
+  return "NEUTRAL";
+}
+
+export function formatThesisBody(content: string, keyPoints: string[]): string {
+  if (!keyPoints.length) return content;
+  const bullets = keyPoints.map((p) => `• ${p}`).join("\n");
+  return `${content}\n\nKey points:\n${bullets}`;
+}
+
+export function localPostToSaved(post: InvestorThesisPost): SavedInvestorThesis {
+  return {
+    id: post.id,
+    token_ca: post.tokenCa,
+    wallet_address: post.wallet,
+    verdict: post.verdict === "BULL" ? "Bullish" : post.verdict === "BEAR" ? "Bearish" : "Neutral",
+    content: post.body,
+    key_points: [],
+    created_at: post.createdAt,
+  };
+}
+
+export async function persistInvestorThesis(params: {
+  tokenCa: string;
+  wallet: string;
+  thesis: ThesisSubmission;
+  holdingBalance: number;
+  holdingVerified: boolean;
+}): Promise<{ ok: boolean; remote: boolean; message: string }> {
+  const { tokenCa, wallet, thesis, holdingBalance, holdingVerified } = params;
+
+  const result = await saveInvestorThesis({
+    token_ca: tokenCa,
+    wallet_address: wallet,
+    verdict: thesis.verdict,
+    content: thesis.content,
+    key_points: thesis.keyPoints,
+  });
+
+  if (result.ok) {
+    return { ok: true, remote: true, message: "Thesis posted successfully!" };
+  }
+
+  if (!backendReady) {
+    addInvestorThesisPost(tokenCa, {
+      tokenCa,
+      wallet,
+      verdict: mapEditorVerdict(thesis.verdict),
+      body: formatThesisBody(thesis.content, thesis.keyPoints),
+      holdingAmount: holdingBalance > 0 ? holdingBalance : null,
+      holdingVerified,
+    });
+    return { ok: true, remote: false, message: "Thesis saved locally (Supabase not configured)." };
+  }
+
+  return {
+    ok: false,
+    remote: false,
+    message: result.error || "Failed to save thesis. Please try again.",
+  };
+}
 
 function mapApiVerdict(verdict: string): ThesisVerdict {
   if (verdict === "Bullish") return "BULL";

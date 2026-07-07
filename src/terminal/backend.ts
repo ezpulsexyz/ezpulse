@@ -195,10 +195,13 @@ export interface SavedInvestorThesis extends ThesisPayload {
   created_at: string;
 }
 
-export async function saveInvestorThesis(payload: ThesisPayload): Promise<SavedInvestorThesis | null> {
+export type SaveThesisResult =
+  | { ok: true; data: SavedInvestorThesis }
+  | { ok: false; error: string };
+
+export async function saveInvestorThesis(payload: ThesisPayload): Promise<SaveThesisResult> {
   if (!supabase) {
-    console.warn("Supabase not configured");
-    return null;
+    return { ok: false, error: "Supabase not configured" };
   }
 
   try {
@@ -209,20 +212,28 @@ export async function saveInvestorThesis(payload: ThesisPayload): Promise<SavedI
         wallet_address: payload.wallet_address,
         verdict: payload.verdict,
         content: payload.content,
-        key_points: payload.key_points,
+        key_points: payload.key_points ?? [],
       })
-      .select()
-      .single();
+      .select();
 
     if (error) {
       console.error("Failed to save thesis:", error);
-      return null;
+      return { ok: false, error: error.message };
     }
 
-    return data as SavedInvestorThesis;
+    const row = Array.isArray(data) ? data[0] : data;
+    if (!row) {
+      return {
+        ok: false,
+        error: "Insert succeeded but no row was returned — check investor_theses RLS policies.",
+      };
+    }
+
+    return { ok: true, data: row as SavedInvestorThesis };
   } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
     console.error("Failed to save thesis:", err);
-    return null;
+    return { ok: false, error: message };
   }
 }
 

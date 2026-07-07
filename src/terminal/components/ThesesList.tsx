@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { getThesesForToken, type SavedInvestorThesis } from "../backend";
+import { backendReady, getThesesForToken, type SavedInvestorThesis } from "../backend";
+import { loadInvestorTheses, localPostToSaved } from "../investorThesis";
 
 interface ThesesListProps {
   tokenCa: string;
@@ -17,7 +18,9 @@ export default function ThesesList({ tokenCa, refreshKey = 0, onCountChange }: T
 
     const loadTheses = async () => {
       setLoading(true);
-      const data = await getThesesForToken(tokenCa);
+      const data = backendReady
+        ? await getThesesForToken(tokenCa)
+        : loadInvestorTheses(tokenCa).map(localPostToSaved);
       if (alive) {
         setTheses(data);
         onCountChange?.(data.length);

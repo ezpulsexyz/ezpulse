@@ -2,7 +2,8 @@ import { useState } from "react";
 import WalletGate from "../components/WalletGate";
 import ThesisEditorModal from "../components/ThesisEditorModal";
 import ThesesList from "../components/ThesesList";
-import { saveInvestorThesis } from "../backend";
+import { useWallet } from "../hooks/useWallet";
+import { persistInvestorThesis } from "../investorThesis";
 import type { LiveLaunch } from "../kickstart";
 
 interface InvestorThesisProps {
@@ -11,9 +12,10 @@ interface InvestorThesisProps {
 }
 
 export default function InvestorThesis({ token, feed: _feed }: InvestorThesisProps) {
+  const { wallet } = useWallet();
   const [showModal, setShowModal] = useState(false);
   const [isVerifiedHolder, setIsVerifiedHolder] = useState(false);
-  const [currentWallet, setCurrentWallet] = useState<string | null>(null);
+  const [holdingBalance, setHoldingBalance] = useState(0);
   const [thesesRefresh, setThesesRefresh] = useState(0);
 
   const handlePostThesis = () => {
@@ -27,22 +29,25 @@ export default function InvestorThesis({ token, feed: _feed }: InvestorThesisPro
     content: string;
     keyPoints: string[];
   }) => {
-    if (!currentWallet) return;
+    if (!wallet) return;
 
-    const saved = await saveInvestorThesis({
-      token_ca: token.ca,
-      wallet_address: currentWallet,
-      verdict: thesis.verdict,
-      content: thesis.content,
-      key_points: thesis.keyPoints,
+    const holdingVerified =
+      isVerifiedHolder &&
+      holdingBalance > 0 &&
+      (token.priceUsd <= 0 || holdingBalance * token.priceUsd >= 0.01);
+
+    const result = await persistInvestorThesis({
+      tokenCa: token.ca,
+      wallet,
+      thesis,
+      holdingBalance,
+      holdingVerified,
     });
 
-    if (saved) {
-      alert("Thesis posted successfully!");
+    alert(result.message);
+    if (result.ok) {
       setShowModal(false);
       setThesesRefresh((k) => k + 1);
-    } else {
-      alert("Failed to save thesis. Please try again.");
     }
   };
 
@@ -60,10 +65,10 @@ export default function InvestorThesis({ token, feed: _feed }: InvestorThesisPro
           tokenCa={token.ca}
           showPostButton={true}
           onPostThesis={handlePostThesis}
-          onHoldingVerified={(hasHolding, _balance, wallet) => {
+          onHoldingVerified={(hasHolding, balance) => {
             setIsVerifiedHolder(hasHolding);
-            if (wallet) setCurrentWallet(wallet);
-            else setCurrentWallet(null);
+            setHoldingBalance(balance);
+            if (!hasHolding) setShowModal(false);
           }}
         />
       </div>
