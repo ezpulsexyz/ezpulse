@@ -106,9 +106,26 @@ export interface LiveLaunch {
   holderCount?: number;
   organicScore?: number;
   jupVerified?: boolean;
+  circulatingSupply?: number;
+  totalSupply?: number;
+  maxSupply?: number;
   source: "KICKSTART" | "DEXSCREENER";
   links: { website?: string; x?: string; telegram?: string; dexscreener: string };
 }
+
+const numeric = (value: unknown): number | undefined => {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value))) return Number(value);
+  return undefined;
+};
+
+const supplyFrom = (...values: unknown[]) => {
+  for (const value of values) {
+    const parsed = numeric(value);
+    if (typeof parsed === "number") return parsed;
+  }
+  return undefined;
+};
 
 /** Graduated = completed the bonding curve (migrated to AMM). */
 export const isGraduated = (c: LiveLaunch) => !!c.graduatedAt;
@@ -136,6 +153,9 @@ async function tryKickstartApi(): Promise<LiveLaunch[] | null> {
           change1h: 0, volume1h: 0, buys24h: 0, sells24h: 0, buys1h: 0, sells1h: 0,
           volume24h: Number(x.volume24h ?? 0),
           liquidity: Number(x.liquidity ?? 0),
+          circulatingSupply: supplyFrom(x.circulatingSupply, x.circulating_supply, x.circSupply, x.circulating),
+          totalSupply: supplyFrom(x.totalSupply, x.total_supply, x.maxSupply, x.max_supply, x.total_supply),
+          maxSupply: supplyFrom(x.maxSupply, x.max_supply),
           source: "KICKSTART" as const,
           links: { dexscreener: `https://dexscreener.com/solana/${String(x.address ?? x.mint ?? "")}` },
         }));

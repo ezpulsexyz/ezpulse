@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { fmtUsd } from "./data";
-import { BLUE, Card, Delta, Stat } from "./components";
+import { fmtNum, fmtUsd } from "./data";
+import { BLUE, Card, Delta, InfoTip, Stat } from "./components";
 import { Logo } from "./brand";
 import { renderShareCard, xShareUrl, copyCardToClipboard, downloadCard } from "./share";
 import {
@@ -1184,7 +1184,7 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
                   </div>
 
                   {/* stat band */}
-                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
                     <div className="rounded-2xl px-4 py-3.5 text-white" style={{ background: `linear-gradient(135deg, ${BLUE}, #4f2ff0)` }}>
                       <div className="text-[10px] font-semibold uppercase tracking-widest text-white/60">Market Cap</div>
                       <div className="mt-0.5 font-display text-xl font-semibold tabular-nums">{selected.mcap ? fmtUsd(selected.mcap) : "—"}</div>
@@ -1192,6 +1192,32 @@ export default function Terminal({ target }: { target?: TerminalTarget }) {
                     <Stat label="Price" value={selected.priceUsd ? fmtPrice(selected.priceUsd) : "—"} sub={<Delta v={selected.change24h} suffix="% 24h" />} />
                     <Stat label="Volume 24h" value={selected.volume24h ? fmtUsd(selected.volume24h) : "—"} sub={selected.mcap ? `${((selected.volume24h / selected.mcap) * 100).toFixed(0)}% turnover` : ""} />
                     <Stat label="Liquidity" value={selected.liquidity ? fmtUsd(selected.liquidity) : "—"} sub={selected.mcap ? `${((selected.liquidity / selected.mcap) * 100).toFixed(0)}% of cap` : ""} />
+                    <Stat
+                      label={
+                        <span className="inline-flex items-center gap-1">
+                          Circulating supply
+                          <InfoTip text="Circulating supply is declared by teams and verified by reviewers. An API endpoint hosted on your corporate domain is preferred to keep the numbers updated. Manual input is discouraged and may delay reviews unless sufficient evidence is provided. If nothing is provided, we display FDV for MC on our platforms." />
+                        </span>
+                      }
+                      value={typeof selected.circulatingSupply === "number"
+                        ? fmtNum(selected.circulatingSupply)
+                        : "—"}
+                      sub="Declared by team, verified by reviewers"
+                    />
+                    <Stat
+                      label={
+                        <span className="inline-flex items-center gap-1">
+                          Max supply
+                          <InfoTip text="Max supply is the maximum number of tokens that can ever be created. When unavailable, we fall back to total supply declared by the team." />
+                        </span>
+                      }
+                      value={typeof selected.maxSupply === "number"
+                        ? fmtNum(selected.maxSupply)
+                        : typeof selected.totalSupply === "number"
+                          ? fmtNum(selected.totalSupply)
+                          : "—"}
+                      sub={typeof selected.maxSupply === "number" ? "Max supply" : "Total supply fallback"}
+                    />
                     <Stat label={selected.holderCount ? "Holders" : "Listed"}
                       value={selected.holderCount ? String(selected.holderCount) : selected.pairCreatedAt ? `${Math.max(1, Math.round((Date.now() - selected.pairCreatedAt) / 86400000))}d` : "—"}
                       sub={selected.holderCount ? "via Jupiter" : "since pair creation"} />
