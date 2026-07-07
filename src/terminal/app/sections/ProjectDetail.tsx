@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { BLUE } from "../../components";
 import {
-  fmtPrice,
   isVerified,
   isGraduated,
   kickstartUrl,
@@ -9,13 +8,11 @@ import {
   type PortfolioResult,
 } from "../../kickstart";
 import type { Section } from "../types";
-import { CurveBadge } from "../components/CurveBadge";
-import { HistoryChart } from "../components/HistoryChart";
 import { FounderTerminal } from "../components/FounderTerminal";
 import { OverviewTab } from "../components/project/OverviewTab";
 import { SignalsTab } from "../components/project/SignalsTab";
 
-type ProjTab = "overview" | "signals" | "history" | "founder";
+type ProjTab = "overview" | "signals" | "founder";
 
 export interface ProjectDetailProps {
   token: LiveLaunch;
@@ -49,55 +46,73 @@ export default function ProjectDetail({
   const [projTab, setProjTab] = useState<ProjTab>("overview");
   const isWatching = watchlist.includes(token.ca);
   const verified = isVerified(token);
+
   useEffect(() => {
     setProjTab("overview");
   }, [token.ca]);
 
-  const tabs: { id: ProjTab; label: string }[] = [
-    { id: "overview", label: "Overview" },
-    { id: "signals", label: "Live Signals" },
-    { id: "history", label: "Price History" },
-    ...(verified ? [{ id: "founder" as const, label: "Founder" }] : []),
-  ];
-
   return (
-    <div className="animate-fade-up space-y-8 pb-12">
+    <div className="animate-fade-up">
       <button
         type="button"
         onClick={onBack}
-        className="flex items-center gap-2 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-700"
+        className="mb-4 flex items-center gap-1.5 text-[13px] font-semibold text-zinc-400 transition hover:text-indigo-600"
       >
-        ← Back to tokens
+        ← All tokens
       </button>
 
-      <div className="flex flex-col justify-between gap-6 lg:flex-row">
-        <div className="flex items-center gap-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+        <div className="flex min-w-0 items-start gap-3">
           {token.icon && (
             <img
               src={token.icon}
-              alt={token.name}
-              className="h-20 w-20 rounded-2xl border border-zinc-100 shadow-sm"
+              alt=""
+              className="h-10 w-10 shrink-0 rounded-full border border-zinc-100 sm:h-12 sm:w-12"
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = "none";
               }}
             />
           )}
-          <div>
-            <h1 className="text-4xl font-semibold tracking-tight text-zinc-900">{token.name}</h1>
-            <div className="mt-1 flex flex-wrap items-center gap-3">
-              <span className="font-mono text-2xl text-zinc-500">${token.symbol}</span>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
+                {token.name}
+              </h1>
+              <span className="text-[14px] font-semibold text-zinc-400">${token.symbol}</span>
               {verified && (
-                <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold text-blue-700">
+                <span
+                  className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold text-white"
+                  style={{ background: BLUE }}
+                >
                   ✓ VERIFIED
                 </span>
               )}
-              <CurveBadge c={token} />
-              {token.priceUsd > 0 && (
-                <span className="font-mono text-sm text-zinc-500">
-                  {fmtPrice(token.priceUsd)}
+              {isGraduated(token) ? (
+                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-700">
+                  🔗 BONDED
+                </span>
+              ) : (
+                <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-700">
+                  ⏳ BONDING{" "}
+                  {typeof token.bondingCurve === "number"
+                    ? `${Math.min(token.bondingCurve, 100).toFixed(0)}%`
+                    : ""}
                 </span>
               )}
+              <span className="rounded-full bg-red-50 px-2 py-1 text-[9px] font-black tracking-widest text-red-500">
+                ● LIVE
+              </span>
             </div>
+            <button
+              type="button"
+              onClick={() => copyCa(token.ca)}
+              className="mt-1 flex max-w-full items-center gap-1 font-mono text-[11px] text-zinc-400 transition hover:text-zinc-700"
+            >
+              <span className="truncate">
+                {copiedCa === token.ca ? "✓ copied to clipboard" : token.ca}
+              </span>{" "}
+              ⧉
+            </button>
           </div>
         </div>
 
@@ -163,24 +178,29 @@ export default function ProjectDetail({
         </div>
       </div>
 
-      <div className="flex border-b border-zinc-200 text-sm">
-        {tabs.map((tab) => (
+      <div className="term-tab-rail term-scroll-x mt-5 max-w-full">
+        {(
+          [
+            ["overview", "Overview"],
+            ["signals", "⚡ Signals"],
+            ...(verified ? [["founder", "👤 Founder"] as const] : []),
+          ] as const
+        ).map(([id, label]) => (
           <button
-            key={tab.id}
+            key={id}
             type="button"
-            onClick={() => setProjTab(tab.id)}
-            className={`border-b-2 px-8 py-4 font-medium transition-all ${
-              projTab === tab.id
-                ? "border-blue-600 text-blue-700"
-                : "border-transparent text-zinc-500 hover:text-zinc-700"
+            onClick={() => setProjTab(id)}
+            className={`rounded-full px-4 py-2 text-[11px] font-bold transition sm:px-5 sm:text-[12px] ${
+              projTab === id ? "text-white" : "text-zinc-500 hover:text-zinc-800"
             }`}
+            style={projTab === id ? { background: BLUE } : undefined}
           >
-            {tab.label}
+            {label}
           </button>
         ))}
       </div>
 
-      <div className="pt-4">
+      <div className="mt-4">
         {projTab === "overview" && (
           <OverviewTab
             token={token}
@@ -193,7 +213,6 @@ export default function ProjectDetail({
           />
         )}
         {projTab === "signals" && <SignalsTab token={token} feed={feed} />}
-        {projTab === "history" && <HistoryChart ca={token.ca} />}
         {projTab === "founder" && verified && (
           <FounderTerminal token={token} feed={feed} onOpenToken={onOpenToken} />
         )}
