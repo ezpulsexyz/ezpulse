@@ -1,5 +1,6 @@
 import {
   resolveFounder,
+  founderLaunches,
   computeFounderMetrics,
   computeForensics,
   computeSentiment,
@@ -58,7 +59,8 @@ export function generateThesis(
   const signalHits = opts?.founderSignals
     ? { total: opts.founderSignals.length, hits: opts.founderSignals.filter((s) => s.hit).length }
     : null;
-  const metrics = computeFounderMetrics([perf], signalHits);
+  const founderLaunchesList = founderLaunches(founder, feed);
+  const metrics = computeFounderMetrics([perf], signalHits, founderLaunchesList.length ? founderLaunchesList : [c]);
   const forensics = computeForensics(founder, [c], null);
 
   const bulls = sigs.filter((s) => s.strength === "BULLISH").length;

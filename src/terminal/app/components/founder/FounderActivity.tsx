@@ -7,12 +7,13 @@ import { KindBadge } from "../SignalBadges";
 import { EmptyState } from "../PageLayout";
 import { TermNum, TermRowButton } from "../TermTable";
 
-export function FounderSignals({
+/** Recent signals + build-in-public feed. */
+export function FounderActivity({
   founder,
-  onTokenClick,
+  onOpenToken,
 }: {
   founder: FounderProfile;
-  onTokenClick: (c: LiveLaunch) => void;
+  onOpenToken: (c: LiveLaunch) => void;
 }) {
   const { signals, launches, publicFeed } = founder;
 
@@ -21,8 +22,14 @@ export function FounderSignals({
       {signals && signals.length > 0 ? (
         <Card title="Founder signals" right={<span className="text-[11px] text-zinc-400">resolved · +24h</span>}>
           {signals.slice(0, 12).map((r, i) => (
-            <TermRowButton key={i} onClick={() => { const c = launches.find((x) => x.ca === r.ca); if (c) onTokenClick(c); }} className="w-full flex-wrap gap-2.5">
-              <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-mono text-[11px] ${r.hit ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>{r.hit ? "✓" : "✗"}</span>
+            <TermRowButton
+              key={i}
+              onClick={() => { const c = launches.find((x) => x.ca === r.ca); if (c) onOpenToken(c); }}
+              className="w-full flex-wrap gap-2.5"
+            >
+              <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-mono text-[11px] ${r.hit ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>
+                {r.hit ? "✓" : "✗"}
+              </span>
               <span className="min-w-0 flex-1">
                 <span className="flex flex-wrap items-center gap-1.5">
                   <span className="font-mono text-[12px]">{KIND_ICON[r.kind as keyof typeof KIND_ICON] ?? "•"}</span>
@@ -39,13 +46,16 @@ export function FounderSignals({
         </Card>
       ) : (
         <Card>
-          <EmptyState icon="⚡" title="Signal record building"
+          <EmptyState
+            icon="⚡"
+            title="Signal record building"
             body="Founder-scoped signals appear as the snapshot pipeline archives directional calls on this founder's tokens."
-            cta={<span className="text-[11px] text-zinc-400">Same engine as Track Record · wallet-filtered</span>} />
+            cta={<span className="text-[11px] text-zinc-400">Same engine as Track Record · wallet-filtered</span>}
+          />
         </Card>
       )}
 
-      <Card title="Build in Public" right={<span className="text-[11px] text-zinc-400">X · GitHub · Kickstart</span>}>
+      <Card title="Build in public" right={<span className="text-[11px] text-zinc-400">X · GitHub · Kickstart</span>}>
         {publicFeed.length === 0 && (
           <div className="px-5 py-8 text-center text-[13px] text-zinc-400">No posts yet — founder activity syncs here.</div>
         )}

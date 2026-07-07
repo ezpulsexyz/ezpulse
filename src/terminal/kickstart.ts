@@ -119,6 +119,8 @@ export interface LiveLaunch {
   circulatingSupply?: number;
   totalSupply?: number;
   maxSupply?: number;
+  /** Founder lockup commitment in days (submitted, verified, or on-chain vesting). */
+  lockupDays?: number;
   source: "KICKSTART" | "DEXSCREENER";
   links: { website?: string; x?: string; telegram?: string; dexscreener: string };
 }

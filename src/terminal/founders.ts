@@ -1,4 +1,5 @@
 import type { LiveLaunch } from "./kickstart";
+import { calculateConvictionScore } from "./founder";
 import { isGraduated, isVerified } from "./kickstart";
 import type { PricePoint, ResolvedSignal } from "./backend";
 
@@ -21,6 +22,8 @@ export interface FounderRegistryEntry {
   bio?: string;
   /** Contract addresses this founder has launched on Kickstart */
   tokens: string[];
+  /** Per-token lockup commitment in days (founder-submitted / manually verified). */
+  tokenLockups?: Record<string, number>;
   teamWallets?: string[];
   manualPosts?: FounderPost[];
 }
@@ -126,7 +129,12 @@ export function resolveFounder(c: LiveLaunch): FounderRegistryEntry {
 
 export function founderLaunches(founder: FounderRegistryEntry, feed: LiveLaunch[]): LiveLaunch[] {
   const set = new Set(founder.tokens);
-  return feed.filter((c) => set.has(c.ca));
+  return feed
+    .filter((c) => set.has(c.ca))
+    .map((c) => ({
+      ...c,
+      lockupDays: founder.tokenLockups?.[c.ca] ?? c.lockupDays,
+    }));
 }
 
 /* ─── Performance metrics ─── */
@@ -181,6 +189,7 @@ export interface FounderMetrics {
 export function computeFounderMetrics(
   performances: LaunchPerformance[],
   signalHits: { total: number; hits: number } | null,
+  launches?: LiveLaunch[],
 ): FounderMetrics {
   const n = performances.length || 1;
   const avgExit = performances.reduce((s, p) => s + p.exitMultiple, 0) / n;
@@ -190,13 +199,17 @@ export function computeFounderMetrics(
   const survival30d = s30.length ? s30.filter((p) => p.survived30d).length / s30.length : 1;
   const hitRate = signalHits && signalHits.total > 0 ? signalHits.hits / signalHits.total : null;
 
-  let score = 40;
-  score += Math.min(20, performances.filter((p) => p.graduated).length * 8);
-  score += Math.min(15, performances.filter((p) => p.verified).length * 5);
-  score += Math.min(15, avgExit * 3);
-  score += survival7d * 10;
-  score += (hitRate ?? 0.5) * 10;
-  score = Math.round(Math.min(99, Math.max(10, score)));
+  const score = launches
+    ? calculateConvictionScore(launches)
+    : (() => {
+        let legacy = 40;
+        legacy += Math.min(20, performances.filter((p) => p.graduated).length * 8);
+        legacy += Math.min(15, performances.filter((p) => p.verified).length * 5);
+        legacy += Math.min(15, avgExit * 3);
+        legacy += survival7d * 10;
+        legacy += (hitRate ?? 0.5) * 10;
+        return Math.round(Math.min(99, Math.max(10, legacy)));
+      })();
 
   return {
     launchCount: performances.length,

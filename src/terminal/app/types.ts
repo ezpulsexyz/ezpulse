@@ -23,20 +23,45 @@ export interface Notif {
   token: LiveLaunch;
 }
 
+/** Founder terminal — headline stats block. */
+export interface FounderProfileStats {
+  totalLaunches: number;
+  successRate: number;
+  bestLaunch: LiveLaunch | null;
+  totalMcapLaunched: number;
+  avgPerformance24h: number;
+  convictionScore: number;
+}
+
+/** Founder terminal — wallet summary for forensics sidebar. */
+export interface FounderProfileForensics {
+  walletAge: number;
+  knownRugCount: number;
+  totalVolumeMoved: number;
+}
+
 /** Aggregated founder terminal view — wallet- or handle-keyed. */
 export interface FounderProfile {
   id: string;
-  founder: FounderRegistryEntry;
-  primaryToken: LiveLaunch | null;
+  name: string;
+  xHandle?: string;
+  avatar?: string;
+  bio?: string;
+  verified: boolean;
+  wallet: string;
   launches: LiveLaunch[];
+  stats: FounderProfileStats;
+  forensics: FounderProfileForensics;
+  /** Per-launch performance rows (Launch history table). */
   performances: LaunchPerformance[];
-  metrics: FounderMetrics;
-  forensics: ForensicsReport;
+  signals: ResolvedSignal[] | null;
   publicFeed: FounderPost[];
   sentiment: SentimentSnapshot;
-  signals: ResolvedSignal[] | null;
-  totalMcapLaunched: number;
-  successRate: number;
+  metrics: FounderMetrics;
+  /** Full forensics report (on-chain cards). */
+  detailedForensics: ForensicsReport;
+  registry: FounderRegistryEntry;
+  primaryToken: LiveLaunch | null;
   loading: boolean;
   refresh: () => void;
 }

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { LiveLaunch } from "../../kickstart";
-import { fetchPortfolio } from "../../kickstart";
+import { fetchPortfolio, isVerified } from "../../kickstart";
 import { fetchPriceHistory, fetchFounderSignals, backendReady } from "../../backend";
 import {
   resolveFounder,
@@ -12,6 +12,7 @@ import {
   buildPublicFeed,
   computeSentiment,
 } from "../../founders";
+import { calculateConvictionScore } from "../../founder";
 import type { ResolvedSignal } from "../../backend";
 import type { LaunchPerformance } from "../../founders";
 import type { FounderProfile } from "../types";
@@ -81,8 +82,8 @@ export function useFounderData(
     ? { total: signals.length, hits: signals.filter((s) => s.hit).length }
     : null;
 
-  const metrics = computeFounderMetrics(performances, signalHits);
-  const forensics = computeForensics(founder, launches, devHoldingsUsd);
+  const metrics = computeFounderMetrics(performances, signalHits, launches);
+  const detailedForensics = computeForensics(founder, launches, devHoldingsUsd);
   const publicFeed = buildPublicFeed(founder, launches);
   const sentimentToken = primaryToken ?? launches[0];
   const sentiment = sentimentToken
@@ -94,19 +95,59 @@ export function useFounderData(
     ? Math.round((metrics.graduatedCount / metrics.launchCount) * 100)
     : 0;
 
+  const bestPerf = performances.length
+    ? performances.reduce((a, b) => (b.exitMultiple > a.exitMultiple ? b : a))
+    : null;
+  const bestLaunch = bestPerf
+    ? launches.find((c) => c.ca === bestPerf.ca) ?? launches[0] ?? null
+    : launches[0] ?? null;
+
+  const avgPerformance24h = launches.length
+    ? launches.reduce((s, c) => s + c.change24h, 0) / launches.length
+    : 0;
+
+  const walletAge = performances.length
+    ? Math.max(...performances.map((p) => p.ageDays))
+    : 0;
+
+  const knownRugCount = detailedForensics.rugRisk === "HIGH"
+    ? Math.max(1, detailedForensics.rugFlags.length)
+    : detailedForensics.rugFlags.filter((f) => /rug|drawdown|thin/i.test(f)).length;
+
+  const totalVolumeMoved = launches.reduce((s, c) => s + (c.volume24h || 0), 0);
+
+  const verified = launches.some(isVerified) || (primaryToken ? isVerified(primaryToken) : false);
+
   return {
     id,
-    founder,
-    primaryToken,
+    name: founder.displayName,
+    xHandle: founder.xHandle,
+    avatar: primaryToken?.icon,
+    bio: founder.bio,
+    verified,
+    wallet: founder.wallet,
     launches,
+    stats: {
+      totalLaunches: metrics.launchCount,
+      successRate,
+      bestLaunch,
+      totalMcapLaunched,
+      avgPerformance24h: Math.round(avgPerformance24h * 10) / 10,
+      convictionScore: calculateConvictionScore(launches),
+    },
+    forensics: {
+      walletAge,
+      knownRugCount,
+      totalVolumeMoved,
+    },
     performances,
-    metrics,
-    forensics,
+    signals,
     publicFeed,
     sentiment,
-    signals,
-    totalMcapLaunched,
-    successRate,
+    metrics,
+    detailedForensics,
+    registry: founder,
+    primaryToken,
     loading,
     refresh: load,
   };

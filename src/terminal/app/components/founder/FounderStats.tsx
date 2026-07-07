@@ -3,21 +3,31 @@ import { Stat } from "../../../components";
 import type { FounderProfile } from "../../types";
 
 export function FounderStats({ founder }: { founder: FounderProfile }) {
-  const { metrics, performances, sentiment } = founder;
-  const bestLaunch = performances.length
-    ? performances.reduce((a, b) => (b.exitMultiple > a.exitMultiple ? b : a))
-    : null;
+  const { stats, metrics, sentiment } = founder;
+  const best = stats.bestLaunch;
 
   return (
     <div className="grid grid-cols-2 gap-3">
-      <Stat label="Success rate" value={`${founder.successRate}%`} sub="launches that bonded" accent />
-      <Stat label="Avg exit multiple" value={`${metrics.avgExitMultiple}×`} sub="peak mcap / launch mcap" />
-      <Stat label="Best launch" value={bestLaunch ? `$${bestLaunch.symbol}` : "—"} sub={bestLaunch ? `${bestLaunch.exitMultiple}× peak` : ""} />
-      <Stat label="Active projects" value={String(metrics.launchCount)} sub={`${metrics.verifiedCount} verified`} />
-      <Stat label="7d survival" value={`${metrics.survival7d}%`} sub="mcap &gt; $5K" />
-      <Stat label="30d survival" value={`${metrics.survival30d}%`} sub="still trading" />
-      <Stat label="Signal hit rate" value={metrics.signalHitRate !== null ? `${metrics.signalHitRate}%` : "—"} sub="founder tokens · +24h" />
-      <Stat label="Total mcap" value={fmtUsd(founder.totalMcapLaunched)} sub="live · all launches" />
+      <div className="col-span-2 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-700 p-6 text-white shadow-sm">
+        <div className="text-sm opacity-75">Conviction Score</div>
+        <div className="mt-1 text-5xl font-semibold tabular-nums">{stats.convictionScore}</div>
+        <div className="mt-2 text-xs opacity-75">Based on history, performance & lockup commitment</div>
+      </div>
+      <Stat label="Success rate" value={`${stats.successRate}%`} sub="launches that bonded" accent />
+      <Stat
+        label="Best launch"
+        value={best ? `$${best.symbol}` : "—"}
+        sub={best ? fmtUsd(best.mcap) : ""}
+      />
+      <Stat
+        label="Avg 24h"
+        value={`${stats.avgPerformance24h >= 0 ? "+" : ""}${stats.avgPerformance24h}%`}
+        sub="across launches"
+      />
+      <Stat label="Total launches" value={String(stats.totalLaunches)} sub={`${metrics.verifiedCount} verified`} />
+      <Stat label="Total mcap" value={fmtUsd(stats.totalMcapLaunched)} sub="live · all launches" />
+      <Stat label="Avg exit ×" value={`${metrics.avgExitMultiple}×`} sub="peak / launch mcap" />
+      <Stat label="Signal hits" value={metrics.signalHitRate !== null ? `${metrics.signalHitRate}%` : "—"} sub="founder tokens · +24h" />
       <div className={`col-span-2 rounded-2xl px-4 py-3.5 text-white shadow-sm ${sentiment.label === "BULLISH" ? "bg-emerald-600" : sentiment.label === "BEARISH" ? "bg-red-500" : "bg-zinc-600"}`}>
         <div className="text-[10px] font-semibold uppercase tracking-widest text-white/60">Market sentiment</div>
         <div className="mt-1 font-display text-xl font-semibold">{sentiment.label}</div>

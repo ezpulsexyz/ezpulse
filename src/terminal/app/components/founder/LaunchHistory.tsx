@@ -13,12 +13,16 @@ type SortKey = "date" | "exit" | "mcap" | "age";
 export function LaunchHistory({
   performances,
   launches,
+  onOpenToken,
   onTokenClick,
 }: {
   performances: LaunchPerformance[];
   launches: LiveLaunch[];
-  onTokenClick: (c: LiveLaunch) => void;
+  onOpenToken?: (c: LiveLaunch) => void;
+  /** @deprecated use onOpenToken */
+  onTokenClick?: (c: LiveLaunch) => void;
 }) {
+  const open = onOpenToken ?? onTokenClick ?? (() => {});
   const [sort, setSort] = useState<SortKey>("exit");
 
   const sorted = useMemo(() => {
@@ -62,7 +66,7 @@ export function LaunchHistory({
       {sorted.map((p) => {
         const launch = launches.find((c) => c.ca === p.ca);
         return (
-          <TermRowButton key={p.ca} grid={LAUNCH_GRID} onClick={() => launch && onTokenClick(launch)} className="w-full">
+          <TermRowButton key={p.ca} grid={LAUNCH_GRID} onClick={() => launch && open(launch)} className="w-full">
             <span className="truncate font-mono text-[12px] font-semibold text-zinc-900">{p.name} <span className="text-zinc-400">${p.symbol}</span></span>
             <TermNum className="text-zinc-500">{p.ageDays}d</TermNum>
             <TermNum className="text-indigo-600" bold>{p.exitMultiple}×</TermNum>
