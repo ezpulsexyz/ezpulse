@@ -118,18 +118,51 @@ export async function fetchSignalAccuracy(): Promise<AccuracyRow[] | null> {
   }
 }
 
-export interface ResolvedSignal { ca: string; symbol: string; kind: string; strength: string; title: string; ts: string; change_24h: number; hit: boolean }
+export interface ResolvedSignal { ca: string; symbol: string; kind: string; strength: string; title: string; ts: string; change_24h: number; hit: boolean; price_at?: number }
+export interface PendingSignal { id: number; ca: string; symbol: string; kind: string; strength: string; title: string; ts: string; price_at: number }
+
 export async function fetchResolvedSignals(limit = 30): Promise<ResolvedSignal[] | null> {
   if (!supabase) return null;
   try {
     const { data } = await supabase.from("signal_events")
-      .select("ca, symbol, kind, strength, title, ts, change_24h, hit")
+      .select("ca, symbol, kind, strength, title, ts, change_24h, hit, price_at")
       .eq("resolved", true)
       .order("ts", { ascending: false }).limit(limit);
     return Array.isArray(data) && data.length ? (data as ResolvedSignal[]) : null;
   } catch {
     return null;
   }
+}
+
+/** Signals fired but not yet scored — awaiting the +24h checkpoint. */
+export async function fetchPendingSignals(limit = 40): Promise<PendingSignal[] | null> {
+  if (!supabase) return null;
+  try {
+    const { data } = await supabase.from("signal_events")
+      .select("id, ca, symbol, kind, strength, title, ts, price_at")
+      .eq("resolved", false)
+      .order("ts", { ascending: false }).limit(limit);
+    return Array.isArray(data) && data.length ? (data as PendingSignal[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Hit rate by kind (all strengths combined) for inline badges in the Signals feed. */
+export async function fetchAccuracyByKind(): Promise<Record<string, { total: number; hits: number; rate: number }> | null> {
+  const rows = await fetchSignalAccuracy();
+  if (!rows) return null;
+  const map: Record<string, { total: number; hits: number; rate: number }> = {};
+  for (const r of rows) {
+    const cur = map[r.kind] ?? { total: 0, hits: 0, rate: 0 };
+    cur.total += r.total;
+    cur.hits += r.hits;
+    map[r.kind] = cur;
+  }
+  for (const k of Object.keys(map)) {
+    map[k].rate = map[k].total ? map[k].hits / map[k].total : 0;
+  }
+  return map;
 }
 
 /** Optional email capture for alert delivery (Track pillar). */

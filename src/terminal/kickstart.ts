@@ -1,3 +1,13 @@
+import {
+  whaleSignal as coreWhaleSignal,
+  signalWeight,
+  type SignalKind,
+  type SignalStrength,
+} from "../../shared/signals-core";
+
+export type { SignalKind, SignalStrength };
+export { KIND_ICON, signalHit, archivableSignals } from "../../shared/signals-core";
+
 /**
  * EasyA Kickstart integration — kickstart.easya.io
  *
@@ -572,51 +582,61 @@ export const trendingOf = (feed: LiveLaunch[]) => [...feed].sort((a, b) => b.cha
 
 /* ─── Signals: the daily-return engine, computed live per token ─── */
 export interface Signal {
-  kind: "MOMENTUM" | "VOLUME" | "LIQUIDITY" | "RANK" | "VERIFY" | "RISK" | "WHALE";
-  strength: "BULLISH" | "NEUTRAL" | "BEARISH";
+  kind: SignalKind;
+  strength: SignalStrength;
   title: string;
   detail: string;
+}
+
+function toMetrics(c: LiveLaunch, rank?: number): import("../../shared/signals-core").SignalMetrics {
+  return {
+    symbol: c.symbol,
+    mcap: c.mcap,
+    change24h: c.change24h,
+    volume24h: c.volume24h,
+    volume1h: c.volume1h,
+    liquidity: c.liquidity,
+    buys24h: c.buys24h,
+    sells24h: c.sells24h,
+    buys1h: c.buys1h,
+    sells1h: c.sells1h,
+    rank,
+    verified: isVerified(c),
+    pairAgeDays: c.pairCreatedAt ? (Date.now() - c.pairCreatedAt) / 86400000 : undefined,
+  };
 }
 
 /** Whale-move detection from live txn flow: large avg trade size + one-sided flow. */
 export function whaleSignal(c: LiveLaunch): Signal | null {
   const trades24 = c.buys24h + c.sells24h;
-  if (trades24 < 5 || c.volume24h <= 0) return null;
-  const avgTrade = c.volume24h / trades24;
-  const bigTrade = avgTrade >= 400; // large average clip for micro-caps
-  const flow = trades24 > 0 ? (c.buys24h - c.sells24h) / trades24 : 0; // -1..1
-  const oneSided = Math.abs(flow) >= 0.25;
-  const liqImpact = c.liquidity > 0 ? avgTrade / c.liquidity : 0;
-
-  // 1h burst: heavy hourly volume relative to the day
-  const burst = c.volume1h > 0 && c.volume24h > 0 && c.volume1h >= c.volume24h * 0.25;
-
-  if (!bigTrade && !oneSided && !burst) return null;
-
-  if (burst && (c.buys1h > c.sells1h * 2 || c.sells1h > c.buys1h * 2)) {
-    const buying = c.buys1h >= c.sells1h;
-    return {
-      kind: "WHALE", strength: buying ? "BULLISH" : "BEARISH",
-      title: buying ? `🐋 Whale accumulation burst on $${c.symbol}` : `🐋 Whale exit burst on $${c.symbol}`,
-      detail: `${(c.volume1h / Math.max(c.volume24h, 1) * 100).toFixed(0)}% of the day's volume traded in the last hour (${c.buys1h} buys vs ${c.sells1h} sells). ${buying ? "Someone is building a position fast." : "Someone large is heading for the exit — thin pools amplify this."}`,
-    };
-  }
-  if (bigTrade && oneSided) {
-    const buying = flow > 0;
-    return {
-      kind: "WHALE", strength: buying ? "BULLISH" : "BEARISH",
-      title: buying ? `🐋 Large buyers active on $${c.symbol}` : `🐋 Large sellers active on $${c.symbol}`,
-      detail: `Average clip $${avgTrade.toFixed(0)} across ${trades24} trades with ${buying ? c.buys24h + " buys vs " + c.sells24h + " sells" : c.sells24h + " sells vs " + c.buys24h + " buys"} (${(Math.abs(flow) * 100).toFixed(0)}% one-sided)${liqImpact >= 0.02 ? ` — each clip moves ~${(liqImpact * 100).toFixed(1)}% of the pool` : ""}.`,
-    };
-  }
-  if (bigTrade) {
+  const m = toMetrics(c);
+  const core = coreWhaleSignal(m);
+  if (!core) {
+    if (trades24 < 5 || c.volume24h <= 0) return null;
+    const avgTrade = c.volume24h / trades24;
+    if (avgTrade < 400) return null;
     return {
       kind: "WHALE", strength: "NEUTRAL",
       title: `🐋 Big clips trading $${c.symbol}`,
       detail: `Average trade size is $${avgTrade.toFixed(0)} across ${trades24} trades — whale-scale for this cap, but flow is balanced (${c.buys24h} buys / ${c.sells24h} sells).`,
     };
   }
-  return null;
+  const avgTrade = c.volume24h / trades24;
+  const flow = trades24 > 0 ? (c.buys24h - c.sells24h) / trades24 : 0;
+  const liqImpact = c.liquidity > 0 ? avgTrade / c.liquidity : 0;
+  const buying = core.strength === "BULLISH";
+  if (core.title.includes("burst")) {
+    return {
+      kind: "WHALE", strength: core.strength,
+      title: buying ? `🐋 Whale accumulation burst on $${c.symbol}` : `🐋 Whale exit burst on $${c.symbol}`,
+      detail: `${(c.volume1h / Math.max(c.volume24h, 1) * 100).toFixed(0)}% of the day's volume traded in the last hour (${c.buys1h} buys vs ${c.sells1h} sells). ${buying ? "Someone is building a position fast." : "Someone large is heading for the exit — thin pools amplify this."}`,
+    };
+  }
+  return {
+    kind: "WHALE", strength: core.strength,
+    title: buying ? `🐋 Large buyers active on $${c.symbol}` : `🐋 Large sellers active on $${c.symbol}`,
+    detail: `Average clip $${avgTrade.toFixed(0)} across ${trades24} trades with ${buying ? c.buys24h + " buys vs " + c.sells24h + " sells" : c.sells24h + " sells vs " + c.buys24h + " buys"} (${(Math.abs(flow) * 100).toFixed(0)}% one-sided)${liqImpact >= 0.02 ? ` — each clip moves ~${(liqImpact * 100).toFixed(1)}% of the pool` : ""}.`,
+  };
 }
 
 export function tokenSignals(c: LiveLaunch, feed: LiveLaunch[]): Signal[] {
@@ -663,27 +683,26 @@ export interface EcoEvent {
 
 export function ecosystemSignals(feed: LiveLaunch[]): EcoEvent[] {
   const events: EcoEvent[] = [];
+  const ranked = [...feed].sort((a, b) => b.mcap - a.mcap);
   for (const c of feed) {
-    // new-launch events from pair age
+    const rank = ranked.findIndex((x) => x.ca === c.ca) + 1;
+    const m = toMetrics(c, rank);
     if (c.pairCreatedAt) {
-      const days = (Date.now() - c.pairCreatedAt) / 86400000;
+      const days = m.pairAgeDays ?? 0;
       if (days <= 7) {
         events.push({
-          token: c, kind: "LAUNCH", strength: "BULLISH", weight: 90 - days * 8,
+          token: c, kind: "LAUNCH", strength: "BULLISH", weight: signalWeight("LAUNCH", "BULLISH", m),
           title: `New launch: ${c.name}`,
           detail: `$${c.symbol} paired ${days < 1 ? "today" : `${Math.floor(days)}d ago`} — ${c.mcap ? "trading at " + (c.mcap >= 1000 ? `$${(c.mcap / 1000).toFixed(1)}K` : `$${c.mcap.toFixed(0)}`) + " cap" : "price discovery underway"}.`,
         });
       }
     }
     for (const s of tokenSignals(c, feed)) {
-      if (s.strength === "NEUTRAL" && s.kind !== "RANK" && s.kind !== "WHALE") continue; // feed shows movement, not noise
-      const base = s.kind === "WHALE" ? 85 // whale moves lead the feed
-        : s.kind === "MOMENTUM" ? Math.abs(c.change24h) * 2
-        : s.kind === "VOLUME" ? (c.mcap > 0 ? Math.min((c.volume24h / c.mcap) * 60, 70) : 10)
-        : s.kind === "RANK" ? 45
-        : s.kind === "VERIFY" ? (s.strength === "BEARISH" ? 35 : 25)
-        : 20;
-      events.push({ token: c, kind: s.kind, strength: s.strength, title: s.title, detail: s.detail, weight: base });
+      if (s.strength === "NEUTRAL" && s.kind !== "RANK" && s.kind !== "WHALE") continue;
+      events.push({
+        token: c, kind: s.kind, strength: s.strength, title: s.title, detail: s.detail,
+        weight: signalWeight(s.kind, s.strength, m),
+      });
     }
   }
   return events.sort((a, b) => b.weight - a.weight);

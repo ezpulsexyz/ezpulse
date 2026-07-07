@@ -11,6 +11,12 @@
 // (Enable the pg_cron and pg_net extensions first: Database → Extensions.)
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import {
+  archivableSignals,
+  priceAtTarget,
+  signalHit,
+  type SignalMetrics,
+} from "../../../shared/signals-core.ts";
 
 type Rec = Record<string, unknown>;
 
@@ -43,12 +49,13 @@ interface Snap {
   holders: number | null;
   curve: number | null;
   graduated: boolean;
+  pairCreatedAt: number | null;
+  hasX: boolean;
 }
 
 async function fetchFeed(): Promise<Snap[]> {
   const found = new Map<string, Snap>();
 
-  // Jupiter — canonical, launchpad-tagged
   for (const url of [
     "https://datapi.jup.ag/v1/pools/toptraded/24h?launchpads=easya-kickstart",
     "https://datapi.jup.ag/v1/pools/recent?launchpads=easya-kickstart",
@@ -64,6 +71,7 @@ async function fetchFeed(): Promise<Snap[]> {
         if (!ca) continue;
         const s24 = a.stats24h as Rec | undefined;
         const s1 = a.stats1h as Rec | undefined;
+        const created = a.createdAt ?? pool.createdAt;
         found.set(ca.toLowerCase(), {
           ca,
           symbol: String(a.symbol ?? "?"),
@@ -80,6 +88,8 @@ async function fetchFeed(): Promise<Snap[]> {
           holders: typeof a.holderCount === "number" ? a.holderCount : null,
           curve: typeof a.bondingCurve === "number" ? a.bondingCurve : null,
           graduated: typeof a.graduatedAt === "string",
+          pairCreatedAt: typeof created === "string" ? Date.parse(created) : typeof created === "number" ? created : null,
+          hasX: typeof a.twitter === "string" && a.twitter.length > 0,
         });
       }
     } catch {
@@ -87,7 +97,6 @@ async function fetchFeed(): Promise<Snap[]> {
     }
   }
 
-  // DexScreener — fill tracked CAs Jupiter missed
   const missing = TRACKED_CAS.filter((ca) => !found.has(ca.toLowerCase()));
   if (missing.length) {
     try {
@@ -104,6 +113,7 @@ async function fetchFeed(): Promise<Snap[]> {
           const tx = p.txns as Rec | undefined;
           const t24 = tx?.h24 as Rec | undefined;
           const t1 = tx?.h1 as Rec | undefined;
+          const created = p.pairCreatedAt;
           found.set(ca.toLowerCase(), {
             ca,
             symbol: String(base?.symbol ?? "?"),
@@ -120,64 +130,47 @@ async function fetchFeed(): Promise<Snap[]> {
             holders: null,
             curve: null,
             graduated: false,
+            pairCreatedAt: typeof created === "number" ? created : null,
+            hasX: false,
           });
         }
       }
     } catch {
-      /* proceed with what we have */
+      /* proceed */
     }
   }
 
   return [...found.values()].filter((s) => s.price > 0);
 }
 
-/** Mirror of the app's signal thresholds — deterministic, same inputs. */
-function fireSignals(s: Snap): { kind: string; strength: string; title: string }[] {
-  const out: { kind: string; strength: string; title: string }[] = [];
-  const turnover = s.mcap > 0 ? s.volume24h / s.mcap : 0;
-  const trades = s.buys24h + s.sells24h;
-  const avgClip = trades > 0 ? s.volume24h / trades : 0;
-  const flow = trades > 0 ? (s.buys24h - s.sells24h) / trades : 0;
-  const burst = s.volume1h > 0 && s.volume24h > 0 && s.volume1h >= s.volume24h * 0.25;
-
-  if (burst && (s.buys1h > s.sells1h * 2 || s.sells1h > s.buys1h * 2)) {
-    const buying = s.buys1h >= s.sells1h;
-    out.push({
-      kind: "WHALE",
-      strength: buying ? "BULLISH" : "BEARISH",
-      title: `Whale ${buying ? "accumulation" : "exit"} burst on $${s.symbol}`,
-    });
-  } else if (avgClip >= 400 && Math.abs(flow) >= 0.25) {
-    out.push({
-      kind: "WHALE",
-      strength: flow > 0 ? "BULLISH" : "BEARISH",
-      title: `Large ${flow > 0 ? "buyers" : "sellers"} active on $${s.symbol}`,
-    });
-  }
-
-  if (s.change24h >= 15) {
-    out.push({ kind: "MOMENTUM", strength: "BULLISH", title: `+${s.change24h.toFixed(1)}% in 24h on $${s.symbol}` });
-  } else if (s.change24h <= -15) {
-    out.push({ kind: "MOMENTUM", strength: "BEARISH", title: `${s.change24h.toFixed(1)}% drawdown on $${s.symbol}` });
-  }
-
-  if (turnover >= 0.3) {
-    out.push({ kind: "VOLUME", strength: "BULLISH", title: `Turnover ${(turnover * 100).toFixed(0)}% of cap on $${s.symbol}` });
-  }
-
-  return out;
+function toMetrics(s: Snap, rank: number, avgTurnover: number): SignalMetrics {
+  const pairAgeDays = s.pairCreatedAt ? (Date.now() - s.pairCreatedAt) / 86400000 : undefined;
+  return {
+    symbol: s.symbol,
+    mcap: s.mcap,
+    change24h: s.change24h,
+    volume24h: s.volume24h,
+    volume1h: s.volume1h,
+    liquidity: s.liquidity,
+    buys24h: s.buys24h,
+    sells24h: s.sells24h,
+    buys1h: s.buys1h,
+    sells1h: s.sells1h,
+    rank,
+    verified: s.hasX,
+    pairAgeDays,
+  };
 }
 
 Deno.serve(async () => {
   const db = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!, // service role: RLS bypass for writes
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
   const feed = await fetchFeed();
   if (!feed.length) return new Response(JSON.stringify({ ok: false, reason: "empty feed" }), { status: 200 });
 
-  // 1 · snapshots
   await db.from("price_snapshots").insert(
     feed.map((s) => ({
       ca: s.ca,
@@ -190,15 +183,21 @@ Deno.serve(async () => {
     })),
   );
 
-  // 2 · fire signals (dedupe: skip if same ca+kind+strength fired in last 24h)
+  const ranked = [...feed].sort((a, b) => b.mcap - a.mcap);
+  const avgTurnover = feed.length
+    ? feed.reduce((sum, s) => sum + (s.mcap > 0 ? s.volume24h / s.mcap : 0), 0) / feed.length
+    : 0.15;
+
   const { data: recent } = await db.from("signal_events")
     .select("ca, kind, strength")
     .gte("ts", new Date(Date.now() - 24 * 3600_000).toISOString());
   const seen = new Set((recent ?? []).map((r) => `${r.ca}:${r.kind}:${r.strength}`));
 
-  const events = feed.flatMap((s) =>
-    fireSignals(s)
-      .filter((e) => !seen.has(`${s.ca}:${e.kind}:${e.strength}`))
+  const events = feed.flatMap((s) => {
+    const rank = ranked.findIndex((x) => x.ca.toLowerCase() === s.ca.toLowerCase()) + 1;
+    const m = toMetrics(s, rank, avgTurnover);
+    return archivableSignals(s.ca, m, { avgTurnover })
+      .filter((e) => !seen.has(e.key))
       .map((e) => ({
         ca: s.ca,
         symbol: s.symbol,
@@ -207,27 +206,46 @@ Deno.serve(async () => {
         title: e.title,
         price_at: s.price,
         mcap_at: s.mcap,
-      })),
-  );
+      }));
+  });
 
   if (events.length) await db.from("signal_events").insert(events);
 
-  // 3 · resolve outcomes: events ≥24h old, unresolved
   const { data: open } = await db.from("signal_events")
-    .select("id, ca, strength, price_at")
+    .select("id, ca, strength, price_at, ts")
     .eq("resolved", false)
     .lte("ts", new Date(Date.now() - 24 * 3600_000).toISOString())
     .limit(100);
 
   let resolved = 0;
   for (const ev of open ?? []) {
-    const now = feed.find((s) => s.ca.toLowerCase() === String(ev.ca).toLowerCase());
-    if (!now || !ev.price_at) continue;
-    const change = ((now.price - Number(ev.price_at)) / Number(ev.price_at)) * 100;
-    const hit = ev.strength === "BULLISH" ? change > 0 : change < 0;
+    const firedAt = Date.parse(String(ev.ts));
+    const targetTs = firedAt + 24 * 3600_000;
+
+    const { data: snaps } = await db.from("price_snapshots")
+      .select("ts, price_usd")
+      .eq("ca", ev.ca)
+      .gte("ts", new Date(firedAt).toISOString())
+      .lte("ts", new Date(targetTs + 3 * 3600_000).toISOString())
+      .order("ts", { ascending: true });
+
+    const snapPrices = (snaps ?? []).map((r) => ({
+      ts: Date.parse(String(r.ts)),
+      price: Number(r.price_usd),
+    }));
+
+    let price24h = priceAtTarget(snapPrices, targetTs);
+    if (price24h === null) {
+      const now = feed.find((s) => s.ca.toLowerCase() === String(ev.ca).toLowerCase());
+      if (!now || !ev.price_at) continue;
+      price24h = now.price;
+    }
+
+    const change = ((price24h - Number(ev.price_at)) / Number(ev.price_at)) * 100;
+    const hit = signalHit(String(ev.strength) as "BULLISH" | "BEARISH" | "NEUTRAL", change);
     await db.from("signal_events").update({
       resolved: true,
-      price_24h: now.price,
+      price_24h: price24h,
       change_24h: change,
       hit,
     }).eq("id", ev.id);

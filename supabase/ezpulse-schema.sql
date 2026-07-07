@@ -38,7 +38,8 @@ create table if not exists public.price_snapshots (
 create index if not exists price_snapshots_ca_ts on public.price_snapshots (ca, ts desc);
 
 -- ─── Signal track record ───
--- Every fired signal is archived; outcomes resolved at +24h against snapshots.
+-- Directional signals (WHALE, MOMENTUM, VOLUME, LIQUIDITY, RANK, LAUNCH) are
+-- archived by the snapshot cron; outcomes resolved at +24h against price_snapshots.
 create table if not exists public.signal_events (
   id          bigint generated always as identity primary key,
   ca          text not null,
