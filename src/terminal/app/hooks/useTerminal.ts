@@ -33,16 +33,10 @@ export function useTerminal(target?: TerminalTarget) {
   const [signinNudge, setSigninNudge] = useState(false);
 
   const toggleWatch = (ca: string) => {
-    if (!phantom) {
-      // watchlist requires sign-in — show nudge instead of silently failing
-      setSigninNudge(true);
-      setTimeout(() => setSigninNudge(false), 3500);
-      return;
-    }
     setWatchlist((wl) => {
       const next = wl.includes(ca) ? wl.filter((x) => x !== ca) : [...wl, ca];
       saveWatchlist(next);
-      syncWatchlist(next, phantom); // wallet-keyed sync
+      if (phantom) syncWatchlist(next, phantom);
       return next;
     });
   };
@@ -179,6 +173,10 @@ export function useTerminal(target?: TerminalTarget) {
 
   const feed = Array.isArray(liveFeed) ? liveFeed : [];
   const loading = liveFeed === "loading";
+  const watchedCoins = useMemo(
+    () => (watchlist.length ? feed.filter((c) => watchlist.includes(c.ca)) : []),
+    [feed, watchlist],
+  );
   const verified = verifiedOf(feed);
   const bonded = bondedOf(feed);
   const bonding = feed.filter((c) => !isGraduated(c));
@@ -239,7 +237,7 @@ export function useTerminal(target?: TerminalTarget) {
     booted, setBooted, bootSlow,
     toggleWatch, signInPhantom, signOutPhantom, setAlert, watchWallet,
     connectPhantom, disconnectWallet, copyCa, openNotifs,
-    feed, loading, verified, bonded, bonding, trending, totalMcap, totalVol,
+    feed, watchedCoins, loading, verified, bonded, bonding, trending, totalMcap, totalVol,
     notifs, unseenCount, topMover, results, note,
     goto, openToken,
   };
