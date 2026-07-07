@@ -101,6 +101,14 @@ body {
   100% { transform: translateY(calc(100vh + 160px)); }
 }
 
+/* Mobile / touch: no sweeping beam or ambient glow (distracting + sticky-hover artifacts) */
+@media (max-width: 768px), ((hover: none) and (pointer: coarse)) {
+  .fx-glow,
+  .fx-overlay {
+    display: none !important;
+  }
+}
+
 /* Keep native controls light even when the OS is in dark mode */
 input, textarea, select, button { color-scheme: light; }
 
@@ -187,8 +195,21 @@ input, textarea, select, button { color-scheme: light; }
   box-shadow: 0 25px 50px -12px rgba(39, 67, 240, 0.18), 0 0 0 1px rgba(39, 67, 240, 0.06);
 }
 
+/* Table rows: hover accent only on devices with real hover (avoids sticky "light" on tap) */
+@media (hover: hover) and (pointer: fine) {
+  .term-row-interactive:hover {
+    background-color: rgba(99, 102, 241, 0.04);
+    box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.08);
+  }
+  .term-row-interactive:hover::before,
+  .term-row-interactive:focus-within::before {
+    opacity: 1;
+    width: 0.25rem;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .term-blink, .animate-fade-up, .term-shimmer, .animate-ping { animation: none !important; }
   .fx-glow, .fx-scan-beam { animation: none !important; }
-  .fx-scan-beam { display: none; }
+  .fx-glow, .fx-overlay { display: none !important; }
 }

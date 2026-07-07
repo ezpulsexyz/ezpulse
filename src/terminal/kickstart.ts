@@ -814,10 +814,10 @@ export function loadWatchlist(): string[] {
 export function saveWatchlist(cas: string[]) {
   try { localStorage.setItem(WL_KEY, JSON.stringify(cas)); } catch { /* noop */ }
 }
-export interface AlertPrefs { priceMove: boolean; volumeSpike: boolean; verification: boolean; newLaunch: boolean }
+export interface AlertPrefs { priceMove: boolean; volumeSpike: boolean; verification: boolean; newLaunch: boolean; whaleSignal: boolean }
 export function loadAlertPrefs(): AlertPrefs {
-  try { return { priceMove: true, volumeSpike: true, verification: true, newLaunch: true, ...JSON.parse(localStorage.getItem(WL_ALERTS_KEY) || "{}") }; }
-  catch { return { priceMove: true, volumeSpike: true, verification: true, newLaunch: true }; }
+  try { return { priceMove: true, volumeSpike: true, verification: true, newLaunch: true, whaleSignal: true, ...JSON.parse(localStorage.getItem(WL_ALERTS_KEY) || "{}") }; }
+  catch { return { priceMove: true, volumeSpike: true, verification: true, newLaunch: true, whaleSignal: true }; }
 }
 export function saveAlertPrefs(p: AlertPrefs) {
   try { localStorage.setItem(WL_ALERTS_KEY, JSON.stringify(p)); } catch { /* noop */ }

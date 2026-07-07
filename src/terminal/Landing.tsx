@@ -60,9 +60,10 @@ const FEATURES: Feature[] = [
   { id: "share", title: "📤 Share cards", body: "One click renders a branded stat card for any token — copy, save, or post straight to X with pre-filled text.", status: "SHIPPED", area: "Growth", date: "Live" },
   // shipped — signals & tracking
   { id: "signals", title: "Real-time Signals feed", body: "Whale, momentum, volume, liquidity, rank, and launch events — filterable, with historical hit-rate badges and a public archive pipeline.", status: "SHIPPED", area: "Signals", date: "Live" },
+  { id: "whale-signals", title: "🐋 Whale signals", body: "Dedicated whale panel on Signals — large clips, one-sided buy/sell flow, and hourly volume bursts from live DexScreener aggregates. Watchlist alert pref included.", status: "SHIPPED", area: "Signals", date: "Live" },
   { id: "track-record", title: "🎯 Public signal track record", body: "Every signal archived to an append-only log and scored against the market 24h later. Hit-rate by kind — no retroactive edits.", status: "SHIPPED", area: "Signals", date: "Live" },
   { id: "watchlist", title: "Watchlists + alert preferences", body: "Star tokens, toggle price / volume / verification alerts. Local storage + Phantom wallet sync.", status: "SHIPPED", area: "Tracking", date: "Live" },
-  { id: "bell", title: "🔔 Watchlist notification bell", body: "In-app alerts when signals fire on watched tokens — price ±10%, volume spikes, verification changes. Respects your prefs.", status: "SHIPPED", area: "Tracking", date: "Live" },
+  { id: "bell", title: "🔔 Watchlist notification bell", body: "In-app alerts when signals fire on watched tokens — price ±10%, volume spikes, whale signals, verification changes. Respects your prefs.", status: "SHIPPED", area: "Tracking", date: "Live" },
   // shipped — portfolio & account
   { id: "portfolio", title: "Watch-only Portfolio", body: "Paste any address or connect Phantom read-only — Kickstart holdings valued at live prices, with Solscan cross-check.", status: "SHIPPED", area: "Portfolio", date: "Live" },
   { id: "launch-sim", title: "⏳ Launch portfolio simulator", body: "What-if buys at launch or N days ago — custom amount, P&L/ROI, peak & trough markers, annualized return, compare leaderboard, and match-your-position from wallet holdings.", status: "SHIPPED", area: "Portfolio", date: "Live" },

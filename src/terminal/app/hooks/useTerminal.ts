@@ -254,6 +254,7 @@ export function useTerminal(target?: TerminalTarget) {
         if (s.kind === "MOMENTUM" && !alerts.priceMove) continue;
         if (s.kind === "VOLUME" && !alerts.volumeSpike) continue;
         if (s.kind === "VERIFY" && !alerts.verification) continue;
+        if (s.kind === "WHALE" && !alerts.whaleSignal) continue;
         out.push({
           key: `${c.ca}:${s.kind}:${s.strength}:${day}`,
           icon: s.kind === "WHALE" ? "🐋" : s.kind === "MOMENTUM" ? (s.strength === "BULLISH" ? "📈" : "📉") : s.kind === "VOLUME" ? "🔊" : s.kind === "LIQUIDITY" ? "💧" : s.kind === "RANK" ? "👑" : "✓",

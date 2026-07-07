@@ -4,6 +4,7 @@ import { BLUE, Card, Stat } from "../../components";
 import { PageHead, EmptyState, LaunchCta, LoadingRows } from "../components/PageLayout";
 import { LiveBadge } from "../components/LiveBadge";
 import { HitRateBadge, KindBadge, StrengthBadge, signalIcon } from "../components/SignalBadges";
+import { WhaleSignalsPanel } from "../components/WhaleSignalsPanel";
 import { useSignalRecord } from "../hooks/useSignalRecord";
 import { useTerminalContext } from "../TerminalContext";
 import type { SignalKind } from "../../../../shared/signals-core";
@@ -52,6 +53,12 @@ export function SignalsSection() {
             <LiveBadge label="LIVE FEED" ts={lastUpdated} tone="red" size="md" />
           </span>
         }
+      />
+
+      <WhaleSignalsPanel
+        events={events}
+        loading={loading}
+        onOpen={(e) => openToken(e.token)}
       />
 
       {record.ready && record.byKind && Object.keys(record.byKind).length > 0 && (
