@@ -7,12 +7,13 @@ import {
   type LiveLaunch,
 } from "../../kickstart";
 import type { Section } from "../types";
+import { HistoryChart } from "../components/HistoryChart";
 import { FounderTerminal } from "../components/FounderTerminal";
 import { OverviewTab } from "../components/project/OverviewTab";
 import { SignalsTab } from "../components/project/SignalsTab";
 import InvestorThesis from "../../sections/InvestorThesis";
 
-type ProjTab = "overview" | "signals" | "founder" | "thesis";
+type ProjTab = "overview" | "signals" | "history" | "thesis" | "founder";
 
 export interface ProjectDetailProps {
   token: LiveLaunch;
@@ -47,8 +48,16 @@ export default function ProjectDetail({
     setProjTab("overview");
   }, [token.ca]);
 
+  const tabs: { id: ProjTab; label: string }[] = [
+    { id: "overview", label: "Overview" },
+    { id: "signals", label: "Live Signals" },
+    { id: "history", label: "Price History" },
+    { id: "thesis", label: "Investor Thesis" },
+    ...(verified ? [{ id: "founder" as const, label: "Founder Terminal" }] : []),
+  ];
+
   return (
-    <div className="animate-fade-up">
+    <div className="animate-fade-up space-y-8 pb-12">
       <button
         type="button"
         onClick={onBack}
@@ -174,30 +183,24 @@ export default function ProjectDetail({
         </div>
       </div>
 
-      <div className="term-tab-rail term-scroll-x mt-5 max-w-full">
-        {(
-          [
-            ["overview", "Overview"],
-            ["signals", "⚡ Signals"],
-            ["thesis", "🧠 Thesis"],
-            ...(verified ? [["founder", "👤 Founder"] as const] : []),
-          ] as const
-        ).map(([id, label]) => (
+      <div className="term-scroll-x flex border-b border-zinc-200 text-sm">
+        {tabs.map((tab) => (
           <button
-            key={id}
+            key={tab.id}
             type="button"
-            onClick={() => setProjTab(id)}
-            className={`rounded-full px-4 py-2 text-[11px] font-bold transition sm:px-5 sm:text-[12px] ${
-              projTab === id ? "text-white" : "text-zinc-500 hover:text-zinc-800"
+            onClick={() => setProjTab(tab.id)}
+            className={`shrink-0 border-b-2 px-6 py-4 font-medium transition-all sm:px-8 ${
+              projTab === tab.id
+                ? "border-blue-600 text-blue-700"
+                : "border-transparent text-zinc-500 hover:text-zinc-700"
             }`}
-            style={projTab === id ? { background: BLUE } : undefined}
           >
-            {label}
+            {tab.label}
           </button>
         ))}
       </div>
 
-      <div className="mt-4">
+      <div className="pt-2">
         {projTab === "overview" && (
           <OverviewTab
             token={token}
@@ -208,6 +211,7 @@ export default function ProjectDetail({
           />
         )}
         {projTab === "signals" && <SignalsTab token={token} feed={feed} />}
+        {projTab === "history" && <HistoryChart ca={token.ca} />}
         {projTab === "thesis" && <InvestorThesis token={token} feed={feed} />}
         {projTab === "founder" && verified && (
           <FounderTerminal token={token} feed={feed} onOpenToken={onOpenToken} />
