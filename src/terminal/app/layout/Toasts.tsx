@@ -1,0 +1,29 @@
+import { BLUE } from "../../components";
+import { useTerminalContext } from "../TerminalContext";
+import { PhantomHint } from "../components/PhantomHint";
+import { ShareModal } from "../components/ShareModal";
+
+export function Toasts() {
+  const {
+    phantomMissing, shareToken, setShareToken, signinNudge, setSigninNudge, signInPhantom,
+  } = useTerminalContext();
+  return (
+    <>
+      {phantomMissing && (
+        <div className="fixed bottom-5 left-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 animate-fade-up">
+          <PhantomHint />
+        </div>
+      )}
+      {shareToken && <ShareModal c={shareToken} onClose={() => setShareToken(null)} />}
+      {signinNudge && (
+        <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 animate-fade-up">
+          <button onClick={() => { setSigninNudge(false); signInPhantom(); }}
+            className="flex items-center gap-2.5 rounded-full border border-indigo-200 bg-white px-5 py-3 text-[13px] font-semibold text-zinc-800 shadow-xl">
+            👻 <span>Sign in with Phantom to use your watchlist</span>
+            <span className="rounded-full px-3 py-1 text-[11px] font-bold text-white" style={{ background: BLUE }}>Sign in</span>
+          </button>
+        </div>
+      )}
+    </>
+  );
+}
