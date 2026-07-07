@@ -184,7 +184,12 @@ export function LaunchSimulator({
 
   if (!coins.length) return null;
 
-  const maxDays = result && result !== "loading" ? Math.max(1, result.ageDays) : 30;
+  const tokenAgeDays = coin?.pairCreatedAt
+    ? Math.max(1, Math.round((Date.now() - coin.pairCreatedAt) / 86400000))
+    : result && result !== "loading" && entryMode === "launch"
+      ? result.ageDays
+      : 30;
+  const maxDaysAgo = Math.min(365, tokenAgeDays);
 
   return (
     <Card
@@ -287,8 +292,8 @@ export function LaunchSimulator({
             <input
               type="range"
               min={1}
-              max={Math.min(365, maxDays)}
-              value={Math.min(daysAgo, maxDays)}
+              max={maxDaysAgo}
+              value={Math.min(daysAgo, maxDaysAgo)}
               onChange={(e) => setDaysAgo(Number(e.target.value))}
               className="h-1.5 w-full cursor-pointer accent-indigo-600"
             />
