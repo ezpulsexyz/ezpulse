@@ -7,7 +7,17 @@
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
-:root { color-scheme: light; }
+:root {
+  color-scheme: light;
+  --ez-blue: #2743f0;
+  --ez-violet: #4f2ff0;
+  --fx-glow-strong: rgba(39, 67, 240, 0.16);
+  --fx-glow-mid: rgba(39, 67, 240, 0.09);
+  --fx-glow-soft: rgba(79, 47, 240, 0.07);
+  --fx-scanline: rgba(24, 24, 27, 0.045);
+  --fx-beam: rgba(39, 67, 240, 0.07);
+  --fx-scan-gap: 3px;
+}
 
 html { scroll-behavior: smooth; }
 
@@ -15,6 +25,80 @@ body {
   background: #fbfbfd;
   color: #18181b;
   font-family: var(--font-sans);
+  min-height: 100vh;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  isolation: isolate;
+}
+
+/* ─── Global ambient glow (soft-light tint over the full UI) ─── */
+.fx-glow {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+  opacity: 0.9;
+  background:
+    radial-gradient(ellipse 130% 90% at 50% -25%, var(--fx-glow-strong), transparent 58%),
+    radial-gradient(ellipse 55% 45% at 100% 20%, var(--fx-glow-mid), transparent 52%),
+    radial-gradient(ellipse 50% 40% at 0% 85%, var(--fx-glow-soft), transparent 48%),
+    radial-gradient(ellipse 40% 30% at 80% 100%, var(--fx-glow-soft), transparent 42%);
+  animation: glowPulse 7s ease-in-out infinite;
+}
+
+/* ─── Global scanline overlay (above content) ─── */
+.fx-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.fx-scanlines {
+  position: absolute;
+  inset: 0;
+  opacity: 0.55;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(var(--fx-scan-gap) - 1px),
+    var(--fx-scanline) calc(var(--fx-scan-gap) - 1px),
+    var(--fx-scanline) var(--fx-scan-gap)
+  );
+  mix-blend-mode: multiply;
+}
+
+.fx-scan-beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 140px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    var(--fx-beam) 42%,
+    rgba(39, 67, 240, 0.11) 50%,
+    var(--fx-beam) 58%,
+    transparent 100%
+  );
+  animation: scanSweep 9s linear infinite;
+  will-change: transform;
+}
+
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.82; }
+  50% { opacity: 1; }
+}
+
+@keyframes scanSweep {
+  0% { transform: translateY(-160px); }
+  100% { transform: translateY(calc(100vh + 160px)); }
 }
 
 /* Keep native controls light even when the OS is in dark mode */
@@ -55,4 +139,6 @@ input, textarea, select, button { color-scheme: light; }
 
 @media (prefers-reduced-motion: reduce) {
   .term-blink, .animate-fade-up { animation: none !important; }
+  .fx-glow, .fx-scan-beam { animation: none !important; }
+  .fx-scan-beam { display: none; }
 }
