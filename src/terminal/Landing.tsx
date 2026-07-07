@@ -5,21 +5,55 @@ import Legal, { type LegalPage } from "./Legal";
 import { syncVote } from "./backend";
 import { BLUE, CONTACT, X_URL, X_HANDLE, Logo, PulseMark } from "./brand";
 import type { TerminalTarget } from "./Terminal";
+import { navigateToTerminal, terminalHref } from "../routes";
 import { DIRECTORY_COLS, DIRECTORY_GRID, TermActions, TermHead, TermHeadCell, TermNum, TermRow } from "./app/components/TermTable";
 
 type Page = "home" | "upcoming" | "roadmap" | "directory" | "about" | LegalPage;
 
-function ArrowBtn({ children, ghost = false, onClick }: { children: React.ReactNode; ghost?: boolean; onClick?: () => void }) {
+function TerminalLink({
+  target,
+  children,
+  className = "",
+  style,
+}: {
+  target?: TerminalTarget;
+  children: React.ReactNode;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
   return (
-    <button
-      onClick={onClick}
-      className={`group inline-flex items-center gap-2.5 rounded-full px-6 py-3 text-[13px] font-bold uppercase tracking-wide transition ${
-        ghost
-          ? "border border-indigo-200 bg-white text-indigo-700 hover:border-indigo-400"
-          : "text-white shadow-lg shadow-indigo-600/25 hover:-translate-y-0.5 hover:shadow-xl"
-      }`}
-      style={ghost ? undefined : { background: BLUE }}
+    <a
+      href={terminalHref(target)}
+      onClick={(e) => { e.preventDefault(); navigateToTerminal(target); }}
+      className={className}
+      style={style}
     >
+      {children}
+    </a>
+  );
+}
+
+function ArrowBtn({ children, ghost = false, onClick, target }: {
+  children: React.ReactNode;
+  ghost?: boolean;
+  onClick?: () => void;
+  target?: TerminalTarget;
+}) {
+  const className = `group inline-flex items-center gap-2.5 rounded-full px-6 py-3 text-[13px] font-bold uppercase tracking-wide transition ${
+    ghost
+      ? "border border-indigo-200 bg-white text-indigo-700 hover:border-indigo-400"
+      : "text-white shadow-lg shadow-indigo-600/25 hover:-translate-y-0.5 hover:shadow-xl"
+  }`;
+  if (!ghost && !onClick) {
+    return (
+      <TerminalLink target={target} className={className} style={{ background: BLUE } as React.CSSProperties}>
+        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15 transition group-hover:translate-x-0.5">→</span>
+        {children}
+      </TerminalLink>
+    );
+  }
+  return (
+    <button onClick={onClick} className={className} style={ghost ? undefined : { background: BLUE }}>
       {!ghost && (
         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15 transition group-hover:translate-x-0.5">→</span>
       )}
@@ -177,7 +211,7 @@ function FeatureBoard() {
 }
 
 /* ── the landing site ── */
-export default function Landing({ onOpenApp }: { onOpenApp: (t?: TerminalTarget) => void }) {
+export default function Landing() {
   const [page, setPage] = useState<Page>("home");
   const [feed, setFeed] = useState<LiveLaunch[] | "loading" | null>("loading");
 
@@ -215,12 +249,12 @@ export default function Landing({ onOpenApp }: { onOpenApp: (t?: TerminalTarget)
             ))}
             <span className="h-4 w-px bg-zinc-200" />
             {APP_LINKS.map(([label, t]) => (
-              <button key={label} onClick={() => onOpenApp(t)} className="flex items-center gap-1 text-zinc-600 transition hover:text-indigo-700">
+              <TerminalLink key={label} target={t} className="flex items-center gap-1 text-zinc-600 transition hover:text-indigo-700">
                 {label} <span className="text-[10px] text-zinc-300">↗</span>
-              </button>
+              </TerminalLink>
             ))}
           </div>
-          <ArrowBtn onClick={() => onOpenApp()}>Open Terminal</ArrowBtn>
+          <ArrowBtn>Open Terminal</ArrowBtn>
         </div>
       </nav>
 
@@ -239,7 +273,7 @@ export default function Landing({ onOpenApp }: { onOpenApp: (t?: TerminalTarget)
               Every EasyA Kickstart launch — live prices, real-time signals, and a research page per project. Which tokens are worth your attention today?
             </p>
             <div className="mt-9 flex flex-wrap items-center justify-center gap-4">
-              <ArrowBtn onClick={() => onOpenApp()}>Open Terminal</ArrowBtn>
+              <ArrowBtn>Open Terminal</ArrowBtn>
               <ArrowBtn ghost onClick={() => nav("directory")}>Browse Directory</ArrowBtn>
             </div>
 
@@ -247,12 +281,12 @@ export default function Landing({ onOpenApp }: { onOpenApp: (t?: TerminalTarget)
             <div className="mx-auto mt-14 max-w-2xl overflow-hidden rounded-2xl border border-zinc-200 bg-white text-left shadow-[0_30px_60px_-30px_rgba(39,67,240,.25)]">
               <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-widest text-zinc-400">
                 <span className="flex items-center gap-1.5"><span className="term-blink h-1.5 w-1.5 rounded-full bg-red-500" /> Live Kickstart tokens</span>
-                <button onClick={() => onOpenApp({ section: "market" })} className="text-indigo-600 hover:text-indigo-800">Open market →</button>
+                <TerminalLink target={{ section: "market" }} className="text-indigo-600 hover:text-indigo-800">Open market →</TerminalLink>
               </div>
               {feed === "loading" && <div className="px-4 py-6 text-center text-[12px] text-zinc-400">Scanning for …EASY contracts…</div>}
               {Array.isArray(feed) && coins.length === 0 && <div className="px-4 py-6 text-center text-[12px] text-zinc-400">New launches appear the moment their pair is indexed.</div>}
               {coins.slice(0, 5).map((c, i) => (
-                <button key={c.ca} onClick={() => onOpenApp({ section: "market" })} className="flex w-full items-center gap-3 border-b border-zinc-50 px-4 py-2.5 text-left text-[13px] last:border-0 hover:bg-zinc-50">
+                <TerminalLink key={c.ca} target={{ section: "market" }} className="flex w-full items-center gap-3 border-b border-zinc-50 px-4 py-2.5 text-left text-[13px] last:border-0 hover:bg-zinc-50">
                   <span className="w-5 text-zinc-300">{i + 1}</span>
                   {c.icon && <img src={c.icon} alt="" className="h-5 w-5 rounded-full" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />}
                   <span className="font-semibold text-zinc-900">{c.name}</span>
@@ -262,7 +296,7 @@ export default function Landing({ onOpenApp }: { onOpenApp: (t?: TerminalTarget)
                   <span className={`w-16 text-right text-[12px] font-semibold tabular-nums ${c.change24h >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                     {c.change24h >= 0 ? "▲" : "▼"} {Math.abs(c.change24h).toFixed(1)}%
                   </span>
-                </button>
+                </TerminalLink>
               ))}
             </div>
 
@@ -288,10 +322,11 @@ export default function Landing({ onOpenApp }: { onOpenApp: (t?: TerminalTarget)
                 className="rounded-full px-6 py-2.5 text-[12px] font-bold uppercase tracking-wide text-white" style={{ background: BLUE }}>
                 Launch on Kickstart →
               </a>
-              <button onClick={() => onOpenApp({ section: "market" })}
+              <TerminalLink
+                target={{ section: "market" }}
                 className="rounded-full border border-zinc-200 bg-white px-6 py-2.5 text-[12px] font-bold uppercase tracking-wide text-zinc-600 transition hover:border-indigo-300 hover:text-indigo-700">
                 See what's already live →
-              </button>
+              </TerminalLink>
             </div>
           </div>
         </PageShell>
@@ -379,7 +414,7 @@ export default function Landing({ onOpenApp }: { onOpenApp: (t?: TerminalTarget)
           {/* live tokens */}
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-[13px] font-bold uppercase tracking-widest text-zinc-400">Live tokens · on-chain now</h2>
-            <button onClick={() => onOpenApp({ section: "market" })} className="text-[12px] font-semibold text-indigo-600 hover:text-indigo-800">Open in terminal →</button>
+            <TerminalLink target={{ section: "market" }} className="text-[12px] font-semibold text-indigo-600 hover:text-indigo-800">Open in terminal →</TerminalLink>
           </div>
           <div className="mb-12 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
             {feed === "loading" && <div className="px-5 py-8 text-center font-mono text-[13px] text-zinc-400">Scanning for …EASY contracts…</div>}
@@ -396,7 +431,7 @@ export default function Landing({ onOpenApp }: { onOpenApp: (t?: TerminalTarget)
             {coins.map((c, i) => (
               <TermRow key={c.ca} grid={DIRECTORY_GRID}>
                 <TermNum className={`text-left ${i < 3 ? "font-bold text-indigo-600" : "text-zinc-400"}`}>{i + 1}</TermNum>
-                <button onClick={() => onOpenApp({ section: "projects" })} className="min-w-0 text-left">
+                <TerminalLink target={{ section: "projects" }} className="min-w-0 text-left">
                   <div className="flex min-w-0 items-center gap-2.5">
                     {c.icon && <img src={c.icon} alt="" className="h-7 w-7 shrink-0 rounded-full border border-zinc-100" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />}
                     <div className="min-w-0">
@@ -411,7 +446,7 @@ export default function Landing({ onOpenApp }: { onOpenApp: (t?: TerminalTarget)
                       <div className="mt-0.5 font-mono text-[10px] text-zinc-400">{c.ca.slice(0, 6)}…{c.ca.slice(-6)}</div>
                     </div>
                   </div>
-                </button>
+                </TerminalLink>
                 <TermNum className="hidden sm:block">{c.mcap ? fmtUsd(c.mcap) : "—"}</TermNum>
                 <span className="hidden justify-end sm:flex">
                   <span className={`font-mono text-[12px] font-semibold tabular-nums ${c.change24h >= 0 ? "text-emerald-600" : "text-red-500"}`}>
@@ -453,9 +488,9 @@ export default function Landing({ onOpenApp }: { onOpenApp: (t?: TerminalTarget)
         <div className="rounded-3xl px-8 py-14 text-center text-white" style={{ background: `linear-gradient(135deg, ${BLUE}, #4f2ff0)` }}>
           <h2 className="mx-auto max-w-2xl text-3xl font-semibold tracking-tight md:text-4xl">Know which tokens are worth your attention — today</h2>
           <p className="mx-auto mt-3 max-w-md text-[14px] text-white/70">Live market · real-time signals · a research page per project. Free.</p>
-          <button onClick={() => onOpenApp()} className="mt-7 rounded-full bg-white px-8 py-3.5 text-[13px] font-bold uppercase tracking-wide text-indigo-700 shadow-lg transition hover:-translate-y-0.5">
+          <TerminalLink className="mt-7 inline-block rounded-full bg-white px-8 py-3.5 text-[13px] font-bold uppercase tracking-wide text-indigo-700 shadow-lg transition hover:-translate-y-0.5">
             Open Terminal →
-          </button>
+          </TerminalLink>
         </div>
       </section>
 
@@ -491,7 +526,7 @@ export default function Landing({ onOpenApp }: { onOpenApp: (t?: TerminalTarget)
                    ["Watchlist", { section: "watchlist" }],
                    ["EasyA Indexes", { section: "indexes" }]] as [string, TerminalTarget][]).map(([label, t]) => (
                   <li key={label}>
-                    <button onClick={() => onOpenApp(t)} className="text-zinc-600 transition hover:text-indigo-700">{label}</button>
+                    <TerminalLink target={t} className="text-zinc-600 transition hover:text-indigo-700">{label}</TerminalLink>
                   </li>
                 ))}
               </ul>
