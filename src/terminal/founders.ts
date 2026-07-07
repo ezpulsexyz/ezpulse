@@ -81,6 +81,33 @@ export function registryByWallet(wallet: string): FounderRegistryEntry | null {
   return FOUNDER_REGISTRY.find((f) => f.wallet === wallet) ?? null;
 }
 
+/** Resolve a founder by wallet, @handle, or token contract (falls back to feed token). */
+export function resolveFounderById(founderId: string, feed: LiveLaunch[] = []): FounderRegistryEntry | null {
+  const raw = founderId.trim();
+  if (!raw) return null;
+
+  const byWallet = registryByWallet(raw);
+  if (byWallet) return byWallet;
+
+  const handle = raw.replace(/^@/, "").toLowerCase();
+  const byHandle = FOUNDER_REGISTRY.find((f) => f.xHandle?.toLowerCase() === handle);
+  if (byHandle) return byHandle;
+
+  const byCa = registryByCa(raw);
+  if (byCa) return byCa;
+
+  const token = feed.find((c) => c.ca === raw);
+  if (token) return resolveFounder(token);
+
+  const byXInFeed = feed.find((c) => {
+    const h = c.links.x?.replace(/^https?:\/\/(www\.)?(x|twitter)\.com\//, "").replace(/\/$/, "").toLowerCase();
+    return h === handle;
+  });
+  if (byXInFeed) return resolveFounder(byXInFeed);
+
+  return null;
+}
+
 /** Infer a minimal founder profile from live token data when no registry entry exists. */
 export function inferFounderFromToken(c: LiveLaunch): FounderRegistryEntry {
   const xHandle = c.links.x?.replace(/^https?:\/\/(www\.)?(x|twitter)\.com\//, "").replace(/\/$/, "");

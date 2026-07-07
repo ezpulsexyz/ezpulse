@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { fetchPriceHistory } from "../../backend";
+import { fetchPriceHistory, type PricePoint } from "../../backend";
 import { fmtUsd } from "../../data";
 import { BLUE, Card, Delta, Num } from "../../components";
 import {
@@ -140,6 +140,7 @@ export function LaunchSimulator({
   const [entryMode, setEntryMode] = useState<SimEntryMode>("launch");
   const [daysAgo, setDaysAgo] = useState(7);
   const [compareOpen, setCompareOpen] = useState(false);
+  const [history, setHistory] = useState<PricePoint[] | null | "loading">("loading");
   const [result, setResult] = useState<LaunchSimResult | null | "loading">(null);
   const [compare, setCompare] = useState<SimCompareRow[] | "loading" | null>(null);
 
@@ -151,6 +152,10 @@ export function LaunchSimulator({
     [investUsd, entryMode, daysAgo],
   );
 
+  const liveCoinKey = coin
+    ? `${coin.priceUsd}|${coin.mcap}|${coin.pairCreatedAt ?? ""}|${coin.totalSupply ?? ""}|${coin.circulatingSupply ?? ""}`
+    : "";
+
   useEffect(() => {
     if (defaultCa && coins.some((c) => c.ca === defaultCa)) setSelectedCa(defaultCa);
   }, [defaultCa, coins]);
@@ -158,13 +163,21 @@ export function LaunchSimulator({
   useEffect(() => {
     if (!coin) return;
     let alive = true;
-    setResult("loading");
-    fetchPriceHistory(coin.ca, 720).then((history) => {
+    setHistory("loading");
+    fetchPriceHistory(coin.ca, 720).then((points) => {
       if (!alive) return;
-      setResult(simulatePortfolio(coin, history, simOptions));
+      setHistory(points);
     });
     return () => { alive = false; };
-  }, [coin?.ca, simOptions]);
+  }, [coin?.ca]);
+
+  useEffect(() => {
+    if (!coin || history === "loading") {
+      setResult(history === "loading" ? "loading" : null);
+      return;
+    }
+    setResult(simulatePortfolio(coin, history, simOptions));
+  }, [coin, liveCoinKey, history, simOptions]);
 
   const runCompare = useCallback(async () => {
     setCompare("loading");
@@ -347,21 +360,29 @@ export function LaunchSimulator({
             {result.confidence === "low" && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-[11px] text-amber-800">
                 <strong>Low confidence</strong> — {result.source === "estimate"
-                  ? "launch price estimated from 24h change; few snapshots on record"
-                  : "thin snapshot history; entry may be approximate"}.
+                  ? "launch price estimated — no snapshot at pair creation"
+                  : result.source === "mcap_ratio"
+                    ? "launch price inferred from earliest recorded mcap ratio"
+                    : "thin snapshot history; entry may be approximate"}.
+              </div>
+            )}
+            {result.source === "launch_mcap" && (
+              <div className="rounded-xl border border-indigo-100 bg-indigo-50/80 px-4 py-2.5 text-[11px] text-indigo-800">
+                Entry synced to Kickstart curve start · <strong>{fmtUsd(result.entryMcap)}</strong> mcap
+                {coin.pairCreatedAt ? ` · ${new Date(coin.pairCreatedAt).toLocaleDateString()}` : ""}.
               </div>
             )}
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
               <div className="rounded-xl border border-zinc-200 bg-white px-3 py-3 sm:px-4">
-                <div className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Invested</div>
-                <Num size="lg" bold className="mt-0.5 block text-zinc-900">${result.investUsd}</Num>
+                <div className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Entry</div>
+                <Num size="lg" bold className="mt-0.5 block text-zinc-900">{fmtUsd(result.entryMcap)}</Num>
                 <div className="text-[10px] text-zinc-400">{result.entryLabel} · {result.ageDays}d hold</div>
               </div>
               <div className="rounded-xl px-3 py-3 text-white sm:px-4" style={{ background: `linear-gradient(135deg, ${BLUE}, #4f2ff0)` }}>
                 <div className="text-[10px] font-semibold uppercase tracking-widest text-white/60">Value today</div>
                 <Num size="lg" bold className="mt-0.5 block">{fmtUsd(result.currentValue)}</Num>
-                <div className="text-[10px] text-white/70">{result.multiple}x</div>
+                <div className="text-[10px] text-white/70">{result.multiple}x · {fmtUsd(result.currentMcap)} mcap</div>
               </div>
               <div className="rounded-xl border border-zinc-200 bg-white px-3 py-3 sm:px-4">
                 <div className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">P&amp;L</div>
@@ -398,10 +419,11 @@ export function LaunchSimulator({
             <SimulatorChart result={result} />
 
             <p className="text-[11px] leading-relaxed text-zinc-500">
-              Simulates buying <strong>${investUsd}</strong> of <strong>${coin.symbol}</strong> {result.entryLabel}
-              ({result.entryPrice < 0.01 ? result.entryPrice.toExponential(2) : `$${result.entryPrice.toFixed(6)}`})
-              → {fmtUsd(result.currentPrice)} today.
-              {" "}You&apos;d hold <strong>{result.tokensBought >= 1_000_000 ? `${(result.tokensBought / 1_000_000).toFixed(2)}M` : result.tokensBought >= 1000 ? `${(result.tokensBought / 1000).toFixed(1)}K` : result.tokensBought.toFixed(0)}</strong> tokens.
+              Simulates <strong>${investUsd}</strong> into <strong>${coin.symbol}</strong> {result.entryLabel}
+              at {fmtUsd(result.entryMcap)} mcap
+              ({result.entryPrice < 0.01 ? result.entryPrice.toExponential(2) : `$${result.entryPrice.toFixed(6)}`}/token)
+              → {fmtUsd(result.currentMcap)} mcap today ({fmtUsd(result.currentPrice)}/token).
+              {" "}Holdings: <strong>{result.tokensBought >= 1_000_000 ? `${(result.tokensBought / 1_000_000).toFixed(2)}M` : result.tokensBought >= 1_000 ? `${(result.tokensBought / 1000).toFixed(1)}K` : result.tokensBought.toFixed(0)}</strong> tokens · live feed synced.
               Not financial advice.
             </p>
           </>

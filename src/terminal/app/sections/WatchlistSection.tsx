@@ -53,7 +53,6 @@ export function WatchlistSection() {
             ["volumeSpike", "Volume spikes", "Alert when turnover exceeds 2× its average"],
             ["verification", "Verification changes", "Alert when a bonded token becomes ✓ Verified"],
             ["newLaunch", "New launches", "Alert the moment any new …EASY pair is indexed"],
-            ["whaleTx", "Whale transactions", "Alert on directional whale-scale flow (large buys or sells)"],
           ] as [keyof AlertPrefs, string, string][]).map(([k, label, hint]) => (
             <button
               key={k}

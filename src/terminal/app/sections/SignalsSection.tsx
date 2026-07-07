@@ -4,9 +4,7 @@ import { BLUE, Card, Stat } from "../../components";
 import { PageHead, EmptyState, LaunchCta, LoadingRows } from "../components/PageLayout";
 import { LiveBadge } from "../components/LiveBadge";
 import { HitRateBadge, KindBadge, StrengthBadge, signalIcon } from "../components/SignalBadges";
-import { WhaleAlertsPanel } from "../components/WhaleTxViz";
 import { useSignalRecord } from "../hooks/useSignalRecord";
-import { useWhaleAlerts } from "../hooks/useWhaleAlerts";
 import { useTerminalContext } from "../TerminalContext";
 import type { SignalKind } from "../../../../shared/signals-core";
 
@@ -16,7 +14,6 @@ type StrengthFilter = "ALL" | "BULLISH" | "BEARISH";
 export function SignalsSection() {
   const { feed, loading, topMover, openToken, goto, lastUpdated } = useTerminalContext();
   const record = useSignalRecord();
-  const whaleAlerts = useWhaleAlerts(feed);
   const [kindFilter, setKindFilter] = useState<KindFilter>("ALL");
   const [strengthFilter, setStrengthFilter] = useState<StrengthFilter>("ALL");
 
@@ -55,13 +52,6 @@ export function SignalsSection() {
             <LiveBadge label="LIVE FEED" ts={lastUpdated} tone="red" size="md" />
           </span>
         }
-      />
-
-      <WhaleAlertsPanel
-        flows={whaleAlerts.flows}
-        loading={whaleAlerts.loading}
-        alertTokens={whaleAlerts.alertTokens}
-        onOpen={openToken}
       />
 
       {record.ready && record.byKind && Object.keys(record.byKind).length > 0 && (

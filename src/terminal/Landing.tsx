@@ -52,7 +52,7 @@ const FEATURES: Feature[] = [
   { id: "indexes", title: "EasyA Indexes", body: "Composite, Verified, Momentum 5 and Liquid baskets — cap-weighted and recomputed live.", status: "SHIPPED", area: "Invest", date: "Live" },
   { id: "xverify", title: "X-authorization verification", body: "✓ requires an authorized X account (address-in-bio model). Link ≠ endorsement.", status: "SHIPPED", area: "Trust", date: "Live" },
   // shipped — research & terminals
-  { id: "terminal", title: "Project terminal pages", body: "Bloomberg-style page per token: DexScreener chart, ezpulse history, AI insights, whale flow, thesis generator, position, links, peers.", status: "SHIPPED", area: "Research", date: "Live" },
+  { id: "terminal", title: "Project terminal pages", body: "Bloomberg-style page per token: DexScreener chart, ezpulse history, AI insights, thesis generator, position, links, peers.", status: "SHIPPED", area: "Research", date: "Live" },
   { id: "history", title: "Proprietary price history", body: "ezpulse snapshots every token every 15 min — historical charts for Kickstart micro-caps that exist nowhere else.", status: "SHIPPED", area: "Research", date: "Live" },
   { id: "supply", title: "Circulating & max supply", body: "Live supply stats from Jupiter datapi, with Supabase override endpoint — shown on every project terminal.", status: "SHIPPED", area: "Research", date: "Live" },
   { id: "founder-terminal", title: "👤 Founder Terminal", body: "Verified founders get a conviction dashboard: launch track record, build-in-public feed, on-chain forensics, sentiment — linked from project pages.", status: "SHIPPED", area: "Research", date: "Live" },
@@ -60,10 +60,9 @@ const FEATURES: Feature[] = [
   { id: "share", title: "📤 Share cards", body: "One click renders a branded stat card for any token — copy, save, or post straight to X with pre-filled text.", status: "SHIPPED", area: "Growth", date: "Live" },
   // shipped — signals & tracking
   { id: "signals", title: "Real-time Signals feed", body: "Whale, momentum, volume, liquidity, rank, and launch events — filterable, with historical hit-rate badges and a public archive pipeline.", status: "SHIPPED", area: "Signals", date: "Live" },
-  { id: "whale-flow", title: "🐋 Whale alerts + tx visualization", body: "Real-time whale alerts on the Signals feed and per-token terminals — buy/sell flow timeline, net volume, Solscan tx links. Watchlist pref for whale txs.", status: "SHIPPED", area: "Signals", date: "Live" },
   { id: "track-record", title: "🎯 Public signal track record", body: "Every signal archived to an append-only log and scored against the market 24h later. Hit-rate by kind — no retroactive edits.", status: "SHIPPED", area: "Signals", date: "Live" },
-  { id: "watchlist", title: "Watchlists + alert preferences", body: "Star tokens, toggle price / volume / verification / whale alerts. Local storage + Phantom wallet sync.", status: "SHIPPED", area: "Tracking", date: "Live" },
-  { id: "bell", title: "🔔 Watchlist notification bell", body: "In-app alerts when signals fire on watched tokens — price ±10%, volume spikes, whale flow, verification changes. Respects your prefs.", status: "SHIPPED", area: "Tracking", date: "Live" },
+  { id: "watchlist", title: "Watchlists + alert preferences", body: "Star tokens, toggle price / volume / verification alerts. Local storage + Phantom wallet sync.", status: "SHIPPED", area: "Tracking", date: "Live" },
+  { id: "bell", title: "🔔 Watchlist notification bell", body: "In-app alerts when signals fire on watched tokens — price ±10%, volume spikes, verification changes. Respects your prefs.", status: "SHIPPED", area: "Tracking", date: "Live" },
   // shipped — portfolio & account
   { id: "portfolio", title: "Watch-only Portfolio", body: "Paste any address or connect Phantom read-only — Kickstart holdings valued at live prices, with Solscan cross-check.", status: "SHIPPED", area: "Portfolio", date: "Live" },
   { id: "launch-sim", title: "⏳ Launch portfolio simulator", body: "What-if buys at launch or N days ago — custom amount, P&L/ROI, peak & trough markers, annualized return, compare leaderboard, and match-your-position from wallet holdings.", status: "SHIPPED", area: "Portfolio", date: "Live" },

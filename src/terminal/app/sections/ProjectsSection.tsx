@@ -4,8 +4,6 @@ import { fmtPrice, isVerified, isGraduated, kickstartUrl, tokenSignals } from ".
 import { FounderTerminal } from "../components/FounderTerminal";
 import { HistoryChart } from "../components/HistoryChart";
 import { ThesisGenerator } from "../components/ThesisGenerator";
-import { WhaleTxViz } from "../components/WhaleTxViz";
-import { useWhaleAlerts } from "../hooks/useWhaleAlerts";
 import { useTokenSupply } from "../hooks/useTokenSupply";
 import { PageHead, EmptyState, LaunchCta, LoadingRows } from "../components/PageLayout";
 import { PEER_GRID, TermNum, TermRowButton } from "../components/TermTable";
@@ -13,9 +11,6 @@ import { useTerminalContext } from "../TerminalContext";
 
 export function ProjectsSection() {
   const { feed, loading, selected, setSelected, setLiveFeed, projTab, setProjTab, copiedCa, copyCa, watchlist, toggleWatch, setShareToken, wallet, portfolio, goto, openToken, note } = useTerminalContext();
-  const whaleAlerts = useWhaleAlerts(feed, selected?.ca ?? null);
-  const whaleFlow = selected ? whaleAlerts.flows.get(selected.ca) : undefined;
-
   useTokenSupply(selected, (enriched) => {
     setSelected(enriched);
     setLiveFeed((prev) => (Array.isArray(prev) ? prev.map((c) => (c.ca === enriched.ca ? enriched : c)) : prev));
@@ -241,7 +236,6 @@ export function ProjectsSection() {
                           </div>
                         ))}
                       </div>
-                      {whaleFlow && <div className="mt-4"><WhaleTxViz flow={whaleFlow} /></div>}
                       <p className="mt-4 text-[10px] text-zinc-400">Signals are computed live from momentum, turnover, liquidity depth, rank and verification status. Not investment advice — check back daily, the tape changes.</p>
                     </div>
                   ) : (
@@ -259,8 +253,6 @@ export function ProjectsSection() {
 
                       {/* ezpulse-recorded history — the data moat */}
                       <HistoryChart ca={selected.ca} />
-
-                      {whaleFlow && <WhaleTxViz flow={whaleFlow} compact />}
 
                       <ThesisGenerator token={selected} feed={feed} />
 

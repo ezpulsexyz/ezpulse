@@ -1,3 +1,12 @@
+import type { ResolvedSignal } from "../backend";
+import type {
+  ForensicsReport,
+  FounderMetrics,
+  FounderPost,
+  FounderRegistryEntry,
+  LaunchPerformance,
+  SentimentSnapshot,
+} from "../founders";
 import type { LiveLaunch } from "../kickstart";
 
 export type Section = "market" | "projects" | "signals" | "record" | "watchlist" | "portfolio" | "smart" | "indexes" | "thesis";
@@ -12,6 +21,24 @@ export interface Notif {
   title: string;
   detail: string;
   token: LiveLaunch;
+}
+
+/** Aggregated founder terminal view — wallet- or handle-keyed. */
+export interface FounderProfile {
+  id: string;
+  founder: FounderRegistryEntry;
+  primaryToken: LiveLaunch | null;
+  launches: LiveLaunch[];
+  performances: LaunchPerformance[];
+  metrics: FounderMetrics;
+  forensics: ForensicsReport;
+  publicFeed: FounderPost[];
+  sentiment: SentimentSnapshot;
+  signals: ResolvedSignal[] | null;
+  totalMcapLaunched: number;
+  successRate: number;
+  loading: boolean;
+  refresh: () => void;
 }
 
 export const NAV_GROUPS: { workflow: string; items: { id: Section; icon: string; label: string; soon?: boolean }[] }[] = [

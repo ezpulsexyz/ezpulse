@@ -1,7 +1,14 @@
 import type { PricePoint } from "./backend";
 import type { LiveLaunch } from "./kickstart";
 
+/** Kickstart / Meteora DBC curve start — used when no snapshot exists at pair creation. */
+export const KICKSTART_LAUNCH_MCAP_USD = 5_000;
+
+/** Max drift between pair creation and a history snapshot to treat it as launch entry. */
+const LAUNCH_SNAPSHOT_DRIFT_MS = 3 * 86400000;
+
 export type SimEntryMode = "launch" | "days_ago";
+export type LaunchEntrySource = "history" | "launch_mcap" | "mcap_ratio" | "estimate";
 
 export interface SimOptions {
   investUsd: number;
@@ -12,7 +19,9 @@ export interface SimOptions {
 
 export interface LaunchSimResult {
   entryPrice: number;
+  entryMcap: number;
   currentPrice: number;
+  currentMcap: number;
   peakPrice: number;
   troughPrice: number;
   investUsd: number;
@@ -31,8 +40,8 @@ export interface LaunchSimResult {
   ageDays: number;
   daysToPeak: number | null;
   annualizedRoiPct: number | null;
-  chart: { ts: number; portfolioValue: number; price: number }[];
-  source: "history" | "estimate";
+  chart: { ts: number; portfolioValue: number; price: number; mcap?: number }[];
+  source: LaunchEntrySource;
   confidence: "high" | "low";
   entryMode: SimEntryMode;
   entryLabel: string;
@@ -47,23 +56,17 @@ export interface SimCompareRow {
   result: LaunchSimResult;
 }
 
-function launchPriceFromHistory(
-  history: PricePoint[] | null,
-  c: LiveLaunch,
-): { price: number; ts: number | null; source: "history" | "estimate" } {
-  if (history?.length) {
-    const first = history[0];
-    if (first.price > 0) return { price: first.price, ts: first.ts, source: "history" };
-  }
-  if (c.pairCreatedAt && c.change24h !== 0 && c.priceUsd > 0) {
-    const implied = c.priceUsd / (1 + c.change24h / 100);
-    if (implied > 0) return { price: implied, ts: c.pairCreatedAt, source: "estimate" };
-  }
-  const est = c.priceUsd > 0 ? c.priceUsd * 0.4 : 0.00001;
-  return { price: est, ts: c.pairCreatedAt ?? null, source: "estimate" };
+function tokenSupply(c: LiveLaunch): number | null {
+  const supply = c.totalSupply ?? c.maxSupply ?? c.circulatingSupply;
+  return supply && supply > 0 ? supply : null;
 }
 
-function nearestSnapshot(history: PricePoint[], targetTs: number): { price: number; ts: number; index: number } {
+function priceFromMcap(mcap: number, supply: number | null, fallbackPrice?: number): number | null {
+  if (mcap > 0 && supply && supply > 0) return mcap / supply;
+  return fallbackPrice && fallbackPrice > 0 ? fallbackPrice : null;
+}
+
+function nearestSnapshot(history: PricePoint[], targetTs: number): { price: number; ts: number; mcap: number; index: number } {
   let best = 0;
   let bestDist = Math.abs(history[0].ts - targetTs);
   for (let i = 1; i < history.length; i++) {
@@ -74,7 +77,96 @@ function nearestSnapshot(history: PricePoint[], targetTs: number): { price: numb
     }
   }
   const p = history[best];
-  return { price: p.price, ts: p.ts, index: best };
+  return { price: p.price, ts: p.ts, mcap: p.mcap, index: best };
+}
+
+function launchEntryFromToken(
+  c: LiveLaunch,
+  history: PricePoint[] | null,
+): { price: number; ts: number | null; mcap: number; source: LaunchEntrySource; label: string; sliceFrom: number } {
+  const launchTs = c.pairCreatedAt ?? null;
+  const supply = tokenSupply(c);
+
+  if (history?.length && launchTs) {
+    const near = nearestSnapshot(history, launchTs);
+    if (near.price > 0 && Math.abs(near.ts - launchTs) <= LAUNCH_SNAPSHOT_DRIFT_MS) {
+      const mcap = near.mcap > 0 ? near.mcap : (supply ? near.price * supply : KICKSTART_LAUNCH_MCAP_USD);
+      return {
+        price: near.price,
+        ts: launchTs,
+        mcap,
+        source: "history",
+        label: "at launch",
+        sliceFrom: near.index,
+      };
+    }
+  }
+
+  const startPrice = priceFromMcap(KICKSTART_LAUNCH_MCAP_USD, supply);
+  if (startPrice && startPrice > 0) {
+    return {
+      price: startPrice,
+      ts: launchTs,
+      mcap: KICKSTART_LAUNCH_MCAP_USD,
+      source: "launch_mcap",
+      label: `at launch · ${(KICKSTART_LAUNCH_MCAP_USD / 1000).toFixed(0)}K mcap`,
+      sliceFrom: 0,
+    };
+  }
+
+  if (history?.length) {
+    const earliest = history[0];
+    if (earliest.mcap > 0 && c.mcap > earliest.mcap && c.priceUsd > 0) {
+      const ratioPrice = c.priceUsd * (earliest.mcap / c.mcap);
+      if (ratioPrice > 0) {
+        return {
+          price: ratioPrice,
+          ts: launchTs ?? earliest.ts,
+          mcap: earliest.mcap,
+          source: "mcap_ratio",
+          label: "at launch · earliest mcap",
+          sliceFrom: 0,
+        };
+      }
+    }
+    if (earliest.price > 0 && (!launchTs || earliest.ts - launchTs < LAUNCH_SNAPSHOT_DRIFT_MS)) {
+      return {
+        price: earliest.price,
+        ts: launchTs ?? earliest.ts,
+        mcap: earliest.mcap > 0 ? earliest.mcap : (supply ? earliest.price * supply : 0),
+        source: "history",
+        label: "at launch",
+        sliceFrom: 0,
+      };
+    }
+  }
+
+  if (launchTs && c.change24h !== 0 && c.priceUsd > 0) {
+    const implied = c.priceUsd / (1 + c.change24h / 100);
+    if (implied > 0) {
+      const mcap = supply ? implied * supply : KICKSTART_LAUNCH_MCAP_USD;
+      return {
+        price: implied,
+        ts: launchTs,
+        mcap,
+        source: "estimate",
+        label: "at launch · estimated",
+        sliceFrom: 0,
+      };
+    }
+  }
+
+  const fallbackPrice = c.priceUsd > 0 && c.mcap > 0
+    ? c.priceUsd * (KICKSTART_LAUNCH_MCAP_USD / c.mcap)
+    : 0.00001;
+  return {
+    price: fallbackPrice,
+    ts: launchTs,
+    mcap: KICKSTART_LAUNCH_MCAP_USD,
+    source: "estimate",
+    label: "at launch · estimated",
+    sliceFrom: 0,
+  };
 }
 
 function resolveEntry(
@@ -82,27 +174,25 @@ function resolveEntry(
   history: PricePoint[] | null,
   mode: SimEntryMode,
   daysAgo: number,
-): { price: number; ts: number | null; source: "history" | "estimate"; label: string; sliceFrom: number } {
+): { price: number; ts: number | null; mcap: number; source: LaunchEntrySource; label: string; sliceFrom: number } {
   if (mode === "days_ago" && history?.length) {
     const targetTs = Date.now() - daysAgo * 86400000;
-    const { price, ts, index } = nearestSnapshot(history, targetTs);
-    if (price > 0) {
+    const near = nearestSnapshot(history, targetTs);
+    if (near.price > 0) {
+      const supply = tokenSupply(c);
+      const mcap = near.mcap > 0 ? near.mcap : (supply ? near.price * supply : 0);
       return {
-        price,
-        ts,
+        price: near.price,
+        ts: near.ts,
+        mcap,
         source: "history",
         label: `${daysAgo}d ago`,
-        sliceFrom: index,
+        sliceFrom: near.index,
       };
     }
   }
 
-  const launch = launchPriceFromHistory(history, c);
-  return {
-    ...launch,
-    label: "at launch",
-    sliceFrom: 0,
-  };
+  return launchEntryFromToken(c, history);
 }
 
 function annualizedRoi(multiple: number, holdDays: number): number | null {
@@ -110,6 +200,64 @@ function annualizedRoi(multiple: number, holdDays: number): number | null {
   const years = holdDays / 365;
   if (years <= 0) return null;
   return (Math.pow(multiple, 1 / years) - 1) * 100;
+}
+
+function buildChartSeries(
+  history: PricePoint[] | null,
+  entry: ReturnType<typeof resolveEntry>,
+  tokensBought: number,
+  investUsd: number,
+  livePrice: number,
+): LaunchSimResult["chart"] {
+  const series = history?.length
+    ? history.slice(entry.sliceFrom)
+    : [];
+
+  const chart: LaunchSimResult["chart"] = [];
+
+  if (entry.ts && (series.length === 0 || series[0].ts > entry.ts + 60_000)) {
+    chart.push({
+      ts: entry.ts,
+      price: entry.price,
+      mcap: entry.mcap,
+      portfolioValue: investUsd,
+    });
+  }
+
+  for (const p of series) {
+    const price = p.price > 0 ? p.price : entry.price;
+    chart.push({
+      ts: p.ts,
+      price,
+      mcap: p.mcap,
+      portfolioValue: tokensBought * price,
+    });
+  }
+
+  const last = chart[chart.length - 1];
+  const liveValue = tokensBought * livePrice;
+  if (!last || Math.abs(last.price - livePrice) / Math.max(livePrice, 1e-12) > 0.002 || Date.now() - last.ts > 15 * 60_000) {
+    chart.push({
+      ts: Date.now(),
+      price: livePrice,
+      portfolioValue: liveValue,
+    });
+  } else if (last) {
+    last.price = livePrice;
+    last.portfolioValue = liveValue;
+    last.ts = Date.now();
+  }
+
+  return chart.length ? chart : [{
+    ts: entry.ts ?? Date.now() - 86400000,
+    price: entry.price,
+    mcap: entry.mcap,
+    portfolioValue: investUsd,
+  }, {
+    ts: Date.now(),
+    price: livePrice,
+    portfolioValue: liveValue,
+  }];
 }
 
 /** Simulate buying `investUsd` at a chosen entry point and holding to today. */
@@ -126,16 +274,15 @@ export function simulatePortfolio(
   if (entry.price <= 0) return null;
 
   const tokensBought = investUsd / entry.price;
-  const currentValue = tokensBought * c.priceUsd;
+  const currentPrice = c.priceUsd;
+  const currentMcap = c.mcap;
+  const currentValue = tokensBought * currentPrice;
 
-  const series = history?.length
-    ? history.slice(entry.sliceFrom)
-    : [{ ts: entry.ts ?? Date.now() - 86400000, price: entry.price, mcap: 0 }];
+  const chart = buildChartSeries(history, entry, tokensBought, investUsd, currentPrice);
+  const prices = chart.map((p) => p.price).filter((p) => p > 0);
+  const portfolioValues = chart.map((p) => p.portfolioValue);
 
-  const prices = series.map((p) => p.price).filter((p) => p > 0);
-  const portfolioValues = series.map((p) => tokensBought * (p.price > 0 ? p.price : entry.price));
-
-  const peakPrice = Math.max(...prices, c.priceUsd, entry.price);
+  const peakPrice = Math.max(...prices, currentPrice, entry.price);
   const troughPrice = Math.min(...prices, entry.price);
   const peakValue = tokensBought * peakPrice;
   const troughValue = tokensBought * troughPrice;
@@ -152,7 +299,7 @@ export function simulatePortfolio(
   const ageDays = entryTs ? Math.max(1, (Date.now() - entryTs) / 86400000) : 1;
 
   let daysToPeak: number | null = null;
-  if (series.length && entryTs) {
+  if (chart.length && entryTs) {
     let peakIdx = 0;
     let peakVal = portfolioValues[0];
     for (let i = 1; i < portfolioValues.length; i++) {
@@ -161,21 +308,23 @@ export function simulatePortfolio(
         peakIdx = i;
       }
     }
-    daysToPeak = Math.round((series[peakIdx].ts - entryTs) / 86400000);
+    daysToPeak = Math.round((chart[peakIdx].ts - entryTs) / 86400000);
   }
 
-  const chart = series.map((p) => ({
-    ts: p.ts,
-    price: p.price,
-    portfolioValue: tokensBought * (p.price > 0 ? p.price : entry.price),
-  }));
-
   const confidence: "high" | "low" =
-    entry.source === "history" && (history?.length ?? 0) >= 5 ? "high" : "low";
+    entry.source === "history" || entry.source === "launch_mcap"
+      ? entry.source === "history" && (history?.length ?? 0) >= 5
+        ? "high"
+        : entry.source === "launch_mcap"
+          ? "high"
+          : "low"
+      : "low";
 
   return {
     entryPrice: entry.price,
-    currentPrice: c.priceUsd,
+    entryMcap: entry.mcap,
+    currentPrice,
+    currentMcap,
     peakPrice,
     troughPrice,
     investUsd,
