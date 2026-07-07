@@ -61,6 +61,7 @@ const FEATURES: Feature[] = [
   { id: "coverage", title: "Full Kickstart coverage", body: "Every bonded launch pinned as CAs are confirmed — targeting 100% of the board.", status: "IN PROGRESS", area: "Market" },
   { id: "track-record", title: "🎯 Public signal track record", body: "Every signal archived to an append-only log and scored against the market 24h later. A hit-rate no one can fake retroactively.", status: "SHIPPED", area: "Signals", date: "Live" },
   { id: "history", title: "Proprietary price history", body: "ezpulse snapshots every token every 15 min — historical charts for Kickstart micro-caps that exist nowhere else.", status: "SHIPPED", area: "Research", date: "Live" },
+  { id: "share", title: "📤 Share cards", body: "One click renders a branded stat card for any token — copy, save, or post straight to X with pre-filled text.", status: "SHIPPED", area: "Growth", date: "Live" },
   // planned
   { id: "upcoming", title: "Upcoming-launches feed", body: "Pre-launch tracking the moment Kickstart exposes an announcements feed.", status: "PLANNED", area: "Market" },
   { id: "holders", title: "Holder & wallet-flow analytics", body: "Holder counts, concentration, smart-wallet inflows per token.", status: "PLANNED", area: "Research" },
