@@ -41,36 +41,48 @@ const normalizeRow = (row: Rec): Rec | null => {
   };
 };
 
-async function fetchKickstartSupply(): Promise<Rec[]> {
+async function fetchSupplyRows(): Promise<Rec[]> {
   const urls = [
-    "https://kickstart.easya.io/api/launches",
-    "https://kickstart.easya.io/api/coins",
+    "https://datapi.jup.ag/v1/pools/toptraded/24h?launchpads=easya-kickstart",
+    "https://datapi.jup.ag/v1/pools/recent?launchpads=easya-kickstart",
+    "https://datapi.jup.ag/v1/pools/toptrending/24h?launchpads=easya-kickstart",
   ];
+
+  const rowsByCa = new Map<string, Rec>();
 
   for (const url of urls) {
     try {
       const res = await fetch(url, { headers: { accept: "application/json" } });
       if (!res.ok) continue;
       const data = await res.json();
-      const rows: Rec[] = Array.isArray(data)
-        ? data
-        : Array.isArray((data as Rec).launches)
-          ? (data as Rec).launches as Rec[]
-          : Array.isArray((data as Rec).coins)
-            ? (data as Rec).coins as Rec[]
-            : Array.isArray((data as Rec).data)
-              ? (data as Rec).data as Rec[]
-              : [];
-      if (rows.length) {
-        return rows
-          .map(normalizeRow)
-          .filter((item): item is Rec => item !== null);
+      const pools: Rec[] = Array.isArray((data as Rec).pools) ? (data as Rec).pools as Rec[] : [];
+      for (const pool of pools) {
+        const asset = pool.baseAsset as Rec | undefined;
+        if (!asset) continue;
+        const ca = String(asset.id ?? asset.address ?? asset.mint ?? "").trim();
+        if (!ca) continue;
+
+        const entry = normalizeRow({
+          ca,
+          symbol: asset.symbol,
+          circulatingSupply: asset.circSupply ?? asset.circulatingSupply ?? asset.circulating ?? asset.circ_supply,
+          totalSupply: asset.totalSupply ?? asset.maxSupply ?? asset.total_supply ?? asset.max_supply,
+          maxSupply: asset.maxSupply ?? asset.max_supply,
+        });
+
+        if (!entry) continue;
+        const lower = ca.toLowerCase();
+        const existing = rowsByCa.get(lower);
+        if (!existing || typeof entry.circulatingSupply === "number") {
+          rowsByCa.set(lower, { ...existing, ...entry });
+        }
       }
     } catch {
-      // ignore and try the next source
+      // ignore and try next source
     }
   }
-  return [];
+
+  return [...rowsByCa.values()];
 }
 
 function matchKey(item: Rec, key: string): boolean {
@@ -87,7 +99,7 @@ Deno.serve(async (req) => {
 
   const url = new URL(req.url);
   const query = (url.searchParams.get("token") ?? url.searchParams.get("ca") ?? url.searchParams.get("mint") ?? "").trim();
-  const overrides = await fetchKickstartSupply();
+  const overrides = await fetchSupplyRows();
 
   if (query) {
     const item = overrides.find((row) => matchKey(row, query));
