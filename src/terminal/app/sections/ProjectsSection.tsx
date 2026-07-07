@@ -6,14 +6,20 @@ import { HistoryChart } from "../components/HistoryChart";
 import { ThesisGenerator } from "../components/ThesisGenerator";
 import { WhaleTxViz } from "../components/WhaleTxViz";
 import { useWhaleAlerts } from "../hooks/useWhaleAlerts";
+import { useTokenSupply } from "../hooks/useTokenSupply";
 import { PageHead, EmptyState, LaunchCta, LoadingRows } from "../components/PageLayout";
 import { PEER_GRID, TermNum, TermRowButton } from "../components/TermTable";
 import { useTerminalContext } from "../TerminalContext";
 
 export function ProjectsSection() {
-  const { feed, loading, selected, setSelected, projTab, setProjTab, copiedCa, copyCa, watchlist, toggleWatch, setShareToken, wallet, portfolio, goto, openToken, note } = useTerminalContext();
+  const { feed, loading, selected, setSelected, setLiveFeed, projTab, setProjTab, copiedCa, copyCa, watchlist, toggleWatch, setShareToken, wallet, portfolio, goto, openToken, note } = useTerminalContext();
   const whaleAlerts = useWhaleAlerts(feed, selected?.ca ?? null);
   const whaleFlow = selected ? whaleAlerts.flows.get(selected.ca) : undefined;
+
+  useTokenSupply(selected, (enriched) => {
+    setSelected(enriched);
+    setLiveFeed((prev) => (Array.isArray(prev) ? prev.map((c) => (c.ca === enriched.ca ? enriched : c)) : prev));
+  });
 
   return (
             <>
@@ -58,12 +64,12 @@ export function ProjectsSection() {
                   </button>
 
                   {/* header */}
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      {selected.icon && <img src={selected.icon} alt="" className="h-12 w-12 rounded-full border border-zinc-100" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />}
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h1 className="font-display text-3xl font-semibold tracking-tight text-zinc-900">{selected.name}</h1>
+                  <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+                    <div className="flex min-w-0 items-start gap-3">
+                      {selected.icon && <img src={selected.icon} alt="" className="h-10 w-10 shrink-0 rounded-full border border-zinc-100 sm:h-12 sm:w-12" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />}
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                          <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">{selected.name}</h1>
                           <span className="text-[14px] font-semibold text-zinc-400">${selected.symbol}</span>
                           {isVerified(selected) && <span className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold text-white" style={{ background: BLUE }}>✓ VERIFIED</span>}
                           {isGraduated(selected)
@@ -76,13 +82,13 @@ export function ProjectsSection() {
                         </button>
                       </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
                       <button onClick={() => setShareToken(selected)}
-                        className="rounded-full border border-zinc-200 bg-white px-5 py-2.5 text-[12px] font-bold uppercase tracking-wide text-zinc-600 transition hover:border-indigo-300 hover:text-indigo-700">
+                        className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-wide text-zinc-600 transition hover:border-indigo-300 hover:text-indigo-700 sm:px-5 sm:py-2.5 sm:text-[12px]">
                         📤 Share
                       </button>
                       <button onClick={() => toggleWatch(selected.ca)}
-                        className={`rounded-full px-5 py-2.5 text-[12px] font-bold uppercase tracking-wide transition ${
+                        className={`rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-wide transition sm:px-5 sm:py-2.5 sm:text-[12px] ${
                           watchlist.includes(selected.ca)
                             ? "text-white shadow-lg" : "border border-zinc-200 bg-white text-zinc-600 hover:border-amber-300 hover:text-amber-600"
                         }`}
@@ -91,38 +97,38 @@ export function ProjectsSection() {
                       </button>
                       {isGraduated(selected) ? (
                         <a href={selected.links.dexscreener} target="_blank" rel="noopener noreferrer"
-                          className="rounded-full px-6 py-2.5 text-[12px] font-bold uppercase tracking-wide text-white shadow-lg transition hover:-translate-y-px" style={{ background: "#0b0e13" }}>
+                          className="col-span-2 rounded-full px-5 py-2 text-center text-[11px] font-bold uppercase tracking-wide text-white shadow-lg transition hover:-translate-y-px sm:col-span-1 sm:px-6 sm:py-2.5 sm:text-[12px]" style={{ background: "#0b0e13" }}>
                           📊 Trade →
                         </a>
                       ) : (
                         <a href={kickstartUrl(selected.ca)} target="_blank" rel="noopener noreferrer"
-                          className="rounded-full px-6 py-2.5 text-[12px] font-bold uppercase tracking-wide text-white shadow-lg shadow-indigo-600/25 transition hover:-translate-y-px" style={{ background: BLUE }}>
+                          className="col-span-2 rounded-full px-5 py-2 text-center text-[11px] font-bold uppercase tracking-wide text-white shadow-lg shadow-indigo-600/25 transition hover:-translate-y-px sm:col-span-1 sm:px-6 sm:py-2.5 sm:text-[12px]" style={{ background: BLUE }}>
                           🚀 Buy on Kickstart →
                         </a>
                       )}
                       {isVerified(selected) && (
                         <button onClick={() => setProjTab("founder")}
-                          className="rounded-full px-5 py-2.5 text-[12px] font-bold uppercase tracking-wide text-white shadow-lg shadow-indigo-600/20 transition hover:-translate-y-px"
+                          className="col-span-2 rounded-full px-5 py-2 text-[11px] font-bold uppercase tracking-wide text-white shadow-lg shadow-indigo-600/20 transition hover:-translate-y-px sm:col-span-1 sm:py-2.5 sm:text-[12px]"
                           style={{ background: `linear-gradient(135deg, ${BLUE}, #4f2ff0)` }}>
                           👤 Founder Terminal
                         </button>
                       )}
                       <a href={kickstartUrl(selected.ca)} target="_blank" rel="noopener noreferrer"
-                        className="rounded-full border border-zinc-200 bg-white px-5 py-2.5 text-[12px] font-bold uppercase tracking-wide text-zinc-600 transition hover:border-indigo-300 hover:text-indigo-700">
-                        Kickstart page ↗
+                        className="col-span-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-center text-[11px] font-bold uppercase tracking-wide text-zinc-600 transition hover:border-indigo-300 hover:text-indigo-700 sm:col-span-1 sm:px-5 sm:py-2.5 sm:text-[12px]">
+                        Kickstart ↗
                       </a>
                     </div>
                   </div>
 
                   {/* tabs */}
-                  <div className="mt-5 flex flex-wrap gap-1 rounded-full border border-zinc-200 bg-white p-1" style={{ width: "fit-content" }}>
+                  <div className="term-tab-rail term-scroll-x mt-5 max-w-full">
                     {([
                       ["overview", "Overview"],
                       ["signals", "⚡ Signals"],
                       ...(isVerified(selected) ? [["founder", "👤 Founder"] as const] : []),
                     ] as const).map(([id, label]) => (
                       <button key={id} onClick={() => setProjTab(id)}
-                        className={`rounded-full px-5 py-2 text-[12px] font-bold transition ${projTab === id ? "text-white" : "text-zinc-500 hover:text-zinc-800"}`}
+                        className={`rounded-full px-4 py-2 text-[11px] font-bold transition sm:px-5 sm:text-[12px] ${projTab === id ? "text-white" : "text-zinc-500 hover:text-zinc-800"}`}
                         style={projTab === id ? { background: BLUE } : undefined}>
                         {label}
                       </button>
@@ -130,10 +136,10 @@ export function ProjectsSection() {
                   </div>
 
                   {/* stat band */}
-                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-                    <div className="rounded-2xl px-4 py-3.5 text-white" style={{ background: `linear-gradient(135deg, ${BLUE}, #4f2ff0)` }}>
+                  <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
+                    <div className="col-span-2 rounded-2xl px-4 py-3.5 text-white md:col-span-1" style={{ background: `linear-gradient(135deg, ${BLUE}, #4f2ff0)` }}>
                       <div className="text-[10px] font-semibold uppercase tracking-widest text-white/60">Market Cap</div>
-                      <div className="mt-0.5 font-display text-xl font-semibold tabular-nums">{selected.mcap ? fmtUsd(selected.mcap) : "—"}</div>
+                      <div className="mt-0.5 font-display text-lg font-semibold tabular-nums sm:text-xl">{selected.mcap ? fmtUsd(selected.mcap) : "—"}</div>
                     </div>
                     <Stat label="Price" value={selected.priceUsd ? fmtPrice(selected.priceUsd) : "—"} sub={<Delta v={selected.change24h} suffix="% 24h" />} />
                     <Stat label="Volume 24h" value={selected.volume24h ? fmtUsd(selected.volume24h) : "—"} sub={selected.mcap ? `${((selected.volume24h / selected.mcap) * 100).toFixed(0)}% turnover` : ""} />
@@ -147,8 +153,8 @@ export function ProjectsSection() {
                       }
                       value={typeof selected.circulatingSupply === "number"
                         ? fmtNum(selected.circulatingSupply)
-                        : "—"}
-                      sub="Declared by team, verified by reviewers"
+                        : "…"}
+                      sub={typeof selected.circulatingSupply === "number" ? "via Jupiter · team verified" : "loading supply…"}
                     />
                     <Stat
                       label={
@@ -246,7 +252,7 @@ export function ProjectsSection() {
                         <iframe
                           title={`${selected.symbol} chart`}
                           src={`${selected.links.dexscreener}?embed=1&theme=light&trades=0&info=0`}
-                          className="h-[420px] w-full border-0"
+                          className="h-[min(420px,55vw)] min-h-[240px] w-full border-0 sm:h-[380px] lg:h-[420px]"
                           loading="lazy"
                         />
                       </Card>

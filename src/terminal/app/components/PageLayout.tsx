@@ -4,12 +4,12 @@ import { COIN_GRID, TermRow } from "./TermTable";
 
 export function PageHead({ title, sub, right }: { title: string; sub: string; right?: React.ReactNode }) {
   return (
-    <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900">{title}</h1>
-        <p className="mt-0.5 text-[13px] text-zinc-500">{sub}</p>
+    <div className="mb-4 flex flex-wrap items-start justify-between gap-3 sm:mb-5 sm:items-end">
+      <div className="min-w-0 flex-1">
+        <h1 className="font-display text-xl font-semibold tracking-tight text-zinc-900 sm:text-2xl">{title}</h1>
+        <p className="mt-1 text-[12.5px] leading-relaxed text-zinc-500 sm:mt-0.5 sm:text-[13px]">{sub}</p>
       </div>
-      {right}
+      {right && <div className="shrink-0">{right}</div>}
     </div>
   );
 }
@@ -40,7 +40,7 @@ export function LoadingRows() {
 
 export function EmptyState({ icon, title, body, cta }: { icon: string; title: string; body: string; cta?: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-12 text-center">
+    <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-6 text-center sm:p-12">
       <div className="mb-2 text-3xl">{icon}</div>
       <h2 className="font-display text-lg font-semibold text-zinc-900">{title}</h2>
       <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-zinc-500">{body}</p>

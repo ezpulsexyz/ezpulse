@@ -18,7 +18,7 @@ export const PEER_COLS = "grid-cols-[minmax(0,1fr)_5.5rem_4.5rem]";
 export const PEER_GRID = `grid ${PEER_COLS} ${GRID_BASE}`;
 
 const ROW =
-  "group relative w-full border-b border-zinc-100/90 px-5 py-2.5 font-mono text-[12px] transition-colors last:border-0 hover:bg-zinc-50/90";
+  "group relative w-full border-b border-zinc-100/90 px-3 py-2.5 font-mono text-[12px] transition-colors last:border-0 hover:bg-zinc-50/90 sm:px-5";
 
 const ACCENT =
   "before:pointer-events-none before:absolute before:inset-y-1.5 before:left-0 before:w-[3px] before:rounded-r-sm before:bg-indigo-600 before:opacity-0 before:transition-opacity before:duration-150 group-hover:before:opacity-100";

@@ -137,6 +137,33 @@ input, textarea, select, button { color-scheme: light; }
 }
 .boot-fade { animation: bootFade .4s ease both; }
 
+/* ─── Terminal layout polish ─── */
+.term-safe-x {
+  padding-left: max(0.75rem, env(safe-area-inset-left));
+  padding-right: max(0.75rem, env(safe-area-inset-right));
+}
+
+.term-scroll-x {
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.term-scroll-x::-webkit-scrollbar { display: none; }
+
+.term-tab-rail {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  gap: 0.25rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  border-radius: 9999px;
+  border: 1px solid #e4e4e7;
+  background: #fff;
+  padding: 0.25rem;
+}
+.term-tab-rail > button { scroll-snap-align: start; flex-shrink: 0; }
+
 @media (prefers-reduced-motion: reduce) {
   .term-blink, .animate-fade-up { animation: none !important; }
   .fx-glow, .fx-scan-beam { animation: none !important; }

@@ -105,8 +105,8 @@ export function SignalsSection() {
             <Stat label="Archive pipeline" value={record.ready ? (pendingCount ? `${pendingCount} pending` : "Live") : "Local"} sub={record.ready ? "scored at +24h via snapshots" : "connect backend for track record"} />
           </div>
 
-          <div className="mb-4 flex flex-wrap gap-2">
-            <div className="flex gap-1 overflow-x-auto rounded-full border border-zinc-200 bg-white p-1">
+          <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <div className="term-tab-rail term-scroll-x flex-1">
               {(["ALL", "WHALE", "MOMENTUM", "VOLUME", "LIQUIDITY", "RANK", "LAUNCH"] as KindFilter[]).map((k) => (
                 <button key={k} onClick={() => setKindFilter(k)}
                   className={`whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] font-bold transition ${kindFilter === k ? "text-white" : "text-zinc-500 hover:text-zinc-800"}`}
@@ -115,7 +115,7 @@ export function SignalsSection() {
                 </button>
               ))}
             </div>
-            <div className="flex gap-1 rounded-full border border-zinc-200 bg-white p-1">
+            <div className="term-tab-rail term-scroll-x shrink-0 sm:w-auto">
               {(["ALL", "BULLISH", "BEARISH"] as StrengthFilter[]).map((s) => (
                 <button key={s} onClick={() => setStrengthFilter(s)}
                   className={`rounded-full px-3 py-1.5 text-[11px] font-bold transition ${strengthFilter === s ? "text-white" : "text-zinc-500 hover:text-zinc-800"}`}

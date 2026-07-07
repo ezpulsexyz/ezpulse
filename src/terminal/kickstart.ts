@@ -138,12 +138,33 @@ const supplyFrom = (...values: unknown[]) => {
 };
 
 const CIRCULATING_SUPPLY_URL = (import.meta.env?.VITE_CIRCULATING_SUPPLY_URL as string | undefined)?.trim();
+const SUPABASE_URL = (import.meta.env?.VITE_SUPABASE_URL as string | undefined)?.trim();
 
 type SupplyOverride = {
   circulatingSupply?: number;
   totalSupply?: number;
   maxSupply?: number;
 };
+
+const JUPITER_POOL_URLS = [
+  "https://datapi.jup.ag/v1/pools/toptraded/24h?launchpads=easya-kickstart",
+  "https://datapi.jup.ag/v1/pools/recent?launchpads=easya-kickstart",
+  "https://datapi.jup.ag/v1/pools/toptrending/24h?launchpads=easya-kickstart",
+];
+
+function supplyFromAsset(asset: Rec): SupplyOverride {
+  return {
+    circulatingSupply: supplyFrom(asset.circSupply, asset.circulatingSupply, asset.circulating, asset.circ_supply),
+    totalSupply: supplyFrom(asset.totalSupply, asset.total_supply),
+    maxSupply: supplyFrom(asset.maxSupply, asset.max_supply, asset.totalSupply, asset.total_supply),
+  };
+}
+
+function supplyEndpoint(): string | null {
+  if (CIRCULATING_SUPPLY_URL) return CIRCULATING_SUPPLY_URL;
+  if (SUPABASE_URL) return `${SUPABASE_URL.replace(/\/$/, "")}/functions/v1/circulating-supply`;
+  return null;
+}
 
 const overrideKey = (row: Rec | string | undefined): string | null => {
   if (typeof row === "string" && row.trim()) return row.trim().toLowerCase();
@@ -155,12 +176,42 @@ const overrideKey = (row: Rec | string | undefined): string | null => {
   return null;
 };
 
-async function fetchSupplyOverrides(): Promise<Map<string, SupplyOverride>> {
+async function fetchJupiterSupplyOverrides(): Promise<Map<string, SupplyOverride>> {
   const overrides = new Map<string, SupplyOverride>();
-  if (!CIRCULATING_SUPPLY_URL) return overrides;
+  for (const url of JUPITER_POOL_URLS) {
+    try {
+      const res = await fetch(url, { headers: { accept: "application/json" } });
+      if (!res.ok) continue;
+      const data = (await res.json()) as Rec;
+      const pools: Rec[] = Array.isArray(data.pools) ? (data.pools as Rec[]) : [];
+      for (const pool of pools) {
+        const asset = pool.baseAsset as Rec | undefined;
+        if (!asset) continue;
+        const ca = String(asset.id ?? asset.address ?? asset.mint ?? "").trim().toLowerCase();
+        if (!ca) continue;
+        const patch = supplyFromAsset(asset);
+        if (patch.circulatingSupply === undefined && patch.totalSupply === undefined && patch.maxSupply === undefined) continue;
+        const existing = overrides.get(ca);
+        overrides.set(ca, {
+          circulatingSupply: patch.circulatingSupply ?? existing?.circulatingSupply,
+          totalSupply: patch.totalSupply ?? existing?.totalSupply,
+          maxSupply: patch.maxSupply ?? existing?.maxSupply,
+        });
+        const sym = String(asset.symbol ?? "").trim().toLowerCase();
+        if (sym && !overrides.has(sym)) overrides.set(sym, overrides.get(ca)!);
+      }
+    } catch { /* try next */ }
+  }
+  return overrides;
+}
+
+async function fetchRemoteSupplyOverrides(): Promise<Map<string, SupplyOverride>> {
+  const overrides = new Map<string, SupplyOverride>();
+  const endpoint = supplyEndpoint();
+  if (!endpoint) return overrides;
 
   try {
-    const res = await fetch(CIRCULATING_SUPPLY_URL, { headers: { accept: "application/json" } });
+    const res = await fetch(endpoint, { headers: { accept: "application/json" } });
     if (!res.ok) return overrides;
     const source = await res.json();
     const rows: Rec[] = Array.isArray(source)
@@ -208,12 +259,38 @@ async function fetchSupplyOverrides(): Promise<Map<string, SupplyOverride>> {
   return overrides;
 }
 
+async function fetchSupplyOverrides(): Promise<Map<string, SupplyOverride>> {
+  const [jup, remote] = await Promise.all([fetchJupiterSupplyOverrides(), fetchRemoteSupplyOverrides()]);
+  const merged = new Map(jup);
+  for (const [key, patch] of remote) {
+    const existing = merged.get(key);
+    merged.set(key, {
+      circulatingSupply: patch.circulatingSupply ?? existing?.circulatingSupply,
+      totalSupply: patch.totalSupply ?? existing?.totalSupply,
+      maxSupply: patch.maxSupply ?? existing?.maxSupply,
+    });
+  }
+  return merged;
+}
+
 const applySupplyOverride = (launch: LiveLaunch, overrides: Map<string, SupplyOverride>): LiveLaunch => {
   const key = launch.ca.toLowerCase();
   const fallback = launch.symbol.toLowerCase();
   const override = overrides.get(key) ?? overrides.get(fallback);
-  return override ? { ...launch, ...override } : launch;
+  if (!override) return launch;
+  return {
+    ...launch,
+    circulatingSupply: launch.circulatingSupply ?? override.circulatingSupply,
+    totalSupply: launch.totalSupply ?? override.totalSupply,
+    maxSupply: launch.maxSupply ?? override.maxSupply,
+  };
 };
+
+/** Fill circulating / max supply for a single token (Jupiter + optional override endpoint). */
+export async function enrichTokenSupply(token: LiveLaunch): Promise<LiveLaunch> {
+  const overrides = await fetchSupplyOverrides();
+  return applySupplyOverride(token, overrides);
+}
 
 /** Graduated = completed the bonding curve (migrated to AMM). */
 export const isGraduated = (c: LiveLaunch) => !!c.graduatedAt;
@@ -397,6 +474,7 @@ function jupPoolToLaunch(pool: Rec): LiveLaunch | null {
     holderCount: typeof asset.holderCount === "number" ? (asset.holderCount as number) : undefined,
     organicScore: typeof asset.organicScore === "number" ? (asset.organicScore as number) : undefined,
     jupVerified: asset.isVerified === true,
+    ...supplyFromAsset(asset),
     source: "KICKSTART" as const,
     links: {
       website: typeof asset.website === "string" ? (asset.website as string) : undefined,
@@ -447,13 +525,8 @@ async function enrichFromMeteora(found: Map<string, LiveLaunch>): Promise<void> 
 }
 
 async function fetchJupiterFeed(found: Map<string, LiveLaunch>): Promise<boolean> {
-  const urls = [
-    "https://datapi.jup.ag/v1/pools/toptraded/24h?launchpads=easya-kickstart",
-    "https://datapi.jup.ag/v1/pools/recent?launchpads=easya-kickstart",
-    "https://datapi.jup.ag/v1/pools/toptrending/24h?launchpads=easya-kickstart",
-  ];
   let ok = false;
-  for (const url of urls) {
+  for (const url of JUPITER_POOL_URLS) {
     try {
       const res = await fetch(url, { headers: { accept: "application/json" } });
       if (!res.ok) continue;

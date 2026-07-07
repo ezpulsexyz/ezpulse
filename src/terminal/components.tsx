@@ -8,7 +8,7 @@ export function Card({ title, right, children, className = "", pad = false }: {
   return (
     <section className={`overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm ${className}`}>
       {title && (
-        <header className="flex items-center justify-between border-b border-zinc-100 px-5 py-3">
+        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 px-4 py-3 sm:px-5">
           <span className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400">{title}</span>
           {right}
         </header>
@@ -29,9 +29,9 @@ export function Delta({ v, suffix = "" }: { v: number; suffix?: string }) {
 
 export function Stat({ label, value, sub, accent = false }: { label: ReactNode; value: string; sub?: ReactNode; accent?: boolean }) {
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white px-5 py-4 shadow-sm">
-      <div className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400">{label}</div>
-      <div className={`mt-1 font-display text-2xl font-semibold tabular-nums ${accent ? "" : "text-zinc-900"}`} style={accent ? { color: BLUE } : undefined}>{value}</div>
+    <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3.5 shadow-sm sm:px-5 sm:py-4">
+      <div className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 sm:text-[11px]">{label}</div>
+      <div className={`mt-1 font-display text-xl font-semibold tabular-nums sm:text-2xl ${accent ? "" : "text-zinc-900"}`} style={accent ? { color: BLUE } : undefined}>{value}</div>
       {sub && <div className="mt-0.5 text-[11px] text-zinc-400">{sub}</div>}
     </div>
   );
@@ -48,7 +48,7 @@ export function InfoTip({ text }: { text: string }) {
       >
         ?
       </span>
-      <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-2 w-72 -translate-x-1/2 rounded-2xl border border-zinc-800 bg-zinc-950/95 px-3 py-2 text-[11px] text-white opacity-0 shadow-lg transition duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+      <span className="pointer-events-none absolute left-0 top-full z-10 mt-2 max-w-[min(18rem,calc(100vw-2rem))] rounded-2xl border border-zinc-800 bg-zinc-950/95 px-3 py-2 text-[11px] leading-relaxed text-white opacity-0 shadow-lg transition duration-150 group-hover:opacity-100 group-focus-within:opacity-100 sm:left-1/2 sm:w-72 sm:max-w-none sm:-translate-x-1/2">
         {text}
       </span>
     </span>
