@@ -148,9 +148,9 @@ export default function ThesesList({
           const hasUpvoted = userUpvotes.includes(thesis.id);
 
           return (
-            <div key={thesis.id} className="rounded-3xl border border-zinc-200 p-6">
-              <div className="mb-4 flex items-start justify-between">
-                <div className="flex items-center gap-3">
+            <div key={thesis.id} className="rounded-3xl border border-zinc-200 p-5 lg:p-6">
+              <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-wrap items-center gap-3">
                   <span
                     className={`rounded-full px-3 py-1 text-xs font-bold ${
                       thesis.verdict === "Bullish"
@@ -174,17 +174,17 @@ export default function ThesesList({
                   type="button"
                   onClick={() => void handleUpvote(thesis.id)}
                   disabled={!backendReady || hasUpvoted}
-                  className={`flex items-center gap-1.5 rounded-2xl px-4 py-1.5 text-sm transition ${
+                  className={`flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm transition lg:w-auto ${
                     hasUpvoted
                       ? "cursor-default bg-blue-50 text-blue-700"
-                      : "bg-zinc-100 hover:bg-zinc-200 disabled:opacity-50"
+                      : "bg-zinc-100 active:bg-zinc-200 hover:bg-zinc-200 disabled:opacity-50"
                   }`}
                 >
                   ↑ <span className="font-mono">{thesis.upvotes ?? 0}</span>
                 </button>
               </div>
 
-              <p className="mb-4 leading-relaxed text-zinc-700">{thesis.content}</p>
+              <p className="thesis-content leading-relaxed text-zinc-700">{thesis.content}</p>
 
               {keyPoints.length > 0 && (
                 <div className="mt-3">

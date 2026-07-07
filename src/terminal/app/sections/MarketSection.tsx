@@ -4,6 +4,16 @@ import { BLUE, Card, Num, Stat } from "../../components";
 import { PageHead, EmptyState, LaunchCta } from "../components/PageLayout";
 import { TerminalCoinTable } from "../components/TerminalCoinTable";
 import { useTerminalContext } from "../TerminalContext";
+import type { MarketTab } from "../types";
+
+const MARKET_TABS: [MarketTab, string][] = [
+  ["ALL", "🏆 All · by mcap"],
+  ["TRENDING", "🔥 Trending Today"],
+  ["VERIFIED", "✓ Verified"],
+  ["BONDED", "🔗 Bonded"],
+  ["BONDING", "⏳ Bonding"],
+  ["UPCOMING", "🗓 Upcoming"],
+];
 
 export function MarketSection() {
   const { feed, loading, verified, bonded, bonding, trending, totalMcap, totalVol, marketTab, setMarketTab } = useTerminalContext();
@@ -13,7 +23,7 @@ export function MarketSection() {
               <PageHead title="Market" sub="Discover opportunities — the EasyA Kickstart token market, live and on-chain." />
 
               {/* stat cards drive the filter */}
-              <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="col-span-2 rounded-2xl px-4 py-4 text-white shadow-lg shadow-indigo-600/20 sm:col-span-1 sm:px-5" style={{ background: `linear-gradient(135deg, ${BLUE}, #4f2ff0)` }}>
                   <div className="text-[11px] font-semibold uppercase tracking-widest text-white/60">Market Cap</div>
                   <div className="mt-1"><Num size="xl" bold>{loading ? "…" : fmtUsd(totalMcap)}</Num></div>
@@ -30,9 +40,24 @@ export function MarketSection() {
                 </button>
               </div>
 
-              {/* filter tabs */}
-              <div className="term-tab-rail term-scroll-x mt-4">
-                {([["ALL", "🏆 All · by mcap"], ["TRENDING", "🔥 Trending Today"], ["VERIFIED", "✓ Verified"], ["BONDED", "🔗 Bonded"], ["BONDING", "⏳ Bonding"], ["UPCOMING", "🗓 Upcoming"]] as [MarketTab, string][]).map(([id, label]) => (
+              {/* Mobile-friendly filter tabs */}
+              <div className="flex gap-1 overflow-x-auto pb-2 -mx-1 px-1 mt-4 lg:hidden">
+                {MARKET_TABS.map(([id, label]) => (
+                  <button
+                    key={id}
+                    onClick={() => setMarketTab(id)}
+                    className={`whitespace-nowrap px-4 py-2 text-sm rounded-2xl flex-shrink-0 ${
+                      marketTab === id ? "bg-blue-600 text-white" : "bg-zinc-100"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Desktop filter tabs */}
+              <div className="term-tab-rail term-scroll-x mt-4 hidden lg:flex">
+                {MARKET_TABS.map(([id, label]) => (
                   <button key={id} onClick={() => setMarketTab(id)}
                     className={`whitespace-nowrap rounded-full px-4 py-2 text-[12px] font-bold transition ${marketTab === id ? "text-white" : "text-zinc-500 hover:text-zinc-800"}`}
                     style={marketTab === id ? { background: BLUE } : undefined}>

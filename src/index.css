@@ -221,3 +221,38 @@ input, textarea, select, button { color-scheme: light; }
   .fx-glow, .fx-scan-beam { animation: none !important; }
   .fx-glow, .fx-overlay { display: none !important; }
 }
+
+/* ─── Mobile thesis UX ─── */
+@media (max-width: 640px) {
+  button,
+  .clickable {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .thesis-modal {
+    border-radius: 24px 24px 0 0;
+  }
+
+  p,
+  .thesis-content {
+    font-size: 15px;
+    line-height: 1.6;
+  }
+}
+
+/* Better mobile table experience */
+@media (max-width: 1024px) {
+  .coin-row {
+    padding-top: 14px;
+    padding-bottom: 14px;
+  }
+}
+
+/* Prevent text overflow on mobile */
+.truncate-mobile {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
