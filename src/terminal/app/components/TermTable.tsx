@@ -18,10 +18,10 @@ export const PEER_COLS = "grid-cols-[minmax(0,1fr)_5.5rem_4.5rem]";
 export const PEER_GRID = `grid ${PEER_COLS} ${GRID_BASE}`;
 
 const ROW =
-  "group relative w-full border-b border-zinc-100/90 px-3 py-2.5 font-mono text-[12px] transition-colors last:border-0 hover:bg-zinc-50/90 sm:px-5";
+  "group relative w-full border-b border-zinc-100/90 px-3 py-2.5 font-mono text-[12px] transition-all duration-150 last:border-0 hover:bg-indigo-50/40 hover:shadow-[inset_0_0_0_1px_rgba(99,102,241,0.08)] sm:px-5";
 
 const ACCENT =
-  "before:pointer-events-none before:absolute before:inset-y-1.5 before:left-0 before:w-[3px] before:rounded-r-sm before:bg-indigo-600 before:opacity-0 before:transition-opacity before:duration-150 group-hover:before:opacity-100";
+  "before:pointer-events-none before:absolute before:inset-y-1 before:left-0 before:w-[3px] before:rounded-r before:bg-indigo-600 before:opacity-0 before:transition-all before:duration-200 group-hover:before:opacity-100 group-hover:before:w-1 group-focus-within:before:opacity-100";
 
 export function TermRow({
   children,

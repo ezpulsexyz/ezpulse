@@ -1,5 +1,5 @@
 import { fmtNum, fmtUsd } from "../../data";
-import { BLUE, Card, Delta, InfoTip, Stat } from "../../components";
+import { BLUE, Card, Delta, InfoTip, Num, Stat } from "../../components";
 import { fmtPrice, isVerified, isGraduated, kickstartUrl, tokenSignals } from "../../kickstart";
 import { FounderTerminal } from "../components/FounderTerminal";
 import { HistoryChart } from "../components/HistoryChart";
@@ -139,7 +139,7 @@ export function ProjectsSection() {
                   <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
                     <div className="col-span-2 rounded-2xl px-4 py-3.5 text-white md:col-span-1" style={{ background: `linear-gradient(135deg, ${BLUE}, #4f2ff0)` }}>
                       <div className="text-[10px] font-semibold uppercase tracking-widest text-white/60">Market Cap</div>
-                      <div className="mt-0.5 font-display text-lg font-semibold tabular-nums sm:text-xl">{selected.mcap ? fmtUsd(selected.mcap) : "—"}</div>
+                      <div className="mt-0.5"><Num size="lg" bold>{selected.mcap ? fmtUsd(selected.mcap) : "—"}</Num></div>
                     </div>
                     <Stat label="Price" value={selected.priceUsd ? fmtPrice(selected.priceUsd) : "—"} sub={<Delta v={selected.change24h} suffix="% 24h" />} />
                     <Stat label="Volume 24h" value={selected.volume24h ? fmtUsd(selected.volume24h) : "—"} sub={selected.mcap ? `${((selected.volume24h / selected.mcap) * 100).toFixed(0)}% turnover` : ""} />

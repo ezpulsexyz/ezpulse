@@ -1,6 +1,6 @@
 import { ALUMNI } from "../../kickstart";
 import { fmtUsd } from "../../data";
-import { BLUE, Card, Stat } from "../../components";
+import { BLUE, Card, Num, Stat } from "../../components";
 import { PageHead, EmptyState, LaunchCta } from "../components/PageLayout";
 import { TerminalCoinTable } from "../components/TerminalCoinTable";
 import { useTerminalContext } from "../TerminalContext";
@@ -16,7 +16,7 @@ export function MarketSection() {
               <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
                 <div className="col-span-2 rounded-2xl px-4 py-4 text-white shadow-lg shadow-indigo-600/20 sm:col-span-1 sm:px-5" style={{ background: `linear-gradient(135deg, ${BLUE}, #4f2ff0)` }}>
                   <div className="text-[11px] font-semibold uppercase tracking-widest text-white/60">Market Cap</div>
-                  <div className="mt-1 font-display text-2xl font-semibold tabular-nums sm:text-3xl">{loading ? "…" : fmtUsd(totalMcap)}</div>
+                  <div className="mt-1"><Num size="xl" bold>{loading ? "…" : fmtUsd(totalMcap)}</Num></div>
                   <div className="mt-0.5 text-[11px] text-white/60">{feed.length} live token{feed.length !== 1 ? "s" : ""}</div>
                 </div>
                 <button onClick={() => setMarketTab("VERIFIED")} className="text-left">

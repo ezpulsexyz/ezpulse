@@ -31,6 +31,7 @@ export function useTerminal(target?: TerminalTarget) {
   const searchRef = useRef<HTMLInputElement>(null);
 
   const [signinNudge, setSigninNudge] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   const toggleWatch = (ca: string) => {
     setWatchlist((wl) => {
@@ -158,12 +159,26 @@ export function useTerminal(target?: TerminalTarget) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "/" && document.activeElement !== searchRef.current) { e.preventDefault(); searchRef.current?.focus(); }
-      if (e.key === "Escape") { setSelected(null); setQuery(""); setNotifOpen(false); searchRef.current?.blur(); }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+        return;
+      }
+      if (e.key === "/" && !paletteOpen && document.activeElement !== searchRef.current) {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+      if (e.key === "Escape") {
+        if (paletteOpen) { setPaletteOpen(false); return; }
+        setSelected(null);
+        setQuery("");
+        setNotifOpen(false);
+        searchRef.current?.blur();
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [paletteOpen]);
 
   const copyCa = async (ca: string) => {
     try { await navigator.clipboard.writeText(ca); } catch { /* noop */ }
@@ -234,7 +249,7 @@ export function useTerminal(target?: TerminalTarget) {
     copiedCa, watchlist, alerts, wallet, addrInput, setAddrInput, walletErr,
     portfolio, setPortfolio, phantom, notifOpen, setNotifOpen, seenNotifs,
     shareToken, setShareToken, projTab, setProjTab, searchRef,
-    signinNudge, setSigninNudge, phantomMissing, lastUpdated,
+    signinNudge, setSigninNudge, phantomMissing, paletteOpen, setPaletteOpen, lastUpdated,
     booted, setBooted, bootSlow,
     toggleWatch, signInPhantom, signOutPhantom, setAlert, watchWallet,
     connectPhantom, disconnectWallet, copyCa, openNotifs,

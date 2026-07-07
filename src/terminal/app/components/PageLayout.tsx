@@ -18,20 +18,20 @@ export function LoadingRows() {
   return (
     <div>
       {[...Array(4)].map((_, i) => (
-        <TermRow key={i} grid={COIN_GRID} className="animate-pulse">
-          <div className="h-3 w-4 rounded bg-zinc-100" />
+        <TermRow key={i} grid={COIN_GRID}>
+          <div className="term-shimmer h-3 w-4 rounded" />
           <div className="flex min-w-0 flex-1 items-center gap-2.5">
-            <div className="h-7 w-7 shrink-0 rounded-full bg-zinc-100" />
+            <div className="term-shimmer h-7 w-7 shrink-0 rounded-full" />
             <div className="flex-1 space-y-2">
-              <div className="h-3 w-36 rounded bg-zinc-100" />
-              <div className="h-2 w-48 rounded bg-zinc-50" />
+              <div className="term-shimmer h-3 w-36 rounded" />
+              <div className="term-shimmer h-2 w-48 rounded" />
             </div>
           </div>
-          <div className="hidden h-3 w-14 rounded bg-zinc-100 lg:block" />
-          <div className="hidden h-3 w-12 rounded bg-zinc-100 lg:block" />
-          <div className="hidden h-3 w-14 rounded bg-zinc-100 lg:block" />
-          <div className="hidden h-3 w-14 rounded bg-zinc-50 lg:block" />
-          <div className="hidden h-7 w-20 rounded bg-zinc-100 lg:block" />
+          <div className="term-shimmer hidden h-3 w-14 rounded lg:block" />
+          <div className="term-shimmer hidden h-3 w-12 rounded lg:block" />
+          <div className="term-shimmer hidden h-3 w-14 rounded lg:block" />
+          <div className="term-shimmer hidden h-3 w-14 rounded lg:block" />
+          <div className="term-shimmer hidden h-7 w-20 rounded lg:block" />
         </TermRow>
       ))}
     </div>

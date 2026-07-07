@@ -1,4 +1,5 @@
 import { BootScreen } from "./components/BootScreen";
+import { CommandPalette } from "./components/CommandPalette";
 import { Header } from "./layout/Header";
 import { Sidebar } from "./layout/Sidebar";
 import { Toasts } from "./layout/Toasts";
@@ -18,6 +19,7 @@ function TerminalBody() {
       <Sidebar />
       <div className="min-w-0 flex-1 lg:ml-60">
         <Header />
+        <CommandPalette />
         <Toasts />
         <SectionRouter />
       </div>

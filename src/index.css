@@ -164,8 +164,31 @@ input, textarea, select, button { color-scheme: light; }
 }
 .term-tab-rail > button { scroll-snap-align: start; flex-shrink: 0; }
 
+/* monospace numeric utility */
+.term-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* loading shimmer */
+@keyframes termShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.term-shimmer {
+  background: linear-gradient(90deg, #f4f4f5 0%, #e4e4e7 40%, #f4f4f5 80%);
+  background-size: 200% 100%;
+  animation: termShimmer 1.4s ease-in-out infinite;
+}
+
+/* command palette entrance */
+.term-palette {
+  box-shadow: 0 25px 50px -12px rgba(39, 67, 240, 0.18), 0 0 0 1px rgba(39, 67, 240, 0.06);
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .term-blink, .animate-fade-up { animation: none !important; }
+  .term-blink, .animate-fade-up, .term-shimmer, .animate-ping { animation: none !important; }
   .fx-glow, .fx-scan-beam { animation: none !important; }
   .fx-scan-beam { display: none; }
 }

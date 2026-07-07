@@ -1,9 +1,10 @@
 import { Logo } from "../../brand";
+import { LiveBadge } from "../components/LiveBadge";
 import { NAV_GROUPS } from "../types";
 import { useTerminalContext } from "../TerminalContext";
 
 export function Sidebar() {
-  const { section, menuOpen, setMenuOpen, goto, feed, loading, watchlist } = useTerminalContext();
+  const { section, menuOpen, setMenuOpen, goto, feed, loading, watchlist, lastUpdated } = useTerminalContext();
   return (
     <>
       <aside
@@ -54,13 +55,13 @@ export function Sidebar() {
           <span className="font-bold text-zinc-700">100% live data.</span> Only contracts ending in{" "}
           <span className="font-mono font-bold text-indigo-600">EASY</span> — the Kickstart on-chain fingerprint — are listed.
         </div>
-        <div className="mt-auto border-t border-zinc-100 px-4 py-4 text-[11px] text-zinc-400 sm:px-5">
-          <span className="flex items-center gap-1.5">
-            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${feed.length ? "bg-emerald-500" : "bg-amber-400"}`} />
-            <span className="min-w-0 truncate">
-              {loading ? "Connecting…" : feed.length ? `Live · ${feed.length} tokens` : "Awaiting new launches"}
-            </span>
-          </span>
+        <div className="mt-auto border-t border-zinc-100 px-4 py-4 sm:px-5">
+          <LiveBadge
+            label={loading ? "Connecting…" : feed.length ? `Live · ${feed.length} tokens` : "Awaiting launches"}
+            ts={lastUpdated}
+            tone={loading ? "amber" : feed.length ? "emerald" : "zinc"}
+            size="sm"
+          />
         </div>
       </aside>
       {menuOpen && (

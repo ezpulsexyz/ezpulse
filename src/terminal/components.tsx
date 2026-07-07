@@ -2,6 +2,18 @@ import type { ReactNode } from "react";
 
 export const BLUE = "#2743f0";
 
+/** Monospace numeric display — prices, mcap, %, balances. */
+export function Num({ children, className = "", bold = false, size = "md" }: {
+  children: ReactNode; className?: string; bold?: boolean; size?: "sm" | "md" | "lg" | "xl";
+}) {
+  const sizes = { sm: "text-[11px]", md: "text-[12px]", lg: "text-xl", xl: "text-2xl sm:text-3xl" };
+  return (
+    <span className={`font-mono tabular-nums tracking-tight ${sizes[size]} ${bold ? "font-semibold" : "font-medium"} ${className}`}>
+      {children}
+    </span>
+  );
+}
+
 export function Card({ title, right, children, className = "", pad = false }: {
   title?: string; right?: ReactNode; children: ReactNode; className?: string; pad?: boolean;
 }) {
@@ -31,7 +43,7 @@ export function Stat({ label, value, sub, accent = false }: { label: ReactNode; 
   return (
     <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3.5 shadow-sm sm:px-5 sm:py-4">
       <div className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 sm:text-[11px]">{label}</div>
-      <div className={`mt-1 font-display text-xl font-semibold tabular-nums sm:text-2xl ${accent ? "" : "text-zinc-900"}`} style={accent ? { color: BLUE } : undefined}>{value}</div>
+      <div className={`mt-1 font-mono text-xl font-semibold tabular-nums tracking-tight sm:text-2xl ${accent ? "" : "text-zinc-900"}`} style={accent ? { color: BLUE } : undefined}>{value}</div>
       {sub && <div className="mt-0.5 text-[11px] text-zinc-400">{sub}</div>}
     </div>
   );

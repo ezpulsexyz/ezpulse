@@ -47,28 +47,39 @@ type FeatStatus = "SHIPPED" | "IN PROGRESS" | "PLANNED" | "EXPLORING";
 interface Feature { id: string; title: string; body: string; status: FeatStatus; area: string; date?: string }
 
 const FEATURES: Feature[] = [
-  // shipped
-  { id: "feed", title: "Live …EASY token feed", body: "Every Kickstart launch auto-discovered via the on-chain fingerprint, priced by DexScreener.", status: "SHIPPED", area: "Market", date: "Live" },
-  { id: "terminal", title: "Project terminal pages", body: "Bloomberg-style page per token: chart, AI insights, position, links, peers.", status: "SHIPPED", area: "Research", date: "Live" },
-  { id: "signals", title: "Real-time Signals feed", body: "Whale moves, momentum, volume spikes, rank battles — ecosystem-wide, recomputed live.", status: "SHIPPED", area: "Signals", date: "Live" },
-  { id: "watchlist", title: "Watchlists + alert preferences", body: "Star tokens, choose alert events. Stored locally, no account needed.", status: "SHIPPED", area: "Tracking", date: "Live" },
-  { id: "portfolio", title: "Watch-only Portfolio", body: "Paste any address or connect Phantom read-only — holdings valued at live prices.", status: "SHIPPED", area: "Portfolio", date: "Live" },
-  { id: "indexes", title: "EasyA Indexes", body: "Composite, Verified, Momentum 5 and Liquid baskets, cap-weighted and live.", status: "SHIPPED", area: "Invest", date: "Live" },
+  // shipped — market & discovery
+  { id: "feed", title: "Live …EASY token feed", body: "Every Kickstart launch auto-discovered via the on-chain fingerprint — Jupiter + DexScreener, refreshed every 60s.", status: "SHIPPED", area: "Market", date: "Live" },
+  { id: "indexes", title: "EasyA Indexes", body: "Composite, Verified, Momentum 5 and Liquid baskets — cap-weighted and recomputed live.", status: "SHIPPED", area: "Invest", date: "Live" },
   { id: "xverify", title: "X-authorization verification", body: "✓ requires an authorized X account (address-in-bio model). Link ≠ endorsement.", status: "SHIPPED", area: "Trust", date: "Live" },
-  { id: "bell", title: "🔔 Watchlist notification bell", body: "In-app alerts when signals fire on watched tokens — price moves ±10%, whale bursts, volume spikes. Respects your alert preferences.", status: "SHIPPED", area: "Tracking", date: "Live" },
+  // shipped — research & terminals
+  { id: "terminal", title: "Project terminal pages", body: "Bloomberg-style page per token: DexScreener chart, ezpulse history, AI insights, whale flow, thesis generator, position, links, peers.", status: "SHIPPED", area: "Research", date: "Live" },
+  { id: "history", title: "Proprietary price history", body: "ezpulse snapshots every token every 15 min — historical charts for Kickstart micro-caps that exist nowhere else.", status: "SHIPPED", area: "Research", date: "Live" },
+  { id: "supply", title: "Circulating & max supply", body: "Live supply stats from Jupiter datapi, with Supabase override endpoint — shown on every project terminal.", status: "SHIPPED", area: "Research", date: "Live" },
+  { id: "founder-terminal", title: "👤 Founder Terminal", body: "Verified founders get a conviction dashboard: launch track record, build-in-public feed, on-chain forensics, sentiment — linked from project pages.", status: "SHIPPED", area: "Research", date: "Live" },
+  { id: "thesis-ai", title: "✨ AI Thesis Generator", body: "Structured bull/bear/neutral theses synthesized from live signals, founder data, forensics, and price history — verdict, metric, risk, falsifiable claim.", status: "SHIPPED", area: "Research", date: "Live" },
+  { id: "share", title: "📤 Share cards", body: "One click renders a branded stat card for any token — copy, save, or post straight to X with pre-filled text.", status: "SHIPPED", area: "Growth", date: "Live" },
+  // shipped — signals & tracking
+  { id: "signals", title: "Real-time Signals feed", body: "Whale, momentum, volume, liquidity, rank, and launch events — filterable, with historical hit-rate badges and a public archive pipeline.", status: "SHIPPED", area: "Signals", date: "Live" },
+  { id: "whale-flow", title: "🐋 Whale alerts + tx visualization", body: "Real-time whale alerts on the Signals feed and per-token terminals — buy/sell flow timeline, net volume, Solscan tx links. Watchlist pref for whale txs.", status: "SHIPPED", area: "Signals", date: "Live" },
+  { id: "track-record", title: "🎯 Public signal track record", body: "Every signal archived to an append-only log and scored against the market 24h later. Hit-rate by kind — no retroactive edits.", status: "SHIPPED", area: "Signals", date: "Live" },
+  { id: "watchlist", title: "Watchlists + alert preferences", body: "Star tokens, toggle price / volume / verification / whale alerts. Local storage + Phantom wallet sync.", status: "SHIPPED", area: "Tracking", date: "Live" },
+  { id: "bell", title: "🔔 Watchlist notification bell", body: "In-app alerts when signals fire on watched tokens — price ±10%, volume spikes, whale flow, verification changes. Respects your prefs.", status: "SHIPPED", area: "Tracking", date: "Live" },
+  // shipped — portfolio & account
+  { id: "portfolio", title: "Watch-only Portfolio", body: "Paste any address or connect Phantom read-only — Kickstart holdings valued at live prices, with Solscan cross-check.", status: "SHIPPED", area: "Portfolio", date: "Live" },
+  { id: "launch-sim", title: "⏳ Launch portfolio simulator", body: "\"What if I bought at launch?\" — simulates a fixed USD buy at first ezpulse snapshot, shows value today, peak multiple, and drawdown chart.", status: "SHIPPED", area: "Portfolio", date: "Live" },
   { id: "phantom", title: "Phantom sign-in (read-only)", body: "One-click sign-in with Phantom — restores your watchlist across devices and auto-loads your portfolio. No signatures, ever.", status: "SHIPPED", area: "Account", date: "Live" },
+  { id: "mobile", title: "Mobile-responsive terminal", body: "Polished layout for phones: scrollable tab rails, safe-area padding, collapsible nav, responsive stats and action grids.", status: "SHIPPED", area: "Platform", date: "Live" },
+  { id: "cmdk", title: "⌘K Command palette", body: "Bloomberg-style command interface — jump to any section, open tokens, filter market tabs, sign in, or focus search. Keyboard-first.", status: "SHIPPED", area: "Platform", date: "Live" },
+  { id: "typography", title: "Terminal typography", body: "Monospace + tabular-nums on all prices, mcap, % changes, and table cells — numbers align and scan like a real terminal.", status: "SHIPPED", area: "Platform", date: "Live" },
   // in progress
   { id: "alerts", title: "Alert delivery (email / Telegram)", body: "The bell, but off-site — watchlist alerts that reach your inbox even when ezpulse is closed.", status: "IN PROGRESS", area: "Tracking" },
   { id: "coverage", title: "Full Kickstart coverage", body: "Every bonded launch pinned as CAs are confirmed — targeting 100% of the board.", status: "IN PROGRESS", area: "Market" },
-  { id: "track-record", title: "🎯 Public signal track record", body: "Every signal archived to an append-only log and scored against the market 24h later. A hit-rate no one can fake retroactively.", status: "SHIPPED", area: "Signals", date: "Live" },
-  { id: "history", title: "Proprietary price history", body: "ezpulse snapshots every token every 15 min — historical charts for Kickstart micro-caps that exist nowhere else.", status: "SHIPPED", area: "Research", date: "Live" },
-  { id: "share", title: "📤 Share cards", body: "One click renders a branded stat card for any token — copy, save, or post straight to X with pre-filled text.", status: "SHIPPED", area: "Growth", date: "Live" },
   // planned
   { id: "upcoming", title: "Upcoming-launches feed", body: "Pre-launch tracking the moment Kickstart exposes an announcements feed.", status: "PLANNED", area: "Market" },
   { id: "holders", title: "Holder & wallet-flow analytics", body: "Holder counts, concentration, smart-wallet inflows per token.", status: "PLANNED", area: "Research" },
   { id: "pnl", title: "Portfolio P&L history", body: "Cost-basis tracking and historical performance for watched wallets.", status: "PLANNED", area: "Portfolio" },
   // exploring
-  { id: "thesis", title: "Investor Thesis — gated structured research", body: "Write bull/bear cases with falsifiable claims. Requires ≥$10 holding, founders respond on the record, prediction polls resolve from live data.", status: "EXPLORING", area: "Research" },
+  { id: "thesis", title: "Community Investor Thesis", body: "Holder-gated bull/bear posts (≥$10 position), founder responses on the record, and prediction polls that resolve from live data — builds on the AI generator.", status: "EXPLORING", area: "Research" },
   { id: "smart", title: "Smart Investing strategies", body: "Rules-based allocation: index buys, signal triggers, guardrails.", status: "EXPLORING", area: "Invest" },
   { id: "api", title: "Public API", body: "The ezpulse feed, signals and scores as an API for funds and builders.", status: "EXPLORING", area: "Platform" },
   { id: "beyond", title: "Beyond Kickstart", body: "The same engine pointed at every startup-token launchpad.", status: "EXPLORING", area: "Platform" },

@@ -1,12 +1,13 @@
 import { fmtUsd } from "../../data";
 import { BLUE, Delta } from "../../components";
+import { LiveBadge } from "../components/LiveBadge";
 import { useTerminalContext } from "../TerminalContext";
 
 export function Header() {
   const {
     menuOpen, setMenuOpen, query, setQuery, searchRef, results, feed, loading, lastUpdated,
     notifOpen, setNotifOpen, notifs, unseenCount, openNotifs, phantom, watchlist,
-    signInPhantom, signOutPhantom, goto, openToken,
+    signInPhantom, signOutPhantom, goto, openToken, setPaletteOpen,
   } = useTerminalContext();
   return (
     <header className="sticky top-0 z-20 border-b border-zinc-200 bg-white/90 backdrop-blur supports-[backdrop-filter]:bg-white/80">
@@ -19,6 +20,14 @@ export function Header() {
           ☰
         </button>
 
+        <button
+          onClick={() => setPaletteOpen(true)}
+          title="Command palette (⌘K)"
+          className="hidden shrink-0 items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 font-mono text-[10px] text-zinc-500 transition hover:border-indigo-300 hover:text-indigo-700 sm:flex"
+        >
+          <span>⌘K</span>
+        </button>
+
         <div className="relative min-w-0 flex-1 basis-[min(100%,14rem)]">
           <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">⌕</span>
           <input
@@ -26,8 +35,15 @@ export function Header() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search tokens…  ( / )"
-            className="w-full rounded-full border border-zinc-200 bg-zinc-50 py-2 pl-9 pr-8 text-[13px] outline-none transition focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100 sm:placeholder:text-[13px]"
+            className="w-full rounded-full border border-zinc-200 bg-zinc-50 py-2 pl-9 pr-16 font-mono text-[13px] outline-none transition focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-100 sm:placeholder:text-[13px]"
           />
+          <button
+            type="button"
+            onClick={() => setPaletteOpen(true)}
+            className="absolute right-2 top-1/2 hidden -translate-y-1/2 rounded border border-zinc-200 bg-white px-1.5 py-0.5 font-mono text-[9px] text-zinc-400 transition hover:border-indigo-300 hover:text-indigo-600 sm:inline"
+          >
+            ⌘K
+          </button>
           {query && (
             <button onClick={() => setQuery("")} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600">
               ✕
@@ -50,17 +66,12 @@ export function Header() {
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-          <span
-            className={`hidden items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold min-[400px]:flex sm:px-3 ${feed.length ? "bg-emerald-50 text-emerald-700" : "bg-zinc-100 text-zinc-500"}`}
-            title={lastUpdated ? `Last updated ${new Date(lastUpdated).toLocaleTimeString()} · auto-refreshes every 60s` : undefined}
-          >
-            <span className={`term-blink h-1.5 w-1.5 rounded-full ${feed.length ? "bg-emerald-500" : "bg-zinc-400"}`} />
-            <span className="hidden sm:inline">{loading ? "Scanning…" : "Live"}</span>
-            {lastUpdated && !loading && (
-              <span className="hidden font-normal text-emerald-600/60 lg:inline">
-                · {new Date(lastUpdated).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              </span>
-            )}
+          <span className="hidden min-[400px]:inline-flex">
+            <LiveBadge
+              label={loading ? "Scanning" : feed.length ? "Live" : "Idle"}
+              ts={lastUpdated}
+              tone={loading ? "amber" : feed.length ? "emerald" : "zinc"}
+            />
           </span>
 
           <div className="relative">

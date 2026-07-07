@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { ecosystemSignals, type EcoEvent } from "../../kickstart";
 import { BLUE, Card, Stat } from "../../components";
 import { PageHead, EmptyState, LaunchCta, LoadingRows } from "../components/PageLayout";
+import { LiveBadge } from "../components/LiveBadge";
 import { HitRateBadge, KindBadge, StrengthBadge, signalIcon } from "../components/SignalBadges";
 import { WhaleAlertsPanel } from "../components/WhaleTxViz";
 import { useSignalRecord } from "../hooks/useSignalRecord";
@@ -13,7 +14,7 @@ type KindFilter = "ALL" | SignalKind;
 type StrengthFilter = "ALL" | "BULLISH" | "BEARISH";
 
 export function SignalsSection() {
-  const { feed, loading, topMover, openToken, goto } = useTerminalContext();
+  const { feed, loading, topMover, openToken, goto, lastUpdated } = useTerminalContext();
   const record = useSignalRecord();
   const whaleAlerts = useWhaleAlerts(feed);
   const [kindFilter, setKindFilter] = useState<KindFilter>("ALL");
@@ -51,9 +52,7 @@ export function SignalsSection() {
                 ⏳ {pendingCount} awaiting score
               </button>
             )}
-            <span className="flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1.5 text-[11px] font-bold text-red-600">
-              <span className="term-blink h-1.5 w-1.5 rounded-full bg-red-500" /> LIVE FEED
-            </span>
+            <LiveBadge label="LIVE FEED" ts={lastUpdated} tone="red" size="md" />
           </span>
         }
       />
