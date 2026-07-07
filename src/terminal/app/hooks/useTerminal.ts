@@ -27,7 +27,7 @@ export function useTerminal(target?: TerminalTarget) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [seenNotifs, setSeenNotifs] = useState<string[]>(() => loadSeenNotifs());
   const [shareToken, setShareToken] = useState<LiveLaunch | null>(null);
-  const [projTab, setProjTab] = useState<"overview" | "signals">("overview");
+  const [projTab, setProjTab] = useState<"overview" | "signals" | "founder">("overview");
   const searchRef = useRef<HTMLInputElement>(null);
 
   const [signinNudge, setSigninNudge] = useState(false);

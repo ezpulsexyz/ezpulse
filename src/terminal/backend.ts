@@ -134,6 +134,21 @@ export async function fetchResolvedSignals(limit = 30): Promise<ResolvedSignal[]
   }
 }
 
+/** Resolved signals scoped to a founder's token addresses. */
+export async function fetchFounderSignals(cas: string[], limit = 40): Promise<ResolvedSignal[] | null> {
+  if (!supabase || !cas.length) return null;
+  try {
+    const { data } = await supabase.from("signal_events")
+      .select("ca, symbol, kind, strength, title, ts, change_24h, hit, price_at")
+      .eq("resolved", true)
+      .in("ca", cas)
+      .order("ts", { ascending: false }).limit(limit);
+    return Array.isArray(data) && data.length ? (data as ResolvedSignal[]) : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Signals fired but not yet scored — awaiting the +24h checkpoint. */
 export async function fetchPendingSignals(limit = 40): Promise<PendingSignal[] | null> {
   if (!supabase) return null;

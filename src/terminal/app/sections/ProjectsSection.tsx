@@ -1,6 +1,7 @@
 import { fmtNum, fmtUsd } from "../../data";
 import { BLUE, Card, Delta, InfoTip, Stat } from "../../components";
 import { fmtPrice, isVerified, isGraduated, kickstartUrl, tokenSignals } from "../../kickstart";
+import { FounderTerminal } from "../components/FounderTerminal";
 import { HistoryChart } from "../components/HistoryChart";
 import { PageHead, EmptyState, LaunchCta, LoadingRows } from "../components/PageLayout";
 import { PEER_GRID, TermNum, TermRowButton } from "../components/TermTable";
@@ -35,7 +36,10 @@ export function ProjectsSection() {
                           </div>
                           <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3">
                             <span className="text-[13px] font-semibold tabular-nums text-zinc-800">{c.mcap ? fmtUsd(c.mcap) : "—"}</span>
-                            <Delta v={c.change24h} suffix="%" />
+                            <div className="flex items-center gap-2">
+                              {isVerified(c) && <span className="text-[10px] font-bold text-indigo-600">👤 Founder</span>}
+                              <Delta v={c.change24h} suffix="%" />
+                            </div>
                           </div>
                         </button>
                       ))}
@@ -91,6 +95,13 @@ export function ProjectsSection() {
                           🚀 Buy on Kickstart →
                         </a>
                       )}
+                      {isVerified(selected) && (
+                        <button onClick={() => setProjTab("founder")}
+                          className="rounded-full px-5 py-2.5 text-[12px] font-bold uppercase tracking-wide text-white shadow-lg shadow-indigo-600/20 transition hover:-translate-y-px"
+                          style={{ background: `linear-gradient(135deg, ${BLUE}, #4f2ff0)` }}>
+                          👤 Founder Terminal
+                        </button>
+                      )}
                       <a href={kickstartUrl(selected.ca)} target="_blank" rel="noopener noreferrer"
                         className="rounded-full border border-zinc-200 bg-white px-5 py-2.5 text-[12px] font-bold uppercase tracking-wide text-zinc-600 transition hover:border-indigo-300 hover:text-indigo-700">
                         Kickstart page ↗
@@ -99,8 +110,12 @@ export function ProjectsSection() {
                   </div>
 
                   {/* tabs */}
-                  <div className="mt-5 flex gap-1 rounded-full border border-zinc-200 bg-white p-1" style={{ width: "fit-content" }}>
-                    {([["overview", "Overview"], ["signals", "⚡ Signals"]] as const).map(([id, label]) => (
+                  <div className="mt-5 flex flex-wrap gap-1 rounded-full border border-zinc-200 bg-white p-1" style={{ width: "fit-content" }}>
+                    {([
+                      ["overview", "Overview"],
+                      ["signals", "⚡ Signals"],
+                      ...(isVerified(selected) ? [["founder", "👤 Founder"] as const] : []),
+                    ] as const).map(([id, label]) => (
                       <button key={id} onClick={() => setProjTab(id)}
                         className={`rounded-full px-5 py-2 text-[12px] font-bold transition ${projTab === id ? "text-white" : "text-zinc-500 hover:text-zinc-800"}`}
                         style={projTab === id ? { background: BLUE } : undefined}>
@@ -176,7 +191,11 @@ export function ProjectsSection() {
                     )}
                   </div>
 
-                  {projTab === "signals" ? (
+                  {projTab === "founder" && isVerified(selected) ? (
+                    <div className="mt-4">
+                      <FounderTerminal token={selected} feed={feed} onOpenToken={openToken} />
+                    </div>
+                  ) : projTab === "signals" ? (
                     <div className="mt-4">
                       <div className="mb-4 grid gap-3 sm:grid-cols-3">
                         {(() => {
