@@ -20,6 +20,9 @@ export function ProjectsSection() {
     toggleWatch,
     setShareToken,
     openToken,
+    wallet,
+    portfolio,
+    goto,
   } = useTerminalContext();
 
   useTokenSupply(selected, (enriched) => {
@@ -110,6 +113,9 @@ export function ProjectsSection() {
           copyCa={copyCa}
           copiedCa={copiedCa}
           onOpenToken={openToken}
+          wallet={wallet}
+          portfolio={portfolio}
+          goto={goto}
         />
       )}
     </>

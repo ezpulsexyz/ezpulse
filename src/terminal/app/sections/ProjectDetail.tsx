@@ -6,7 +6,9 @@ import {
   isGraduated,
   kickstartUrl,
   type LiveLaunch,
+  type PortfolioResult,
 } from "../../kickstart";
+import type { Section } from "../types";
 import { CurveBadge } from "../components/CurveBadge";
 import { HistoryChart } from "../components/HistoryChart";
 import { FounderTerminal } from "../components/FounderTerminal";
@@ -25,6 +27,9 @@ export interface ProjectDetailProps {
   copyCa: (ca: string) => void;
   copiedCa: string | null;
   onOpenToken: (c: LiveLaunch) => void;
+  wallet: string | null;
+  portfolio: PortfolioResult | null | "loading";
+  goto: (s: Section) => void;
 }
 
 export default function ProjectDetail({
@@ -37,6 +42,9 @@ export default function ProjectDetail({
   copyCa,
   copiedCa,
   onOpenToken,
+  wallet,
+  portfolio,
+  goto,
 }: ProjectDetailProps) {
   const [projTab, setProjTab] = useState<ProjTab>("overview");
   const isWatching = watchlist.includes(token.ca);
@@ -159,7 +167,15 @@ export default function ProjectDetail({
 
       <div className="pt-4">
         {projTab === "overview" && (
-          <OverviewTab token={token} feed={feed} copyCa={copyCa} copiedCa={copiedCa} />
+          <OverviewTab
+            token={token}
+            feed={feed}
+            wallet={wallet}
+            portfolio={portfolio}
+            goto={goto}
+            openToken={onOpenToken}
+            onViewSignals={() => setProjTab("signals")}
+          />
         )}
         {projTab === "signals" && <SignalsTab token={token} feed={feed} />}
         {projTab === "history" && <HistoryChart ca={token.ca} />}
