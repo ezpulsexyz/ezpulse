@@ -1,3 +1,4 @@
+import type { SavedInvestorThesis } from "./backend";
 import type { PortfolioResult } from "./kickstart";
 
 export type ThesisVerdict = "BULL" | "BEAR" | "NEUTRAL";
@@ -25,6 +26,33 @@ export interface InvestorThesisPost {
 }
 
 const STORAGE_KEY = "ezpulse:investor-theses";
+
+function mapApiVerdict(verdict: string): ThesisVerdict {
+  if (verdict === "Bullish") return "BULL";
+  if (verdict === "Bearish") return "BEAR";
+  return "NEUTRAL";
+}
+
+function formatRemoteBody(content: string, keyPoints: string[]): string {
+  if (!keyPoints.length) return content;
+  return `${content}\n\nKey points:\n${keyPoints.map((p) => `• ${p}`).join("\n")}`;
+}
+
+export function savedThesisToPost(row: SavedInvestorThesis): InvestorThesisPost {
+  const keyPoints = Array.isArray(row.key_points) ? row.key_points : [];
+  return {
+    id: row.id,
+    tokenCa: row.token_ca,
+    wallet: row.wallet_address,
+    verdict: mapApiVerdict(row.verdict),
+    body: formatRemoteBody(row.content, keyPoints),
+    holdingAmount: null,
+    holdingVerified: false,
+    createdAt: row.created_at,
+    convincingVotes: 0,
+    comments: [],
+  };
+}
 
 export function shortWallet(addr: string): string {
   return `${addr.slice(0, 4)}…${addr.slice(-4)}`;

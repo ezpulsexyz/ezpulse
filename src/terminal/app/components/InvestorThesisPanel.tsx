@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { BLUE, Card } from "../../components";
 import WalletGate from "../../components/WalletGate";
+import ThesisEditorModal, { type ThesisEditorSubmission } from "../../components/ThesisEditorModal";
+import ThesesList from "../../components/ThesesList";
 import { useWallet } from "../../hooks/useWallet";
+import { backendReady, saveInvestorThesis } from "../../backend";
 import type { LiveLaunch } from "../../kickstart";
 import {
   addInvestorThesisComment,
@@ -12,6 +15,18 @@ import {
   type InvestorThesisPost,
   type ThesisVerdict,
 } from "../../investorThesis";
+
+function mapEditorVerdict(verdict: ThesisEditorSubmission["verdict"]): ThesisVerdict {
+  if (verdict === "Bullish") return "BULL";
+  if (verdict === "Bearish") return "BEAR";
+  return "NEUTRAL";
+}
+
+function formatThesisBody(thesis: ThesisEditorSubmission): string {
+  if (thesis.keyPoints.length === 0) return thesis.content;
+  const bullets = thesis.keyPoints.map((p) => `• ${p}`).join("\n");
+  return `${thesis.content}\n\nKey points:\n${bullets}`;
+}
 
 function verdictStyle(v: ThesisVerdict): string {
   if (v === "BULL") return "bg-emerald-100 text-emerald-700";
@@ -33,7 +48,7 @@ function HolderBadge({
   );
 }
 
-function PostCard({
+function LocalPostCard({
   post,
   token,
   wallet,
@@ -48,7 +63,6 @@ function PostCard({
 }) {
   const [commentOpen, setCommentOpen] = useState(false);
   const [commentBody, setCommentBody] = useState("");
-  const canVote = !!wallet && hasHolding;
   const isOwn = wallet === post.wallet;
 
   const submitComment = () => {
@@ -78,21 +92,8 @@ function PostCard({
       </div>
       <p className="mt-3 text-[14px] leading-relaxed text-zinc-700">{post.body}</p>
 
-      <div className="mt-4 flex flex-wrap items-center gap-3 border-t border-zinc-100 pt-3">
-        <button
-          type="button"
-          disabled
-          title="Coming soon — verified holders only"
-          className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide ${
-            canVote
-              ? "border border-zinc-200 text-zinc-400"
-              : "cursor-not-allowed border border-zinc-100 text-zinc-300"
-          }`}
-        >
-          👍 Convincing {post.convincingVotes > 0 ? `· ${post.convincingVotes}` : ""}
-          <span className="ml-1 font-normal normal-case text-zinc-400">(soon)</span>
-        </button>
-        {wallet ? (
+      {wallet && (
+        <div className="mt-4 border-t border-zinc-100 pt-3">
           <button
             type="button"
             onClick={() => setCommentOpen((v) => !v)}
@@ -100,21 +101,14 @@ function PostCard({
           >
             {commentOpen ? "Cancel" : `Comment${post.comments.length ? ` · ${post.comments.length}` : ""}`}
           </button>
-        ) : (
-          <span className="text-[11px] text-zinc-400">Connect wallet to comment</span>
-        )}
-      </div>
+        </div>
+      )}
 
       {post.comments.length > 0 && (
         <div className="mt-3 space-y-2 border-l-2 border-zinc-100 pl-4">
           {post.comments.map((c) => (
             <div key={c.id} className="text-[13px]">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-[10px] text-zinc-400">{shortWallet(c.wallet)}</span>
-                {c.holdingVerified && c.holdingAmount !== null && (
-                  <HolderBadge symbol={token.symbol} holdingAmount={c.holdingAmount} />
-                )}
-              </div>
+              <span className="font-mono text-[10px] text-zinc-400">{shortWallet(c.wallet)}</span>
               <p className="mt-0.5 leading-relaxed text-zinc-600">{c.body}</p>
             </div>
           ))}
@@ -147,54 +141,27 @@ function PostCard({
 
 export function InvestorThesisPanel({ token }: { token: LiveLaunch }) {
   const { wallet } = useWallet();
-  const [hasHolding, setHasHolding] = useState(false);
+  const [showThesisModal, setShowThesisModal] = useState(false);
+  const [isVerifiedHolder, setIsVerifiedHolder] = useState(false);
   const [holdingBalance, setHoldingBalance] = useState(0);
-  const [posts, setPosts] = useState<InvestorThesisPost[]>(() => loadInvestorTheses(token.ca));
-  const [verdict, setVerdict] = useState<ThesisVerdict>("BULL");
-  const [body, setBody] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [composerOpen, setComposerOpen] = useState(false);
+  const [thesesRefresh, setThesesRefresh] = useState(0);
+  const [thesisCount, setThesisCount] = useState(0);
+  const [localPosts, setLocalPosts] = useState<InvestorThesisPost[]>([]);
 
   const holdingVerified =
-    hasHolding &&
+    isVerifiedHolder &&
     holdingBalance > 0 &&
     (token.priceUsd <= 0 || holdingBalance * token.priceUsd >= 0.01);
 
-  const refresh = useCallback(() => {
-    setPosts(loadInvestorTheses(token.ca));
+  const refreshLocal = useCallback(() => {
+    const posts = loadInvestorTheses(token.ca);
+    setLocalPosts(posts);
+    setThesisCount(posts.length);
   }, [token.ca]);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  const submitPost = () => {
-    if (!wallet) {
-      setError("Connect your wallet to post.");
-      return;
-    }
-    if (!hasHolding) {
-      setError("Hold this token to post a thesis.");
-      return;
-    }
-    const text = body.trim();
-    if (text.length < 20) {
-      setError("Thesis must be at least 20 characters.");
-      return;
-    }
-    addInvestorThesisPost(token.ca, {
-      tokenCa: token.ca,
-      wallet,
-      verdict,
-      body: text,
-      holdingAmount: holdingBalance > 0 ? holdingBalance : null,
-      holdingVerified,
-    });
-    setBody("");
-    setError(null);
-    setComposerOpen(false);
-    refresh();
-  };
+    if (!backendReady) refreshLocal();
+  }, [refreshLocal]);
 
   const submitComment = (postId: string, commentBody: string) => {
     if (!wallet) return;
@@ -204,7 +171,7 @@ export function InvestorThesisPanel({ token }: { token: LiveLaunch }) {
       holdingAmount: holdingBalance > 0 ? holdingBalance : null,
       holdingVerified,
     });
-    refresh();
+    refreshLocal();
   };
 
   return (
@@ -221,11 +188,11 @@ export function InvestorThesisPanel({ token }: { token: LiveLaunch }) {
           <WalletGate
             tokenCa={token.ca}
             showPostButton={true}
-            onPostThesis={() => setComposerOpen(true)}
-            onHoldingVerified={(hasHolding, balance) => {
-              setHasHolding(hasHolding);
+            onPostThesis={() => setShowThesisModal(true)}
+            onHoldingVerified={(holds, balance) => {
+              setIsVerifiedHolder(holds);
               setHoldingBalance(balance);
-              if (!hasHolding) setComposerOpen(false);
+              if (!holds) setShowThesisModal(false);
             }}
           />
         </div>
@@ -236,64 +203,77 @@ export function InvestorThesisPanel({ token }: { token: LiveLaunch }) {
           token amount (read-only, never your full wallet).
         </p>
 
-        {posts.length > 0 ? (
-          <div className="space-y-3">
-            {posts.map((post) => (
-              <PostCard
-                key={post.id}
-                post={post}
-                token={token}
-                wallet={wallet}
-                hasHolding={hasHolding}
-                onComment={submitComment}
-              />
-            ))}
+        <div className="mt-10">
+          <div className="mb-6 flex items-center justify-between">
+            <h3 className="text-xl font-semibold">Community Theses</h3>
+            <span className="text-sm text-zinc-500">{thesisCount} posted</span>
           </div>
-        ) : (
-          <div className="rounded-xl border border-dashed border-zinc-200 py-10 text-center text-[13px] text-zinc-400">
-            No community theses yet — be the first to post your take on ${token.symbol}.
-          </div>
-        )}
 
-        {composerOpen && wallet && hasHolding ? (
-          <div className="rounded-2xl border border-zinc-200 bg-zinc-50/50 p-4">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-              Write your thesis
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {(["BULL", "BEAR", "NEUTRAL"] as const).map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => setVerdict(v)}
-                  className={`rounded-full px-3 py-1 text-[10px] font-black tracking-widest transition ${
-                    verdict === v ? "text-white" : "bg-white text-zinc-500 ring-1 ring-zinc-200"
-                  }`}
-                  style={verdict === v ? { background: v === "BULL" ? "#059669" : v === "BEAR" ? "#ef4444" : "#71717a" } : undefined}
-                >
-                  {v}
-                </button>
+          {backendReady ? (
+            <ThesesList
+              tokenCa={token.ca}
+              refreshKey={thesesRefresh}
+              onCountChange={setThesisCount}
+            />
+          ) : localPosts.length > 0 ? (
+            <div className="space-y-3">
+              {localPosts.map((post) => (
+                <LocalPostCard
+                  key={post.id}
+                  post={post}
+                  token={token}
+                  wallet={wallet}
+                  hasHolding={isVerifiedHolder}
+                  onComment={submitComment}
+                />
               ))}
             </div>
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="Your thesis: verdict rationale, key metric, main risk, falsifiable claim…"
-              rows={4}
-              className="mt-3 w-full resize-none rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-[13px] outline-none focus:border-indigo-300"
-            />
-            {error && <p className="mt-2 text-[12px] text-red-500">{error}</p>}
-            <button
-              type="button"
-              onClick={submitPost}
-              className="mt-3 rounded-full px-5 py-2 text-[11px] font-bold uppercase tracking-wide text-white"
-              style={{ background: BLUE }}
-            >
-              Post thesis
-            </button>
-          </div>
-        ) : null}
+          ) : (
+            <div className="rounded-2xl border border-dashed border-zinc-300 p-10 text-center">
+              <p className="text-zinc-500">No theses posted yet for this token.</p>
+              <p className="mt-1 text-sm text-zinc-400">Be the first to share your analysis.</p>
+            </div>
+          )}
+        </div>
       </div>
+
+      <ThesisEditorModal
+        isOpen={showThesisModal}
+        onClose={() => setShowThesisModal(false)}
+        tokenSymbol={token.symbol}
+        isVerifiedHolder={isVerifiedHolder}
+        onSubmit={async (thesis) => {
+          if (!wallet) return;
+
+          const saved = await saveInvestorThesis({
+            token_ca: token.ca,
+            wallet_address: wallet,
+            verdict: thesis.verdict,
+            content: thesis.content,
+            key_points: thesis.keyPoints,
+          });
+
+          if (saved) {
+            alert("Thesis posted successfully!");
+            setShowThesisModal(false);
+            setThesesRefresh((k) => k + 1);
+          } else if (!backendReady) {
+            addInvestorThesisPost(token.ca, {
+              tokenCa: token.ca,
+              wallet,
+              verdict: mapEditorVerdict(thesis.verdict),
+              body: formatThesisBody(thesis),
+              holdingAmount: holdingBalance > 0 ? holdingBalance : null,
+              holdingVerified,
+            });
+            alert("Thesis saved locally (Supabase not configured).");
+            setShowThesisModal(false);
+            refreshLocal();
+          } else {
+            alert("Failed to save thesis. Please try again.");
+          }
+        }}
+      />
     </Card>
   );
 }

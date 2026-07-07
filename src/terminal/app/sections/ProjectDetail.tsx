@@ -11,8 +11,9 @@ import type { Section } from "../types";
 import { FounderTerminal } from "../components/FounderTerminal";
 import { OverviewTab } from "../components/project/OverviewTab";
 import { SignalsTab } from "../components/project/SignalsTab";
+import InvestorThesis from "../../sections/InvestorThesis";
 
-type ProjTab = "overview" | "signals" | "founder";
+type ProjTab = "overview" | "signals" | "founder" | "thesis";
 
 export interface ProjectDetailProps {
   token: LiveLaunch;
@@ -183,6 +184,7 @@ export default function ProjectDetail({
           [
             ["overview", "Overview"],
             ["signals", "⚡ Signals"],
+            ["thesis", "🧠 Thesis"],
             ...(verified ? [["founder", "👤 Founder"] as const] : []),
           ] as const
         ).map(([id, label]) => (
@@ -213,6 +215,7 @@ export default function ProjectDetail({
           />
         )}
         {projTab === "signals" && <SignalsTab token={token} feed={feed} />}
+        {projTab === "thesis" && <InvestorThesis token={token} feed={feed} />}
         {projTab === "founder" && verified && (
           <FounderTerminal token={token} feed={feed} onOpenToken={onOpenToken} />
         )}

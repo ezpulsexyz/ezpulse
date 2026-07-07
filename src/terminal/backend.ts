@@ -180,6 +180,74 @@ export async function fetchAccuracyByKind(): Promise<Record<string, { total: num
   return map;
 }
 
+/* ─── Community investor theses ─── */
+
+export interface ThesisPayload {
+  token_ca: string;
+  wallet_address: string;
+  verdict: "Bullish" | "Bearish" | "Neutral";
+  content: string;
+  key_points: string[];
+}
+
+export interface SavedInvestorThesis extends ThesisPayload {
+  id: string;
+  created_at: string;
+}
+
+export async function saveInvestorThesis(payload: ThesisPayload): Promise<SavedInvestorThesis | null> {
+  if (!supabase) {
+    console.warn("Supabase not configured");
+    return null;
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("investor_theses")
+      .insert({
+        token_ca: payload.token_ca,
+        wallet_address: payload.wallet_address,
+        verdict: payload.verdict,
+        content: payload.content,
+        key_points: payload.key_points,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Failed to save thesis:", error);
+      return null;
+    }
+
+    return data as SavedInvestorThesis;
+  } catch (err) {
+    console.error("Failed to save thesis:", err);
+    return null;
+  }
+}
+
+export async function getThesesForToken(tokenCa: string): Promise<SavedInvestorThesis[]> {
+  if (!supabase) return [];
+
+  try {
+    const { data, error } = await supabase
+      .from("investor_theses")
+      .select("*")
+      .eq("token_ca", tokenCa)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Failed to fetch theses:", error);
+      return [];
+    }
+
+    return (data as SavedInvestorThesis[]) || [];
+  } catch (err) {
+    console.error("Failed to fetch theses:", err);
+    return [];
+  }
+}
+
 /** Optional email capture for alert delivery (Track pillar). */
 export async function subscribeAlerts(email: string, cas: string[]): Promise<boolean> {
   if (!supabase) return false;

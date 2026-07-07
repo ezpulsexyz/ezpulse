@@ -4,7 +4,7 @@ import { fetchTokenBalance } from "../kickstart";
 
 interface WalletGateProps {
   tokenCa: string;
-  onHoldingVerified?: (hasHolding: boolean, balance: number) => void;
+  onHoldingVerified?: (hasHolding: boolean, balance: number, wallet?: string | null) => void;
   showPostButton?: boolean;
   onPostThesis?: () => void;
 }
@@ -26,7 +26,7 @@ export default function WalletGate({
   useEffect(() => {
     if (!wallet) {
       setBalance(0);
-      onVerifiedRef.current?.(false, 0);
+      onVerifiedRef.current?.(false, 0, null);
       return;
     }
 
@@ -35,11 +35,11 @@ export default function WalletGate({
       try {
         const bal = await fetchTokenBalance(wallet, tokenCa);
         setBalance(bal);
-        onVerifiedRef.current?.(bal > 0, bal);
+        onVerifiedRef.current?.(bal > 0, bal, wallet);
       } catch (e) {
         console.error("Balance check failed:", e);
         setBalance(0);
-        onVerifiedRef.current?.(false, 0);
+        onVerifiedRef.current?.(false, 0, wallet);
       } finally {
         setChecking(false);
       }

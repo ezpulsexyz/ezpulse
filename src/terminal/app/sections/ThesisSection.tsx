@@ -67,7 +67,7 @@ export function ThesisSection() {
       {token ? (
         <div className="space-y-4">
           <ThesisGenerator token={token} feed={feed} />
-          <InvestorThesisPanel token={token} />
+          <InvestorThesisPanel token={token} key={token.ca} />
         </div>
       ) : (
         <Card pad>

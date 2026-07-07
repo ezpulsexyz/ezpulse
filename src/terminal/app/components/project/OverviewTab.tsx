@@ -12,7 +12,6 @@ import {
 } from "../../../kickstart";
 import { HistoryChart } from "../HistoryChart";
 import { ThesisGenerator } from "../ThesisGenerator";
-import { InvestorThesisPanel } from "../InvestorThesisPanel";
 import { PEER_GRID, TermNum, TermRowButton } from "../TermTable";
 import type { Section } from "../../types";
 
@@ -166,8 +165,6 @@ export function OverviewTab({
           <HistoryChart ca={token.ca} />
 
           <ThesisGenerator token={token} feed={feed} />
-
-          <InvestorThesisPanel token={token} />
 
           <Card
             title="✨ AI Insights · live"
