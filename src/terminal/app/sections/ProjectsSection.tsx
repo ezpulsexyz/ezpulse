@@ -3,6 +3,7 @@ import { BLUE, Card, Delta, InfoTip, Stat } from "../../components";
 import { fmtPrice, isVerified, isGraduated, kickstartUrl, tokenSignals } from "../../kickstart";
 import { HistoryChart } from "../components/HistoryChart";
 import { PageHead, EmptyState, LaunchCta, LoadingRows } from "../components/PageLayout";
+import { PEER_GRID, TermNum, TermRowButton } from "../components/TermTable";
 import { useTerminalContext } from "../TerminalContext";
 
 export function ProjectsSection() {
@@ -395,12 +396,11 @@ export function ProjectsSection() {
                       {feed.filter((x) => x.ca !== selected.ca).length > 0 && (
                         <Card title="Other live tokens">
                           {feed.filter((x) => x.ca !== selected.ca).slice(0, 4).map((x) => (
-                            <button key={x.ca} onClick={() => openToken(x)} className="flex w-full items-center gap-3 border-b border-zinc-50 px-5 py-3 text-left last:border-0 hover:bg-indigo-50/40">
-                              <span className="text-[13px] font-semibold text-zinc-900">{x.name}</span>
-                              <span className="text-[11px] text-zinc-400">${x.symbol}</span>
-                              <span className="ml-auto text-[12px] font-semibold tabular-nums text-zinc-700">{x.mcap ? fmtUsd(x.mcap) : "—"}</span>
-                              <Delta v={x.change24h} suffix="%" />
-                            </button>
+                            <TermRowButton key={x.ca} grid={PEER_GRID} onClick={() => openToken(x)} className="w-full">
+                              <span className="truncate font-mono text-[12px] font-semibold text-zinc-900">{x.name} <span className="text-zinc-400">${x.symbol}</span></span>
+                              <TermNum>{x.mcap ? fmtUsd(x.mcap) : "—"}</TermNum>
+                              <span className="flex justify-end"><Delta v={x.change24h} suffix="%" /></span>
+                            </TermRowButton>
                           ))}
                         </Card>
                       )}

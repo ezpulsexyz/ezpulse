@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { BLUE } from "../../components";
+import { COIN_GRID, TermRow } from "./TermTable";
 
 export function PageHead({ title, sub, right }: { title: string; sub: string; right?: React.ReactNode }) {
   return (
@@ -17,14 +18,21 @@ export function LoadingRows() {
   return (
     <div>
       {[...Array(4)].map((_, i) => (
-        <div key={i} className="flex animate-pulse items-center gap-3 border-b border-zinc-50 px-5 py-4 last:border-0">
-          <div className="h-7 w-7 rounded-full bg-zinc-100" />
-          <div className="flex-1 space-y-2">
-            <div className="h-3 w-40 rounded bg-zinc-100" />
-            <div className="h-2 w-64 rounded bg-zinc-50" />
+        <TermRow key={i} grid={COIN_GRID} className="animate-pulse">
+          <div className="h-3 w-4 rounded bg-zinc-100" />
+          <div className="flex min-w-0 flex-1 items-center gap-2.5">
+            <div className="h-7 w-7 shrink-0 rounded-full bg-zinc-100" />
+            <div className="flex-1 space-y-2">
+              <div className="h-3 w-36 rounded bg-zinc-100" />
+              <div className="h-2 w-48 rounded bg-zinc-50" />
+            </div>
           </div>
-          <div className="h-3 w-16 rounded bg-zinc-100" />
-        </div>
+          <div className="hidden h-3 w-14 rounded bg-zinc-100 lg:block" />
+          <div className="hidden h-3 w-12 rounded bg-zinc-100 lg:block" />
+          <div className="hidden h-3 w-14 rounded bg-zinc-100 lg:block" />
+          <div className="hidden h-3 w-14 rounded bg-zinc-50 lg:block" />
+          <div className="hidden h-7 w-20 rounded bg-zinc-100 lg:block" />
+        </TermRow>
       ))}
     </div>
   );

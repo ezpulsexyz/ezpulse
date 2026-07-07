@@ -2,6 +2,7 @@ import { fetchLiveFeed, fmtPrice, isVerified, isPhantomAvailable, KNOWN_WALLETS 
 import { BLUE, Card, Delta, Stat } from "../../components";
 import { PageHead, EmptyState } from "../components/PageLayout";
 import { PhantomHint } from "../components/PhantomHint";
+import { PORTFOLIO_COLS, PORTFOLIO_GRID, TermActions, TermHead, TermHeadCell, TermNum, TermRow } from "../components/TermTable";
 import { useTerminalContext } from "../TerminalContext";
 
 export function PortfolioSection() {
@@ -139,45 +140,47 @@ export function PortfolioSection() {
                             </>} />
                         </div>
                       ) : (
-                        <Card className="mt-4" title="Holdings · featured Kickstart tokens" right={<span className="text-[11px] text-zinc-400">valued live · DexScreener</span>}>
-                          <div className="hidden items-center gap-3 border-b border-zinc-100 px-5 py-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-400 lg:flex">
-                            <span className="flex-1">Token</span>
-                            <span className="w-24 text-right">Balance</span>
-                            <span className="w-20 text-right">Price</span>
-                            <span className="w-16 text-right">24h</span>
-                            <span className="w-20 text-right">Value</span>
-                            <span className="w-20 text-right" />
-                          </div>
+                        <Card className="mt-4" title="Holdings · featured Kickstart tokens" right={<span className="font-mono text-[11px] text-zinc-400">valued live · DexScreener</span>}>
+                          <TermHead cols={PORTFOLIO_COLS}>
+                            <TermHeadCell>Token</TermHeadCell>
+                            <TermHeadCell align="right">Balance</TermHeadCell>
+                            <TermHeadCell align="right">Price</TermHeadCell>
+                            <TermHeadCell align="right">24h</TermHeadCell>
+                            <TermHeadCell align="right">Value</TermHeadCell>
+                            <TermHeadCell align="right">Act</TermHeadCell>
+                          </TermHead>
                           {portfolio.holdings.map((h) => (
-                            <div key={h.coin.ca} className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-zinc-50 px-5 py-3 last:border-0 hover:bg-indigo-50/30">
-                              <button onClick={() => openToken(h.coin)} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                                {h.coin.icon && <img src={h.coin.icon} alt="" className="h-7 w-7 rounded-full border border-zinc-100" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />}
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-[14px] font-semibold text-zinc-900">{h.coin.name}</span>
-                                    <span className="text-[11px] text-zinc-400">${h.coin.symbol}</span>
-                                    {isVerified(h.coin) && <span className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black text-white" style={{ background: BLUE }}>✓</span>}
+                            <TermRow key={h.coin.ca} grid={PORTFOLIO_GRID}>
+                              <button onClick={() => openToken(h.coin)} className="min-w-0 text-left">
+                                <div className="flex min-w-0 items-center gap-2.5">
+                                  {h.coin.icon && <img src={h.coin.icon} alt="" className="h-7 w-7 shrink-0 rounded-full border border-zinc-100" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />}
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span className="truncate font-mono text-[13px] font-semibold text-zinc-900">{h.coin.name}</span>
+                                      <span className="font-mono text-[11px] text-zinc-400">${h.coin.symbol}</span>
+                                      {isVerified(h.coin) && <span className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black text-white" style={{ background: BLUE }}>✓</span>}
+                                    </div>
+                                    <div className="font-mono text-[10px] text-zinc-400">{h.coin.ca.slice(0, 4)}…{h.coin.ca.slice(-4)}</div>
                                   </div>
-                                  <div className="font-mono text-[10px] text-zinc-400">{h.coin.ca.slice(0, 4)}…{h.coin.ca.slice(-4)}</div>
                                 </div>
                               </button>
-                              <span className="hidden w-24 text-right text-[13px] font-semibold tabular-nums text-zinc-800 lg:block">
+                              <TermNum className="hidden lg:block">
                                 {h.amount >= 1_000_000 ? `${(h.amount / 1_000_000).toFixed(2)}M` : h.amount >= 1000 ? `${(h.amount / 1000).toFixed(1)}K` : h.amount.toFixed(2)}
-                              </span>
-                              <span className="hidden w-20 text-right text-[12px] tabular-nums text-zinc-500 lg:block">{h.coin.priceUsd ? fmtPrice(h.coin.priceUsd) : "—"}</span>
-                              <span className="hidden w-16 text-right lg:block"><Delta v={h.coin.change24h} suffix="%" /></span>
-                              <span className="w-20 text-right text-[13px] font-bold tabular-nums text-zinc-900">
-                                {h.valueUsd >= 0.01 ? `$${h.valueUsd.toFixed(2)}` : "<$0.01"}
-                              </span>
-                              <a href={`https://solscan.io/account/${wallet}#portfolio`} target="_blank" rel="noopener noreferrer"
-                                title={`Verify ${h.coin.symbol} balance on Solscan`}
-                                className="flex h-7 w-7 items-center justify-center rounded-lg border border-zinc-200 bg-white text-[11px] text-zinc-500 transition hover:-translate-y-px hover:border-indigo-300 hover:text-indigo-700">
-                                🔍
-                              </a>
-                              <button onClick={() => openToken(h.coin)} className="rounded-lg bg-zinc-900 px-2.5 py-1.5 text-[10px] font-bold text-white transition hover:-translate-y-px">
-                                📟 Terminal
-                              </button>
-                            </div>
+                              </TermNum>
+                              <TermNum className="hidden text-zinc-500 lg:block">{h.coin.priceUsd ? fmtPrice(h.coin.priceUsd) : "—"}</TermNum>
+                              <span className="hidden justify-end lg:flex"><Delta v={h.coin.change24h} suffix="%" /></span>
+                              <TermNum bold>{h.valueUsd >= 0.01 ? `$${h.valueUsd.toFixed(2)}` : "<$0.01"}</TermNum>
+                              <TermActions>
+                                <a href={`https://solscan.io/account/${wallet}#portfolio`} target="_blank" rel="noopener noreferrer"
+                                  title={`Verify ${h.coin.symbol} balance on Solscan`}
+                                  className="flex h-7 w-7 items-center justify-center rounded border border-zinc-200 bg-white font-mono text-[10px] text-zinc-500 transition hover:border-indigo-300 hover:text-indigo-700">
+                                  🔍
+                                </a>
+                                <button onClick={() => openToken(h.coin)} className="rounded bg-zinc-900 px-2 py-1.5 font-mono text-[10px] font-bold text-white transition hover:-translate-y-px">
+                                  📟
+                                </button>
+                              </TermActions>
+                            </TermRow>
                           ))}
                         </Card>
                       )}

@@ -5,6 +5,7 @@ import { backendReady } from "../../backend";
 import { formatResolvesIn, resolvesInMs, useSignalRecord } from "../hooks/useSignalRecord";
 import { KindBadge, StrengthBadge } from "./SignalBadges";
 import { EmptyState } from "./PageLayout";
+import { STATS_COLS, STATS_GRID, TermHead, TermHeadCell, TermNum, TermRow, TermRowButton } from "./TermTable";
 import type { SignalKind } from "../../../../shared/signals-core";
 
 export function TrackRecord({ onOpen }: { onOpen: (ca: string) => void }) {
@@ -97,44 +98,44 @@ export function TrackRecord({ onOpen }: { onOpen: (ca: string) => void }) {
               {filteredPending.slice(0, 12).map((p) => {
                 const left = resolvesInMs(p.ts);
                 return (
-                  <div key={p.id} className="flex flex-wrap items-center gap-2.5 border-b border-zinc-50 px-5 py-3 last:border-0">
-                    <span className="text-[13px]">{KIND_ICON[p.kind] ?? "•"}</span>
-                    <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-zinc-900">{p.title}</span>
+                  <TermRow key={p.id} className="flex-wrap gap-2.5">
+                    <span className="font-mono text-[13px]">{KIND_ICON[p.kind] ?? "•"}</span>
+                    <span className="min-w-0 flex-1 truncate font-mono text-[12px] font-semibold text-zinc-900">{p.title}</span>
                     <KindBadge kind={p.kind} />
                     <StrengthBadge strength={p.strength} />
-                    <span className="text-[11px] tabular-nums text-amber-600">{formatResolvesIn(left)}</span>
-                    <span className="text-[10px] text-zinc-400">${p.symbol}</span>
-                  </div>
+                    <TermNum className="!text-amber-600">{formatResolvesIn(left)}</TermNum>
+                    <span className="font-mono text-[10px] text-zinc-400">${p.symbol}</span>
+                  </TermRow>
                 );
               })}
             </Card>
           )}
 
           <Card className="mt-4" title="Accuracy by signal type">
-            <div className="hidden items-center gap-3 border-b border-zinc-100 px-5 py-2 text-[10px] font-semibold uppercase tracking-widest text-zinc-400 sm:flex">
-              <span className="flex-1">Signal</span>
-              <span className="w-20 text-right">Scored</span>
-              <span className="w-20 text-right">Hit rate</span>
-              <span className="w-24 text-right">Avg 24h move</span>
-              <span className="w-32 text-right" />
-            </div>
+            <TermHead cols={STATS_COLS} breakpoint="sm">
+              <TermHeadCell>Signal</TermHeadCell>
+              <TermHeadCell align="right">Scored</TermHeadCell>
+              <TermHeadCell align="right">Hit%</TermHeadCell>
+              <TermHeadCell align="right">Avg24h</TermHeadCell>
+              <TermHeadCell align="right">Bar</TermHeadCell>
+            </TermHead>
             {Array.isArray(filteredAcc) && [...filteredAcc].sort((a, b) => b.total - a.total).map((r) => {
               const rate = r.total ? r.hits / r.total : 0;
               return (
-                <div key={`${r.kind}-${r.strength}`} className="flex flex-wrap items-center gap-3 border-b border-zinc-50 px-5 py-3 last:border-0">
-                  <span className="flex flex-1 items-center gap-2 text-[13px] font-semibold text-zinc-900">
+                <TermRow key={`${r.kind}-${r.strength}`} grid={STATS_GRID} className="flex-wrap sm:flex-nowrap">
+                  <span className="flex min-w-0 items-center gap-2 font-mono text-[12px] font-semibold text-zinc-900">
                     {KIND_ICON[r.kind] ?? "•"} {r.kind}
                     <StrengthBadge strength={r.strength} />
                   </span>
-                  <span className="w-20 text-right text-[12px] tabular-nums text-zinc-500">{r.total}</span>
-                  <span className={`w-20 text-right text-[13px] font-bold tabular-nums ${rate >= 0.5 ? "text-emerald-600" : "text-red-500"}`}>{(rate * 100).toFixed(0)}%</span>
-                  <span className={`w-24 text-right text-[12px] tabular-nums ${r.avg_change_24h >= 0 ? "text-emerald-600" : "text-red-500"}`}>{r.avg_change_24h >= 0 ? "+" : ""}{r.avg_change_24h}%</span>
-                  <span className="hidden w-32 sm:block">
+                  <TermNum className="text-zinc-500">{r.total}</TermNum>
+                  <TermNum className={rate >= 0.5 ? "font-bold text-emerald-600" : "font-bold text-red-500"}>{(rate * 100).toFixed(0)}%</TermNum>
+                  <TermNum className={r.avg_change_24h >= 0 ? "text-emerald-600" : "text-red-500"}>{r.avg_change_24h >= 0 ? "+" : ""}{r.avg_change_24h}%</TermNum>
+                  <span className="hidden sm:block">
                     <span className="block h-1.5 overflow-hidden rounded-full bg-zinc-100">
                       <span className={`block h-full rounded-full ${rate >= 0.5 ? "bg-emerald-500" : "bg-red-400"}`} style={{ width: `${rate * 100}%` }} />
                     </span>
                   </span>
-                </div>
+                </TermRow>
               );
             })}
           </Card>
@@ -142,19 +143,19 @@ export function TrackRecord({ onOpen }: { onOpen: (ca: string) => void }) {
           {filteredResolved && filteredResolved.length > 0 && (
             <Card className="mt-4" title="Recently resolved" right={<span className="text-[11px] text-zinc-400">newest first · click to open token</span>}>
               {filteredResolved.map((r, i) => (
-                <button key={i} onClick={() => onOpen(r.ca)} className="flex w-full flex-wrap items-center gap-2.5 border-b border-zinc-50 px-5 py-3 text-left last:border-0 hover:bg-indigo-50/40">
-                  <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] ${r.hit ? "bg-emerald-50" : "bg-red-50"}`}>{r.hit ? "✓" : "✗"}</span>
+                <TermRowButton key={i} onClick={() => onOpen(r.ca)} className="w-full flex-wrap gap-2.5">
+                  <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full font-mono text-[11px] ${r.hit ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>{r.hit ? "✓" : "✗"}</span>
                   <span className="min-w-0 flex-1">
                     <span className="flex flex-wrap items-center gap-1.5">
-                      <span className="block truncate text-[13px] font-semibold text-zinc-900">{r.title}</span>
+                      <span className="block truncate font-mono text-[12px] font-semibold text-zinc-900">{r.title}</span>
                       <KindBadge kind={r.kind} />
                     </span>
-                    <span className="text-[11px] text-zinc-400">${r.symbol} · {new Date(r.ts).toLocaleDateString()} · called {r.strength.toLowerCase()}</span>
+                    <span className="font-mono text-[10px] text-zinc-400">${r.symbol} · {new Date(r.ts).toLocaleDateString()} · {r.strength.toLowerCase()}</span>
                   </span>
-                  <span className={`text-[13px] font-bold tabular-nums ${r.change_24h >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-                    {r.change_24h >= 0 ? "+" : ""}{r.change_24h.toFixed(1)}% <span className="text-[10px] font-normal text-zinc-400">at +24h</span>
-                  </span>
-                </button>
+                  <TermNum className={`shrink-0 ${r.change_24h >= 0 ? "text-emerald-600" : "text-red-500"}`} bold>
+                    {r.change_24h >= 0 ? "+" : ""}{r.change_24h.toFixed(1)}%
+                  </TermNum>
+                </TermRowButton>
               ))}
             </Card>
           )}

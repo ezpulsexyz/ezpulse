@@ -21,8 +21,8 @@ export function Card({ title, right, children, className = "", pad = false }: {
 export function Delta({ v, suffix = "" }: { v: number; suffix?: string }) {
   const up = v >= 0;
   return (
-    <span className={`text-[12px] font-semibold tabular-nums ${up ? "text-emerald-600" : "text-red-500"}`}>
-      {up ? "▲" : "▼"} {Math.abs(v).toFixed(1)}{suffix}
+    <span className={`font-mono text-[12px] font-semibold tabular-nums tracking-tight ${up ? "text-emerald-600" : "text-red-500"}`}>
+      {up ? "▲" : "▼"}{Math.abs(v).toFixed(1)}{suffix}
     </span>
   );
 }

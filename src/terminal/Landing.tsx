@@ -5,6 +5,7 @@ import Legal, { type LegalPage } from "./Legal";
 import { syncVote } from "./backend";
 import { BLUE, CONTACT, X_URL, X_HANDLE, Logo, PulseMark } from "./brand";
 import type { TerminalTarget } from "./Terminal";
+import { DIRECTORY_COLS, DIRECTORY_GRID, TermActions, TermHead, TermHeadCell, TermNum, TermRow } from "./app/components/TermTable";
 
 type Page = "home" | "upcoming" | "roadmap" | "directory" | "about" | LegalPage;
 
@@ -370,34 +371,49 @@ export default function Landing({ onOpenApp }: { onOpenApp: (t?: TerminalTarget)
             <button onClick={() => onOpenApp({ section: "market" })} className="text-[12px] font-semibold text-indigo-600 hover:text-indigo-800">Open in terminal →</button>
           </div>
           <div className="mb-12 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-            {feed === "loading" && <div className="px-5 py-8 text-center text-[13px] text-zinc-400">Scanning for …EASY contracts…</div>}
-            {Array.isArray(feed) && coins.length === 0 && <div className="px-5 py-8 text-center text-[13px] text-zinc-400">New launches appear here automatically.</div>}
+            {feed === "loading" && <div className="px-5 py-8 text-center font-mono text-[13px] text-zinc-400">Scanning for …EASY contracts…</div>}
+            {Array.isArray(feed) && coins.length === 0 && <div className="px-5 py-8 text-center font-mono text-[13px] text-zinc-400">New launches appear here automatically.</div>}
+            {coins.length > 0 && (
+              <TermHead cols={DIRECTORY_COLS} breakpoint="sm">
+                <TermHeadCell>#</TermHeadCell>
+                <TermHeadCell>Token</TermHeadCell>
+                <TermHeadCell align="right">MCap</TermHeadCell>
+                <TermHeadCell align="right">24h</TermHeadCell>
+                <TermHeadCell align="right">↗</TermHeadCell>
+              </TermHead>
+            )}
             {coins.map((c, i) => (
-              <div key={c.ca} className="flex w-full items-center gap-3 border-b border-zinc-50 px-5 py-3 text-left last:border-0 hover:bg-indigo-50/30">
-                <span className={`w-5 text-[12px] font-semibold tabular-nums ${i < 3 ? "text-indigo-600" : "text-zinc-300"}`}>{i + 1}</span>
-                <button onClick={() => onOpenApp({ section: "projects" })} className="flex min-w-0 flex-1 items-center gap-3 text-left">
-                  {c.icon && <img src={c.icon} alt="" className="h-7 w-7 rounded-full border border-zinc-100" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />}
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[14px] font-semibold text-zinc-900">{c.name}</span>
-                      <span className="text-[11px] text-zinc-400">${c.symbol}</span>
-                      {isVerified(c) && <span className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black text-white" style={{ background: BLUE }}>✓</span>}
-                      {c.graduatedAt
-                        ? <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[8px] font-black tracking-widest text-emerald-600">🔗 BONDED</span>
-                        : <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[8px] font-black tracking-widest text-amber-600">⏳ BONDING {typeof c.bondingCurve === "number" ? `${Math.min(c.bondingCurve, 100).toFixed(0)}%` : ""}</span>}
+              <TermRow key={c.ca} grid={DIRECTORY_GRID}>
+                <TermNum className={`text-left ${i < 3 ? "font-bold text-indigo-600" : "text-zinc-400"}`}>{i + 1}</TermNum>
+                <button onClick={() => onOpenApp({ section: "projects" })} className="min-w-0 text-left">
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    {c.icon && <img src={c.icon} alt="" className="h-7 w-7 shrink-0 rounded-full border border-zinc-100" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />}
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="truncate font-mono text-[13px] font-semibold text-zinc-900">{c.name}</span>
+                        <span className="font-mono text-[11px] text-zinc-400">${c.symbol}</span>
+                        {isVerified(c) && <span className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black text-white" style={{ background: BLUE }}>✓</span>}
+                        {c.graduatedAt
+                          ? <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 font-mono text-[8px] font-black tracking-widest text-emerald-600">BONDED</span>
+                          : <span className="rounded-full bg-amber-50 px-1.5 py-0.5 font-mono text-[8px] font-black tracking-widest text-amber-600">BONDING</span>}
+                      </div>
+                      <div className="mt-0.5 font-mono text-[10px] text-zinc-400">{c.ca.slice(0, 6)}…{c.ca.slice(-6)}</div>
                     </div>
-                    <div className="mt-0.5 font-mono text-[10px] text-zinc-400">{c.ca.slice(0, 6)}…{c.ca.slice(-6)}</div>
                   </div>
                 </button>
-                <span className="hidden text-[13px] font-semibold tabular-nums text-zinc-800 sm:block">{c.mcap ? fmtUsd(c.mcap) : "—"}</span>
-                <span className={`w-16 text-right text-[12px] font-semibold tabular-nums ${c.change24h >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-                  {c.change24h >= 0 ? "▲" : "▼"} {Math.abs(c.change24h).toFixed(1)}%
+                <TermNum className="hidden sm:block">{c.mcap ? fmtUsd(c.mcap) : "—"}</TermNum>
+                <span className="hidden justify-end sm:flex">
+                  <span className={`font-mono text-[12px] font-semibold tabular-nums ${c.change24h >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                    {c.change24h >= 0 ? "▲" : "▼"}{Math.abs(c.change24h).toFixed(1)}%
+                  </span>
                 </span>
-                <a href={kickstartUrl(c.ca)} target="_blank" rel="noopener noreferrer" title="Open on Kickstart"
-                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-indigo-100 bg-indigo-50/50 text-[12px] transition hover:-translate-y-px hover:border-indigo-300">
-                  🚀
-                </a>
-              </div>
+                <TermActions>
+                  <a href={kickstartUrl(c.ca)} target="_blank" rel="noopener noreferrer" title="Open on Kickstart"
+                    className="flex h-7 w-7 items-center justify-center rounded border border-indigo-100 bg-indigo-50/50 font-mono text-[11px] transition hover:border-indigo-300">
+                    🚀
+                  </a>
+                </TermActions>
+              </TermRow>
             ))}
           </div>
 
