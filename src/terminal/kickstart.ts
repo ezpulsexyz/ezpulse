@@ -127,6 +127,84 @@ const supplyFrom = (...values: unknown[]) => {
   return undefined;
 };
 
+const CIRCULATING_SUPPLY_URL = (import.meta.env?.VITE_CIRCULATING_SUPPLY_URL as string | undefined)?.trim();
+
+type SupplyOverride = {
+  circulatingSupply?: number;
+  totalSupply?: number;
+  maxSupply?: number;
+};
+
+const overrideKey = (row: Rec | string | undefined): string | null => {
+  if (typeof row === "string" && row.trim()) return row.trim().toLowerCase();
+  if (typeof row === "object" && row !== null) {
+    const rec = row as Rec;
+    const key = String(rec.ca ?? rec.address ?? rec.mint ?? rec.token ?? rec.symbol ?? "").trim().toLowerCase();
+    return key || null;
+  }
+  return null;
+};
+
+async function fetchSupplyOverrides(): Promise<Map<string, SupplyOverride>> {
+  const overrides = new Map<string, SupplyOverride>();
+  if (!CIRCULATING_SUPPLY_URL) return overrides;
+
+  try {
+    const res = await fetch(CIRCULATING_SUPPLY_URL, { headers: { accept: "application/json" } });
+    if (!res.ok) return overrides;
+    const source = await res.json();
+    const rows: Rec[] = Array.isArray(source)
+      ? source
+      : Array.isArray((source as Rec).data)
+        ? (source as Rec).data as Rec[]
+        : Array.isArray((source as Rec).launches)
+          ? (source as Rec).launches as Rec[]
+          : Array.isArray((source as Rec).coins)
+            ? (source as Rec).coins as Rec[]
+            : [];
+
+    if (rows.length) {
+      for (const row of rows) {
+        const key = overrideKey(row);
+        if (!key) continue;
+        const override: SupplyOverride = {
+          circulatingSupply: supplyFrom(row.circulatingSupply, row.circulating_supply, row.circSupply, row.circulating),
+          totalSupply: supplyFrom(row.totalSupply, row.total_supply, row.maxSupply, row.max_supply, row.total_supply),
+          maxSupply: supplyFrom(row.maxSupply, row.max_supply),
+        };
+        if (override.circulatingSupply !== undefined || override.totalSupply !== undefined || override.maxSupply !== undefined) {
+          overrides.set(key, override);
+        }
+      }
+      return overrides;
+    }
+
+    for (const [key, value] of Object.entries(source ?? {})) {
+      const parsed = value as Rec;
+      if (parsed && typeof parsed === "object") {
+        const override: SupplyOverride = {
+          circulatingSupply: supplyFrom(parsed.circulatingSupply, parsed.circulating_supply, parsed.circSupply, parsed.circulating),
+          totalSupply: supplyFrom(parsed.totalSupply, parsed.total_supply, parsed.maxSupply, parsed.max_supply, parsed.total_supply),
+          maxSupply: supplyFrom(parsed.maxSupply, parsed.max_supply),
+        };
+        if (override.circulatingSupply !== undefined || override.totalSupply !== undefined || override.maxSupply !== undefined) {
+          overrides.set(key.trim().toLowerCase(), override);
+        }
+      }
+    }
+  } catch {
+    // Ignore override fetch failures and continue with existing sources.
+  }
+  return overrides;
+}
+
+const applySupplyOverride = (launch: LiveLaunch, overrides: Map<string, SupplyOverride>): LiveLaunch => {
+  const key = launch.ca.toLowerCase();
+  const fallback = launch.symbol.toLowerCase();
+  const override = overrides.get(key) ?? overrides.get(fallback);
+  return override ? { ...launch, ...override } : launch;
+};
+
 /** Graduated = completed the bonding curve (migrated to AMM). */
 export const isGraduated = (c: LiveLaunch) => !!c.graduatedAt;
 /** Still bonding = on the curve, with live % progress. */
@@ -463,7 +541,8 @@ export async function fetchLiveFeed(): Promise<{ launches: LiveLaunch[]; source:
       }
     } catch { /* profiles scan optional */ }
 
-    const launches = [...found.values()].sort((a, b) => b.mcap - a.mcap);
+    const supplyOverrides = await fetchSupplyOverrides();
+    const launches = [...found.values()].map((launch) => applySupplyOverride(launch, supplyOverrides)).sort((a, b) => b.mcap - a.mcap);
     return launches.length ? { launches, source: "KICKSTART" } : null;
   } catch {
     return null;
