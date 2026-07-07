@@ -91,15 +91,41 @@ create table if not exists public.investor_theses (
   verdict        text not null check (verdict in ('Bullish', 'Bearish', 'Neutral')),
   content        text not null,
   key_points     jsonb not null default '[]',
+  upvotes        int not null default 0,
   created_at     timestamptz not null default now()
 );
 create index if not exists investor_theses_token_ca on public.investor_theses (token_ca, created_at desc);
+
+-- One upvote per wallet per thesis
+create table if not exists public.thesis_votes (
+  thesis_id      uuid not null references public.investor_theses(id) on delete cascade,
+  wallet_address text not null,
+  created_at     timestamptz not null default now(),
+  primary key (thesis_id, wallet_address)
+);
+create index if not exists thesis_votes_wallet on public.thesis_votes (wallet_address);
+
+create or replace function public.increment_upvotes(thesis_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.investor_theses
+  set upvotes = upvotes + 1
+  where id = thesis_id;
+end;
+$$;
+
+grant execute on function public.increment_upvotes(uuid) to anon;
 
 -- ─── Row Level Security ───
 alter table public.watchlists          enable row level security;
 alter table public.feature_votes       enable row level security;
 alter table public.alert_subscriptions enable row level security;
 alter table public.investor_theses       enable row level security;
+alter table public.thesis_votes          enable row level security;
 
 -- Watchlists: devices manage their own row (device_id acts as capability token)
 create policy "anon upsert own watchlist" on public.watchlists
@@ -127,4 +153,10 @@ create policy "anon update own subscription" on public.alert_subscriptions
 create policy "anon read theses" on public.investor_theses
   for select to anon using (true);
 create policy "anon insert thesis" on public.investor_theses
+  for insert to anon with check (true);
+
+-- Thesis upvotes: public read, anon insert (wallet is self-declared)
+create policy "anon read thesis votes" on public.thesis_votes
+  for select to anon using (true);
+create policy "anon insert thesis vote" on public.thesis_votes
   for insert to anon with check (true);

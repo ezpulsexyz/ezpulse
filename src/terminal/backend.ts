@@ -10,7 +10,7 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient as createBrowserSupabaseClient } from "../utils/supabase/client";
-import { isSupabaseConfigured } from "../utils/supabase/config";
+import { getSupabaseKey, getSupabaseUrl, isSupabaseConfigured } from "../utils/supabase/config";
 
 export const supabase: SupabaseClient | null = createBrowserSupabaseClient();
 export const backendReady = isSupabaseConfigured() && !!supabase;
@@ -192,11 +192,72 @@ export interface ThesisPayload {
 export interface SavedInvestorThesis extends ThesisPayload {
   id: string;
   created_at: string;
+  upvotes?: number;
 }
 
 export type SaveThesisResult =
   | { ok: true; data: SavedInvestorThesis }
   | { ok: false; error: string };
+
+export interface ThesisRateLimitResult {
+  allowed: boolean;
+  message?: string;
+  current_count?: number;
+  max_allowed?: number;
+}
+
+/** Check wallet thesis posting quota via edge function (3 / 24h). Fails open if unavailable. */
+export async function checkThesisRateLimit(
+  walletAddress: string,
+  tokenCa: string,
+): Promise<ThesisRateLimitResult> {
+  const baseUrl = getSupabaseUrl();
+  const key = getSupabaseKey();
+  if (!baseUrl || !key) return { allowed: true };
+
+  try {
+    const res = await fetch(`${baseUrl.replace(/\/$/, "")}/functions/v1/rate-limit-thesis`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${key}`,
+        apikey: key,
+      },
+      body: JSON.stringify({ wallet_address: walletAddress, token_ca: tokenCa }),
+    });
+
+    const data = (await res.json()) as {
+      allowed?: boolean;
+      message?: string;
+      current_count?: number;
+      max_allowed?: number;
+      error?: string;
+    };
+
+    if (res.status === 429) {
+      return {
+        allowed: false,
+        message: data.message ?? "You have reached the daily thesis posting limit.",
+        current_count: data.current_count,
+      };
+    }
+
+    if (!res.ok) {
+      console.warn("Thesis rate-limit check failed:", data.error ?? res.status);
+      return { allowed: true };
+    }
+
+    return {
+      allowed: data.allowed !== false,
+      message: data.message,
+      current_count: data.current_count,
+      max_allowed: data.max_allowed,
+    };
+  } catch (err) {
+    console.warn("Thesis rate-limit check unavailable:", err);
+    return { allowed: true };
+  }
+}
 
 export async function saveInvestorThesis(payload: ThesisPayload): Promise<SaveThesisResult> {
   if (!supabase) {
@@ -256,6 +317,34 @@ export async function getThesesForToken(tokenCa: string): Promise<SavedInvestorT
     console.error("Failed to fetch theses:", err);
     return [];
   }
+}
+
+/** Upvote a thesis — one vote per wallet (UNIQUE on thesis_id + wallet_address). */
+export async function upvoteThesis(thesisId: string, walletAddress: string): Promise<boolean> {
+  if (!supabase) return false;
+
+  try {
+    const { error: voteError } = await supabase
+      .from("thesis_votes")
+      .insert({ thesis_id: thesisId, wallet_address: walletAddress });
+
+    if (voteError) return false;
+
+    await supabase.rpc("increment_upvotes", { thesis_id: thesisId });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Thesis ids the wallet has upvoted. */
+export async function getUserUpvotedTheses(walletAddress: string): Promise<string[]> {
+  if (!supabase) return [];
+  const { data } = await supabase
+    .from("thesis_votes")
+    .select("thesis_id")
+    .eq("wallet_address", walletAddress);
+  return data?.map((v) => v.thesis_id as string) || [];
 }
 
 /** Optional email capture for alert delivery (Track pillar). */

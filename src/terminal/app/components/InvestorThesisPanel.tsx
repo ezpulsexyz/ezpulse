@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { BLUE, Card } from "../../components";
+import Toast, { type ToastState } from "../../components/Toast";
 import WalletGate from "../../components/WalletGate";
 import ThesisEditorModal, { type ThesisEditorSubmission } from "../../components/ThesisEditorModal";
 import ThesesList from "../../components/ThesesList";
@@ -135,6 +136,14 @@ export function InvestorThesisPanel({ token }: { token: LiveLaunch }) {
   const [thesesRefresh, setThesesRefresh] = useState(0);
   const [thesisCount, setThesisCount] = useState(0);
   const [localPosts, setLocalPosts] = useState<InvestorThesisPost[]>([]);
+  const [toast, setToast] = useState<ToastState>(null);
+
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   const holdingVerified =
     isVerifiedHolder &&
@@ -163,6 +172,7 @@ export function InvestorThesisPanel({ token }: { token: LiveLaunch }) {
   };
 
   return (
+    <>
     <Card
       title="💬 Community Investor Thesis"
       right={
@@ -200,6 +210,7 @@ export function InvestorThesisPanel({ token }: { token: LiveLaunch }) {
           {backendReady ? (
             <ThesesList
               tokenCa={token.ca}
+              currentWallet={wallet}
               refreshKey={thesesRefresh}
               onCountChange={setThesisCount}
             />
@@ -233,6 +244,8 @@ export function InvestorThesisPanel({ token }: { token: LiveLaunch }) {
         onSubmit={async (thesis) => {
           if (!wallet) return;
 
+          setToast(null);
+
           const result = await persistInvestorThesis({
             tokenCa: token.ca,
             wallet,
@@ -241,17 +254,23 @@ export function InvestorThesisPanel({ token }: { token: LiveLaunch }) {
             holdingVerified,
           });
 
-          alert(result.message);
           if (result.ok) {
             setShowThesisModal(false);
+            setToast({ type: "success", message: result.message });
             if (result.remote) {
               setThesesRefresh((k) => k + 1);
             } else {
               refreshLocal();
             }
+          } else {
+            setToast({ type: "error", message: result.message });
           }
         }}
       />
     </Card>
+    {toast && (
+      <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />
+    )}
+    </>
   );
 }

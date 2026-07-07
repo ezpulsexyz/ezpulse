@@ -1,4 +1,9 @@
-import { backendReady, saveInvestorThesis, type SavedInvestorThesis } from "./backend";
+import {
+  backendReady,
+  checkThesisRateLimit,
+  saveInvestorThesis,
+  type SavedInvestorThesis,
+} from "./backend";
 import type { PortfolioResult } from "./kickstart";
 
 export type ThesisVerdict = "BULL" | "BEAR" | "NEUTRAL";
@@ -67,6 +72,17 @@ export async function persistInvestorThesis(params: {
   holdingVerified: boolean;
 }): Promise<{ ok: boolean; remote: boolean; message: string }> {
   const { tokenCa, wallet, thesis, holdingBalance, holdingVerified } = params;
+
+  if (backendReady) {
+    const limit = await checkThesisRateLimit(wallet, tokenCa);
+    if (!limit.allowed) {
+      return {
+        ok: false,
+        remote: true,
+        message: limit.message ?? "You have reached the daily thesis posting limit.",
+      };
+    }
+  }
 
   const result = await saveInvestorThesis({
     token_ca: tokenCa,
