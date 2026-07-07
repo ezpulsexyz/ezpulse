@@ -29,6 +29,7 @@ jobs:
           # Optional Supabase backend — set as repository secrets.
           # Without them the app runs local-only (identical UX).
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       # SPA fallback: Pages serves 404.html for unknown paths
       - run: cp dist/index.html dist/404.html

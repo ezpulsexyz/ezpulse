@@ -4,17 +4,16 @@
  * Deployed frontend: GitHub Pages (static). Backend: Supabase project.
  *
  * Configure via Vite env vars at build time (GitHub Actions secrets):
- *   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY
+ *   VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY (or legacy VITE_SUPABASE_ANON_KEY)
  * Unset → the app runs local-only (localStorage), identical UX.
  * Schema: supabase/ezpulse-schema.sql
  */
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { createClient as createBrowserSupabaseClient } from "../utils/supabase/client";
+import { isSupabaseConfigured } from "../utils/supabase/config";
 
-const URL = (import.meta.env?.VITE_SUPABASE_URL as string) || "";
-const KEY = (import.meta.env?.VITE_SUPABASE_ANON_KEY as string) || "";
-
-export const supabase: SupabaseClient | null = URL && KEY ? createClient(URL, KEY) : null;
-export const backendReady = !!supabase;
+export const supabase: SupabaseClient | null = createBrowserSupabaseClient();
+export const backendReady = isSupabaseConfigured() && !!supabase;
 
 /** Anonymous device id — lets watchlists sync without accounts. */
 function deviceId(): string {
