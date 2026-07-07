@@ -5,7 +5,7 @@ import Legal, { type LegalPage } from "./Legal";
 import { syncVote } from "./backend";
 import { BLUE, CONTACT, X_URL, X_HANDLE, Logo, PulseMark } from "./brand";
 import type { TerminalTarget } from "./Terminal";
-import { navigateToTerminal, terminalHref } from "../routes";
+import { terminalHref } from "../routes";
 import { DIRECTORY_COLS, DIRECTORY_GRID, TermActions, TermHead, TermHeadCell, TermNum, TermRow } from "./app/components/TermTable";
 
 type Page = "home" | "upcoming" | "roadmap" | "directory" | "about" | LegalPage;
@@ -22,12 +22,7 @@ function TerminalLink({
   style?: React.CSSProperties;
 }) {
   return (
-    <a
-      href={terminalHref(target)}
-      onClick={(e) => { e.preventDefault(); navigateToTerminal(target); }}
-      className={className}
-      style={style}
-    >
+    <a href={terminalHref(target)} className={className} style={style}>
       {children}
     </a>
   );

@@ -8,10 +8,19 @@ function getLocationKey() {
   return `${window.location.pathname}${window.location.search}`;
 }
 
+function routeFromKey(key: string) {
+  const q = key.indexOf("?");
+  return {
+    pathname: q === -1 ? key : key.slice(0, q),
+    search: q === -1 ? "" : key.slice(q),
+  };
+}
+
 export default function App() {
   const locationKey = useSyncExternalStore(subscribeNavigation, getLocationKey, getLocationKey);
-  const onTerminal = isTerminalPath(window.location.pathname);
-  const target = onTerminal ? terminalTargetFromSearch(window.location.search) : undefined;
+  const { pathname, search } = routeFromKey(locationKey);
+  const onTerminal = isTerminalPath(pathname);
+  const target = onTerminal ? terminalTargetFromSearch(search) : undefined;
 
   return (
     <ErrorBoundary>

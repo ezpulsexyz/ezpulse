@@ -71,8 +71,8 @@ export function navigate(href: string): void {
     notifyNavigation();
     return;
   }
-  window.history.pushState(null, "", target);
-  notifyNavigation();
+  // Full navigation: GitHub Pages serves our SPA via 404.html — more reliable than pushState alone.
+  window.location.assign(target);
 }
 
 export function navigateToLanding(): void {

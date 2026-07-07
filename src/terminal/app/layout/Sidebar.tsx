@@ -1,4 +1,4 @@
-import { landingHref, navigateToLanding } from "../../../routes";
+import { landingHref } from "../../../routes";
 import { Logo } from "../../brand";
 import { LiveBadge } from "../components/LiveBadge";
 import { NAV_GROUPS } from "../types";
@@ -13,7 +13,7 @@ export function Sidebar() {
         style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="flex items-center justify-between px-4 py-4 sm:px-5 sm:py-5">
-          <a href={landingHref()} onClick={(e) => { e.preventDefault(); navigateToLanding(); }} title="Back to ezpulse.xyz">
+          <a href={landingHref()} title="Back to ezpulse.xyz">
             <Logo />
           </a>
           <button
