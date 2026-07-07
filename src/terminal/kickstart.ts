@@ -1174,27 +1174,36 @@ export interface PortfolioResult {
   sol: { amount: number; priceUsd: number | null; valueUsd: number | null } | null;
   rpc: string | null;
   source: "solscan" | "rpc" | null;
+  /** Raw on-chain balances — used to re-value holdings when the live feed refreshes. */
+  balanceSnapshot: Record<string, number>;
+  fetchedAt: number;
 }
 
-/** Watch-only portfolio: wallet's holdings restricted to featured Kickstart tokens, valued live.
- *  Includes native SOL balance. Verify any holding independently on solscan.io/account/{owner}. */
-export async function fetchPortfolio(owner: string, feed: LiveLaunch[]): Promise<PortfolioResult | null> {
-  const [balances, solAmount, solPrice] = await Promise.all([
-    (async () => {
-      const key = getSolscanApiKey();
-      if (key) {
-        const viaSolscan = await fetchTokenBalancesViaSolscan(owner);
-        if (viaSolscan !== null) return viaSolscan;
-      }
-      return fetchTokenBalances(owner);
-    })(),
-    fetchSolBalance(owner),
-    fetchSolPrice(),
-  ]);
-  if (balances === null) return null;
+function lookupBalance(balances: Map<string, number>, ca: string): number | undefined {
+  const direct = balances.get(ca);
+  if (direct !== undefined) return direct;
+  const lower = ca.toLowerCase();
+  for (const [mint, amt] of balances) {
+    if (mint.toLowerCase() === lower) return amt;
+  }
+  return undefined;
+}
+
+function snapshotBalances(balances: Map<string, number>): Record<string, number> {
+  const out: Record<string, number> = {};
+  balances.forEach((v, k) => { out[k] = v; });
+  return out;
+}
+
+/** Build portfolio holdings from cached balances + current live feed prices. */
+export function buildPortfolioFromBalances(
+  balances: Map<string, number>,
+  feed: LiveLaunch[],
+  meta: Pick<PortfolioResult, "sol" | "rpc" | "source" | "fetchedAt">,
+): PortfolioResult {
   const holdings: Holding[] = [];
   for (const coin of feed) {
-    const amount = balances.get(coin.ca);
+    const amount = lookupBalance(balances, coin.ca);
     if (amount && amount > 0) {
       holdings.push({ coin, amount, valueUsd: amount * (coin.priceUsd || 0) });
     }
@@ -1204,10 +1213,40 @@ export async function fetchPortfolio(owner: string, feed: LiveLaunch[]): Promise
     holdings,
     totalUsd: holdings.reduce((s, h) => s + h.valueUsd, 0),
     scanned: balances.size,
-    sol: solAmount !== null ? { amount: solAmount, priceUsd: solPrice, valueUsd: solPrice !== null ? solAmount * solPrice : null } : null,
+    balanceSnapshot: snapshotBalances(balances),
+    ...meta,
+  };
+}
+
+/** Re-value an existing portfolio against a fresh live feed (no new RPC calls). */
+export function revaluePortfolioFromFeed(portfolio: PortfolioResult, feed: LiveLaunch[]): PortfolioResult {
+  if (!portfolio.balanceSnapshot || Object.keys(portfolio.balanceSnapshot).length === 0) return portfolio;
+  const balances = new Map(Object.entries(portfolio.balanceSnapshot));
+  return buildPortfolioFromBalances(balances, feed, {
+    sol: portfolio.sol,
+    rpc: portfolio.rpc,
+    source: portfolio.source,
+    fetchedAt: portfolio.fetchedAt,
+  });
+}
+
+/** Watch-only portfolio: wallet's holdings restricted to featured Kickstart tokens, valued live.
+ *  Includes native SOL balance. Verify any holding independently on solscan.io/account/{owner}. */
+export async function fetchPortfolio(owner: string, feed: LiveLaunch[]): Promise<PortfolioResult | null> {
+  const [balances, solAmount, solPrice] = await Promise.all([
+    fetchTokenBalances(owner),
+    fetchSolBalance(owner),
+    fetchSolPrice(),
+  ]);
+  if (balances === null) return null;
+  return buildPortfolioFromBalances(balances, feed, {
+    sol: solAmount !== null
+      ? { amount: solAmount, priceUsd: solPrice, valueUsd: solPrice !== null ? solAmount * solPrice : null }
+      : null,
     rpc: lastRpcUsed,
     source: balanceSource,
-  };
+    fetchedAt: Date.now(),
+  });
 }
 
 /** True when the Phantom extension is injected into this browser. */

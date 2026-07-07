@@ -82,8 +82,9 @@ export function PortfolioSection() {
                       <button
                         onClick={async () => {
                           const fresh = await fetchLiveFeed();
-                          if (fresh) setLiveFeed(fresh.launches);
-                          watchWallet(wallet);
+                          const launches = fresh?.launches;
+                          if (launches) setLiveFeed(launches);
+                          watchWallet(wallet, launches);
                         }}
                         className="rounded-full border border-zinc-200 px-4 py-1.5 text-[11px] font-bold uppercase tracking-wide text-zinc-500 transition hover:border-indigo-300 hover:text-indigo-700">
                         ⟳ Refresh
@@ -142,7 +143,12 @@ export function PortfolioSection() {
                             </>} />
                         </div>
                       ) : (
-                        <Card className="mt-4" title="Holdings · featured Kickstart tokens" right={<span className="font-mono text-[11px] text-zinc-400">valued live · DexScreener</span>}>
+                        <Card className="mt-4" title="Holdings · featured Kickstart tokens" right={
+                          <span className="font-mono text-[11px] text-zinc-400">
+                            valued live · DexScreener
+                            {portfolio.fetchedAt ? ` · synced ${Math.max(0, Math.round((Date.now() - portfolio.fetchedAt) / 1000))}s ago` : ""}
+                          </span>
+                        }>
                           <TermHead cols={PORTFOLIO_COLS}>
                             <TermHeadCell>Token</TermHeadCell>
                             <TermHeadCell align="right">Balance</TermHeadCell>

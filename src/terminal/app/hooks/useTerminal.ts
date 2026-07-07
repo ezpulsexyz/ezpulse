@@ -3,7 +3,7 @@ import { syncWatchlist, pullWalletWatchlist } from "../../backend";
 import {
   fetchLiveFeed, isGraduated, verifiedOf, bondedOf, trendingOf, tokenNote, tokenSignals,
   loadWatchlist, saveWatchlist, loadAlertPrefs, saveAlertPrefs,
-  fetchPortfolio, connectPhantomReadOnly, isValidSolAddress, isPhantomAvailable,
+  fetchPortfolio, revaluePortfolioFromFeed, fetchSolPrice, connectPhantomReadOnly, isValidSolAddress, isPhantomAvailable,
   type LiveLaunch, type AlertPrefs, type PortfolioResult,
 } from "../../kickstart";
 import { loadSeenNotifs, saveSeenNotifs } from "../notifs";
@@ -29,6 +29,8 @@ export function useTerminal(target?: TerminalTarget) {
   const [shareToken, setShareToken] = useState<LiveLaunch | null>(null);
   const [projTab, setProjTab] = useState<"overview" | "signals" | "founder">("overview");
   const searchRef = useRef<HTMLInputElement>(null);
+  const walletRef = useRef<string | null>(null);
+  const balanceRefreshTick = useRef(0);
 
   const [signinNudge, setSigninNudge] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -87,15 +89,15 @@ export function useTerminal(target?: TerminalTarget) {
     });
   };
 
-  const watchWallet = async (addr: string) => {
+  const watchWallet = async (addr: string, feedOverride?: LiveLaunch[]) => {
     const a = addr.trim();
     if (!isValidSolAddress(a)) { setWalletErr("That doesn't look like a valid Solana address."); return; }
     setWalletErr(null);
     setWallet(a);
     setPortfolio("loading");
     // Wait for the live feed if it's still loading — otherwise holdings can never match.
-    let fd = Array.isArray(liveFeed) ? liveFeed : [];
-    if (liveFeed === "loading") {
+    let fd = feedOverride ?? (Array.isArray(liveFeed) ? liveFeed : []);
+    if (!feedOverride && liveFeed === "loading") {
       const fresh = await fetchLiveFeed();
       fd = fresh ? fresh.launches : [];
       if (fresh) setLiveFeed(fresh.launches);
@@ -105,14 +107,40 @@ export function useTerminal(target?: TerminalTarget) {
     if (p === null) setWalletErr("Couldn't reach a Solana RPC — try again in a moment.");
   };
 
-  // Re-match holdings when the live feed arrives after a wallet was already watched.
+  useEffect(() => { walletRef.current = wallet; }, [wallet]);
+
+  // Re-value holdings when the live feed updates (prices sync without re-scanning the wallet).
   useEffect(() => {
     if (!wallet || !Array.isArray(liveFeed) || liveFeed.length === 0) return;
-    if (portfolio && portfolio !== "loading" && portfolio.holdings.length === 0 && portfolio.scanned > 0) {
-      fetchPortfolio(wallet, liveFeed).then((p) => { if (p) setPortfolio(p); });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveFeed]);
+    setPortfolio((current) => {
+      if (!current || current === "loading" || !current.balanceSnapshot) return current;
+      const next = revaluePortfolioFromFeed(current, liveFeed);
+      const changed = next.holdings.length !== current.holdings.length
+        || Math.abs(next.totalUsd - current.totalUsd) > 0.001
+        || next.holdings.some((h, i) => h.coin.ca !== current.holdings[i]?.coin.ca || Math.abs(h.valueUsd - (current.holdings[i]?.valueUsd ?? 0)) > 0.001);
+      return changed ? next : current;
+    });
+  }, [liveFeed, wallet]);
+
+  // Keep SOL/USD mark fresh while a wallet is watched.
+  useEffect(() => {
+    if (!wallet) return;
+    let alive = true;
+    const refreshSol = () => {
+      fetchSolPrice().then((price) => {
+        if (!alive || price === null) return;
+        setPortfolio((current) => {
+          if (!current || current === "loading" || !current.sol) return current;
+          const valueUsd = current.sol.amount * price;
+          if (current.sol.priceUsd === price && current.sol.valueUsd === valueUsd) return current;
+          return { ...current, sol: { ...current.sol, priceUsd: price, valueUsd } };
+        });
+      });
+    };
+    refreshSol();
+    const id = setInterval(refreshSol, 60_000);
+    return () => { alive = false; clearInterval(id); };
+  }, [wallet]);
 
   const connectPhantom = async () => {
     setWalletErr(null);
@@ -146,8 +174,23 @@ export function useTerminal(target?: TerminalTarget) {
     let alive = true;
     const load = () => fetchLiveFeed().then((feed) => {
       if (!alive) return;
-      if (feed) { setLiveFeed(feed.launches); setLastUpdated(Date.now()); }
-      else setLiveFeed((prev) => (Array.isArray(prev) ? prev : null));
+      if (feed) {
+        setLiveFeed(feed.launches);
+        setLastUpdated(Date.now());
+        const w = walletRef.current;
+        if (w) {
+          setPortfolio((current) => {
+            if (!current || current === "loading" || !current.balanceSnapshot) return current;
+            return revaluePortfolioFromFeed(current, feed.launches);
+          });
+          balanceRefreshTick.current += 1;
+          if (balanceRefreshTick.current % 2 === 0) {
+            fetchPortfolio(w, feed.launches).then((p) => { if (alive && p) setPortfolio(p); });
+          }
+        }
+      } else {
+        setLiveFeed((prev) => (Array.isArray(prev) ? prev : null));
+      }
       setBooted(true); // fetch settled (success or not) — enter the terminal
     });
     load();
