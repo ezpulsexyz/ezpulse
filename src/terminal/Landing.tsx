@@ -108,7 +108,7 @@ const FEATURES: Feature[] = [
   { id: "holders", title: "Holder & wallet-flow analytics", body: "Holder counts, concentration, smart-wallet inflows per token.", status: "PLANNED", area: "Research" },
   { id: "pnl", title: "Portfolio P&L history", body: "Cost-basis tracking and historical performance for watched wallets.", status: "PLANNED", area: "Portfolio" },
   // exploring
-  { id: "thesis", title: "Community Investor Thesis", body: "Holder-gated bull/bear posts (≥$10 position), founder responses on the record, and prediction polls that resolve from live data — builds on the AI generator.", status: "EXPLORING", area: "Research" },
+  { id: "thesis", title: "Community Investor Thesis", body: "Open to all readers · wallet-connected posting (any holding) · ✓ Holding badge for verified holders · convincing votes coming for holders.", status: "SHIPPED", area: "Research", date: "Live" },
   { id: "smart", title: "Smart Investing strategies", body: "Rules-based allocation: index buys, signal triggers, guardrails.", status: "EXPLORING", area: "Invest" },
   { id: "api", title: "Public API", body: "The ezpulse feed, signals and scores as an API for funds and builders.", status: "EXPLORING", area: "Platform" },
   { id: "beyond", title: "Beyond Kickstart", body: "The same engine pointed at every startup-token launchpad.", status: "EXPLORING", area: "Platform" },

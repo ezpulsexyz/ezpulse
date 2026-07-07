@@ -1,3 +1,4 @@
+import { Connection, PublicKey } from "@solana/web3.js";
 import {
   whaleSignal as coreWhaleSignal,
   signalWeight,
@@ -1230,6 +1231,45 @@ export function revaluePortfolioFromFeed(portfolio: PortfolioResult, feed: LiveL
     source: portfolio.source,
     fetchedAt: portfolio.fetchedAt,
   });
+}
+
+const SOLANA_RPC = "https://api.mainnet-beta.solana.com";
+
+/**
+ * Fetch the balance of a specific SPL token for a wallet.
+ * Tries browser-friendly RPCs first, then mainnet-beta.
+ */
+export async function fetchTokenBalance(
+  walletAddress: string,
+  tokenMint: string,
+): Promise<number> {
+  try {
+    const walletPubkey = new PublicKey(walletAddress);
+    const mintPubkey = new PublicKey(tokenMint);
+    const endpoints = [...new Set([...SOLANA_RPCS, SOLANA_RPC])];
+
+    for (const url of endpoints) {
+      try {
+        const connection = new Connection(url, "confirmed");
+        const tokenAccounts = await connection.getTokenAccountsByOwner(walletPubkey, {
+          mint: mintPubkey,
+        });
+
+        if (tokenAccounts.value.length === 0) return 0;
+
+        const tokenAccount = tokenAccounts.value[0].pubkey;
+        const balance = await connection.getTokenAccountBalance(tokenAccount);
+        return balance.value.uiAmount ?? 0;
+      } catch (err) {
+        console.error(`Error fetching token balance via ${url}:`, err);
+      }
+    }
+
+    return 0;
+  } catch (error) {
+    console.error("Error fetching token balance:", error);
+    return 0;
+  }
 }
 
 /** Watch-only portfolio: wallet's holdings restricted to featured Kickstart tokens, valued live.
