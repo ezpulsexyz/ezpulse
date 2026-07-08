@@ -9,6 +9,29 @@ import type {
 } from "../founders";
 import type { LiveLaunch } from "../kickstart";
 
+export type ProjectCategory =
+  | "AI"
+  | "Infra"
+  | "DeFi"
+  | "Consumer"
+  | "Gaming"
+  | "Meme"
+  | "RWA"
+  | "Utility"
+  | "Other";
+
+/** Filterable project categories (excludes "Other"). */
+export const PROJECT_CATEGORIES: ProjectCategory[] = [
+  "AI",
+  "Infra",
+  "DeFi",
+  "Consumer",
+  "Gaming",
+  "Meme",
+  "RWA",
+  "Utility",
+];
+
 export type Section = "market" | "projects" | "signals" | "record" | "watchlist" | "portfolio" | "smart" | "indexes" | "thesis";
 export type MarketTab = "ALL" | "TRENDING" | "VERIFIED" | "BONDED" | "BONDING" | "UPCOMING";
 

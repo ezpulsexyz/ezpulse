@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { ALUMNI } from "../../kickstart";
 import { fmtUsd } from "../../data";
 import { BLUE, Card, Num, Stat } from "../../components";
@@ -16,7 +17,48 @@ const MARKET_TABS: [MarketTab, string][] = [
 ];
 
 export function MarketSection() {
-  const { feed, loading, verified, bonded, bonding, trending, totalMcap, totalVol, marketTab, setMarketTab } = useTerminalContext();
+  const {
+    feed,
+    loading,
+    verified,
+    bonded,
+    bonding,
+    trending,
+    totalMcap,
+    totalVol,
+    marketTab,
+    setMarketTab,
+    categoryFilter,
+    setCategoryFilter,
+    categories,
+  } = useTerminalContext();
+
+  const tabTokens = useMemo(() => {
+    switch (marketTab) {
+      case "ALL":
+        return [...feed].sort((a, b) => b.mcap - a.mcap);
+      case "TRENDING":
+        return trending;
+      case "VERIFIED":
+        return verified;
+      case "BONDED":
+        return [...bonded].sort((a, b) => b.mcap - a.mcap);
+      case "BONDING":
+        return [...bonding].sort((a, b) => (b.bondingCurve ?? 0) - (a.bondingCurve ?? 0));
+      default:
+        return [];
+    }
+  }, [marketTab, feed, trending, verified, bonded, bonding]);
+
+  const filteredTokens = useMemo(() => {
+    let result = [...tabTokens];
+
+    if (categoryFilter) {
+      result = result.filter((token) => token.categories?.includes(categoryFilter));
+    }
+
+    return result;
+  }, [tabTokens, categoryFilter]);
 
   return (
             <>
@@ -67,12 +109,46 @@ export function MarketSection() {
               </div>
 
               <div className="mt-4">
+                {marketTab !== "UPCOMING" && (
+                  <div className="mb-4">
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="text-xs uppercase tracking-widest text-zinc-400">Categories</span>
+                      {categoryFilter && (
+                        <button
+                          type="button"
+                          onClick={() => setCategoryFilter(null)}
+                          className="text-xs text-blue-600 hover:underline"
+                        >
+                          Clear filter
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      {categories.map((cat) => (
+                        <button
+                          key={cat}
+                          type="button"
+                          onClick={() => setCategoryFilter(cat === categoryFilter ? null : cat)}
+                          className={`rounded-2xl px-4 py-1.5 text-sm font-medium transition ${
+                            categoryFilter === cat
+                              ? "bg-blue-600 text-white"
+                              : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                          }`}
+                        >
+                          {cat}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {marketTab === "ALL" && (
-                  <TerminalCoinTable coins={[...feed].sort((a, b) => b.mcap - a.mcap)} title="🏆 All live Kickstart tokens · by market cap"
+                  <TerminalCoinTable coins={filteredTokens} title="🏆 All live Kickstart tokens · by market cap"
                     right={<span className="text-[11px] text-zinc-400">{feed.length} tokens · {fmtUsd(totalMcap)} combined · {fmtUsd(totalVol)} vol 24h</span>} />
                 )}
                 {marketTab === "TRENDING" && (
-                  <TerminalCoinTable coins={trending} title="🔥 Trending Today · ranked by 24h move"
+                  <TerminalCoinTable coins={filteredTokens} title="🔥 Trending Today · ranked by 24h move"
                     right={<span className="text-[11px] text-zinc-400">recomputed on every load</span>} />
                 )}
                 {marketTab === "VERIFIED" && (
@@ -80,21 +156,21 @@ export function MarketSection() {
                     ? <EmptyState icon="✓" title="No verified tokens right now"
                         body="A token is verified when its X account is authorized — the project links its X this way, following Kickstart's address-in-bio model. It confirms the link only, not the project. Bonded tokens upgrade automatically once their X is indexed."
                         cta={<LaunchCta />} />
-                    : <TerminalCoinTable coins={verified} title="✓ Verified Kickstart tokens · by market cap" />
+                    : <TerminalCoinTable coins={filteredTokens} title="✓ Verified Kickstart tokens · by market cap" />
                 )}
                 {marketTab === "BONDED" && (
                   !loading && bonded.length === 0
                     ? <EmptyState icon="🔗" title="No graduated tokens yet"
                         body="A token is Bonded once it completes its bonding curve and graduates to an AMM pool — real state read live from Jupiter."
                         cta={<LaunchCta />} />
-                    : <TerminalCoinTable coins={[...bonded].sort((a, b) => b.mcap - a.mcap)} title="🔗 Bonded · curve completed (graduated) · by market cap" />
+                    : <TerminalCoinTable coins={filteredTokens} title="🔗 Bonded · curve completed (graduated) · by market cap" />
                 )}
                 {marketTab === "BONDING" && (
                   !loading && bonding.length === 0
                     ? <EmptyState icon="⏳" title="Nothing on the curve right now"
                         body="Fresh launches appear here with their live bonding-curve progress the moment Jupiter indexes them — and move to Bonded when the curve completes."
                         cta={<LaunchCta />} />
-                    : <TerminalCoinTable coins={[...bonding].sort((a, b) => (b.bondingCurve ?? 0) - (a.bondingCurve ?? 0))} title="⏳ Bonding · live curve progress via Jupiter" />
+                    : <TerminalCoinTable coins={filteredTokens} title="⏳ Bonding · live curve progress via Jupiter" />
                 )}
                 {marketTab === "UPCOMING" && (
                   <EmptyState icon="⏳" title="No upcoming launches announced yet"

@@ -1,4 +1,5 @@
 import { Connection, PublicKey } from "@solana/web3.js";
+import type { ProjectCategory } from "./app/types";
 import { getSupabaseUrl } from "../utils/supabase/config";
 import {
   whaleSignal as coreWhaleSignal,
@@ -125,6 +126,8 @@ export interface LiveLaunch {
   lockupDays?: number;
   source: "KICKSTART" | "DEXSCREENER";
   links: { website?: string; x?: string; telegram?: string; dexscreener: string };
+  /** Project tags — a token can belong to multiple categories. */
+  categories?: ProjectCategory[];
 }
 
 const numeric = (value: unknown): number | undefined => {
@@ -293,7 +296,7 @@ const applySupplyOverride = (launch: LiveLaunch, overrides: Map<string, SupplyOv
 /** Fill circulating / max supply for a single token (Jupiter + optional override endpoint). */
 export async function enrichTokenSupply(token: LiveLaunch): Promise<LiveLaunch> {
   const overrides = await fetchSupplyOverrides();
-  return applySupplyOverride(token, overrides);
+  return applyCategoryOverride(applySocialOverride(applySupplyOverride(token, overrides)));
 }
 
 /** Graduated = completed the bonding curve (migrated to AMM). */
@@ -420,6 +423,45 @@ export const TRACKED_CAS: string[] = [
   "DcTVUogWykX1JeBmTq48Fzj2Lc3Y7zwHQS1CyZ9SHnXf",
   "HA4WtRuNrjtrzAWTTjCyTZn94Jq9ggV6iraW7SndSLyz",
 ];
+
+/** Curated social corrections — Jupiter twitter fields can be stale; DexScreener/Kickstart are authoritative. */
+const SOCIAL_LINK_OVERRIDES: Record<string, Partial<LiveLaunch["links"]>> = {
+  // CapIX Protocol $CPX — Jupiter: x.com/cpx_token · verified: x.com/capix_ai
+  bS532krUcXBMNqXURPtGqYA7dhEsenYe2z9QKkcEASY: {
+    x: "https://x.com/capix_ai",
+    website: "https://www.capix.network",
+  },
+};
+
+function applySocialOverride(launch: LiveLaunch): LiveLaunch {
+  const override =
+    SOCIAL_LINK_OVERRIDES[launch.ca] ?? SOCIAL_LINK_OVERRIDES[launch.ca.toLowerCase()];
+  if (!override) return launch;
+  return { ...launch, links: { ...launch.links, ...override } };
+}
+
+/** Curated project categories for tracked Kickstart launches. */
+const CATEGORY_OVERRIDES: Record<string, ProjectCategory[]> = {
+  FKshTXX4wUcirV9b4LhLrNP4cxAsA2VBAFdMEw5EASY: ["Utility"],
+  bS532krUcXBMNqXURPtGqYA7dhEsenYe2z9QKkcEASY: ["AI", "Infra"],
+  "12z7AWnW5Q8mAS9qFtCWnnMdhNvqScZHe8w627EfEASY": ["AI"],
+  iu3A7azWTm3zQSk81SUC1JctB4zPYnxLmcmqq71EASY: ["AI"], // BIT AGENTS $BITAGENTS
+  fmTCoRQFRiFUDFdjFYzzkfMbJfjpQea4LuaapNNEASY: ["Gaming"], // The Lobby $LOBBY
+  "6bTQPMctA5V8RNJnUc59mP1tAJB5dzLpUep4JuFEASY": ["Gaming"], // World Colony $ANT
+  AXqEggnJtaWeu4ds6HcBS3dLXJh58Z17hcmo3AhEASY: ["Gaming"], // Flappy Birbs $BIRBS
+  "6gnvghh8LKoM59p1WZSuTgYmdJrnZnhU7BzCcEaEASY": ["Infra", "Utility"],
+  EhkrQGCnGfVSJc118G1r1S9pxdFdPWJuSyz1iYKEASY: ["AI"],
+  "9ufM9TJd1UEmi9awnGfxCkCHAgQ3JZ5Sw6YxeSeEASY": ["AI"],
+  VtZmMdFowJcaXAqaW951RVuH84WeLTQxfs83XZWEASY: ["Utility", "Infra"],
+  AKKAPZBnJnzfE83DspsBSoqGSMwa2haFvoEJj1qzdrmk: ["AI"],
+};
+
+function applyCategoryOverride(launch: LiveLaunch): LiveLaunch {
+  const categories =
+    CATEGORY_OVERRIDES[launch.ca] ?? CATEGORY_OVERRIDES[launch.ca.toLowerCase()];
+  if (!categories?.length) return launch;
+  return { ...launch, categories };
+}
 
 /** Fetch live pairs for the curated tracked list (batched, best pair per token by liquidity). */
 async function fetchTrackedTokens(found: Map<string, LiveLaunch>): Promise<void> {
@@ -629,7 +671,11 @@ export async function fetchLiveFeed(): Promise<{ launches: LiveLaunch[]; source:
     } catch { /* profiles scan optional */ }
 
     const supplyOverrides = await fetchSupplyOverrides();
-    const launches = [...found.values()].map((launch) => applySupplyOverride(launch, supplyOverrides)).sort((a, b) => b.mcap - a.mcap);
+    const launches = [...found.values()]
+      .map((launch) => applySupplyOverride(launch, supplyOverrides))
+      .map(applySocialOverride)
+      .map(applyCategoryOverride)
+      .sort((a, b) => b.mcap - a.mcap);
     return launches.length ? { launches, source: "KICKSTART" } : null;
   } catch {
     return null;

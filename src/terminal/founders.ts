@@ -33,7 +33,7 @@ export const FOUNDER_REGISTRY: FounderRegistryEntry[] = [
   {
     wallet: "8nu4XXu2S9BeGY5TptK3BG2S3e5jQBXg34Tcz3wqEMqt",
     displayName: "CapIX Protocol",
-    xHandle: "CapIXProtocol",
+    xHandle: "capix_ai",
     github: "capix-protocol",
     bio: "On-chain market infrastructure for Kickstart launches. Building conviction tooling for founders and LPs.",
     tokens: ["bS532krUcXBMNqXURPtGqYA7dhEsenYe2z9QKkcEASY"],

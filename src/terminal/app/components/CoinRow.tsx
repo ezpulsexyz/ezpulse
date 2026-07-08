@@ -1,4 +1,5 @@
 import { BLUE, Delta } from "../../components";
+import CategoryTag from "../../components/CategoryTag";
 import { fmtUsd } from "../../data";
 import { fmtPrice, isVerified, kickstartUrl, type LiveLaunch } from "../../kickstart";
 import { CurveBadge } from "./CurveBadge";
@@ -40,62 +41,71 @@ export function CoinRow({
       }}
       className="coin-row flex cursor-pointer flex-col gap-x-4 gap-y-3 border-b border-zinc-50 px-4 py-4 transition active:bg-zinc-50 lg:flex-row lg:items-center lg:px-5"
     >
-      <div className="flex min-w-0 flex-1 items-center justify-between gap-3 lg:justify-start">
-        <div className="flex min-w-0 items-center gap-3">
-          <span
-            className={`w-5 shrink-0 text-sm font-semibold tabular-nums ${
-              i < 3 ? "text-blue-600" : "text-zinc-300"
-            }`}
-          >
-            {i + 1}
-          </span>
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <span
+          className={`w-5 shrink-0 text-sm font-semibold tabular-nums ${
+            i < 3 ? "text-blue-600" : "text-zinc-300"
+          }`}
+        >
+          {i + 1}
+        </span>
 
-          {c.icon && (
-            <img
-              src={c.icon}
-              alt=""
-              className="h-8 w-8 shrink-0 rounded-full border border-zinc-100"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
-            />
+        {c.icon && (
+          <img
+            src={c.icon}
+            alt=""
+            className="h-8 w-8 shrink-0 rounded-full border border-zinc-100"
+            onError={(e) => {
+              (e.target as HTMLImageElement).style.display = "none";
+            }}
+          />
+        )}
+
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="truncate-mobile lg:max-w-none truncate font-semibold text-zinc-900">
+              {c.name}
+            </span>
+            <span className="shrink-0 text-xs text-zinc-400">${c.symbol}</span>
+            {c.pairCreatedAt && Date.now() - c.pairCreatedAt < 3 * 86400000 && (
+              <span className="shrink-0 rounded-full bg-red-50 px-1.5 py-0.5 text-[8px] font-black tracking-widest text-red-500">
+                NEW
+              </span>
+            )}
+          </div>
+
+          {c.categories && c.categories.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {c.categories.slice(0, 3).map((cat) => (
+                <CategoryTag key={cat} category={cat} size="sm" />
+              ))}
+            </div>
           )}
 
-          <div className="min-w-0">
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="truncate-mobile lg:max-w-none font-semibold text-zinc-900">{c.name}</span>
-              <span className="shrink-0 text-xs text-zinc-400">${c.symbol}</span>
-              {c.pairCreatedAt && Date.now() - c.pairCreatedAt < 3 * 86400000 && (
-                <span className="shrink-0 rounded-full bg-red-50 px-1.5 py-0.5 text-[8px] font-black tracking-widest text-red-500">
-                  NEW
-                </span>
-              )}
-            </div>
-            <div className="mt-0.5 flex flex-wrap items-center gap-2">
-              {isVerified(c) && (
-                <span
-                  className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black text-white"
-                  style={{ background: BLUE }}
-                  title="Verified"
-                >
-                  ✓
-                </span>
-              )}
-              <CurveBadge c={c} />
-              {copyCa && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    copyCa(c.ca);
-                  }}
-                  title={c.ca}
-                  className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-500 transition hover:bg-zinc-200"
-                >
-                  {copiedCa === c.ca ? "✓ copied" : `${c.ca.slice(0, 4)}…${c.ca.slice(-4)}`}
-                </button>
-              )}
-            </div>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            {isVerified(c) && (
+              <span
+                className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black text-white"
+                style={{ background: BLUE }}
+                title="Verified"
+              >
+                ✓
+              </span>
+            )}
+            <CurveBadge c={c} />
+            {copyCa && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  copyCa(c.ca);
+                }}
+                title={c.ca}
+                className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-500 transition hover:bg-zinc-200"
+              >
+                {copiedCa === c.ca ? "✓ copied" : `${c.ca.slice(0, 4)}…${c.ca.slice(-4)}`}
+              </button>
+            )}
           </div>
         </div>
 

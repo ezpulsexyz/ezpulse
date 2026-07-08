@@ -8,7 +8,7 @@ import {
 } from "../../kickstart";
 import { useWallet } from "../../hooks/useWallet";
 import { loadSeenNotifs, saveSeenNotifs } from "../notifs";
-import type { Notif, Section, MarketTab, TerminalTarget } from "../types";
+import { PROJECT_CATEGORIES, type Notif, type ProjectCategory, type Section, type MarketTab, type TerminalTarget } from "../types";
 
 export function useTerminal(target?: TerminalTarget) {
   const { wallet: connectedWallet, connecting, connect, disconnect } = useWallet();
@@ -16,6 +16,7 @@ export function useTerminal(target?: TerminalTarget) {
 
   const [section, setSection] = useState<Section>(target?.section ?? "market");
   const [marketTab, setMarketTab] = useState<MarketTab>(target?.marketTab ?? "ALL");
+  const [categoryFilter, setCategoryFilter] = useState<ProjectCategory | null>(null);
   const [selected, setSelected] = useState<LiveLaunch | null>(null);
   const [query, setQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -346,6 +347,9 @@ export function useTerminal(target?: TerminalTarget) {
     setSection,
     marketTab,
     setMarketTab,
+    categoryFilter,
+    setCategoryFilter,
+    categories: PROJECT_CATEGORIES,
     selected,
     setSelected,
     query,
