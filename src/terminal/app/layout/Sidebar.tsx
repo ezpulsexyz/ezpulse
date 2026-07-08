@@ -1,4 +1,4 @@
-import { landingHref } from "../../../routes";
+import { landingHref, terminalHref } from "../../../routes";
 import { Logo } from "../../brand";
 import { NAV_GROUPS } from "../types";
 import { useTerminalContext } from "../TerminalContext";
@@ -9,12 +9,12 @@ export function Sidebar() {
   return (
     <>
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-zinc-200 bg-white shadow-2xl transition-transform duration-300 lg:translate-x-0 ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-[var(--term-sidebar)] flex-col border-r border-zinc-200/90 bg-[#fafafa] transition-transform duration-200 lg:translate-x-0 ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
         style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-5">
+        <div className="flex items-center justify-between border-b border-zinc-200/80 px-3 py-2.5">
           <a href={landingHref()} title="Back to ezpulse.xyz" onClick={() => setMenuOpen(false)}>
-            <Logo />
+            <Logo size={22} textClass="text-[11px]" />
           </a>
           <button
             type="button"
@@ -26,63 +26,66 @@ export function Sidebar() {
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto p-3 pb-36 scrollbar-thin">
+        <nav className="flex-1 overflow-y-auto px-2 py-2 pb-28 scrollbar-thin">
           {NAV_GROUPS.map((group) => (
-            <div key={group.workflow} className="mb-6">
-              <div className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+            <div key={group.workflow} className="mb-4">
+              <div className="mb-1 px-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
                 {group.workflow}
               </div>
-              <div className="space-y-0.5">
+              <div className="space-y-px">
                 {group.items.map((item) => (
-                  <button
+                  <a
                     key={item.id}
-                    type="button"
-                    onClick={() => goto(item.id)}
-                    className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-all ${
+                    href={terminalHref({ section: item.id })}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      goto(item.id);
+                    }}
+                    className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-[11.5px] transition-colors ${
                       section === item.id
-                        ? "bg-indigo-50 font-semibold text-indigo-700 shadow-sm"
-                        : "text-zinc-600 hover:bg-zinc-50"
+                        ? "bg-white font-medium text-zinc-900 shadow-[inset_2px_0_0_0_#2743f0]"
+                        : "text-zinc-600 hover:bg-white/70 hover:text-zinc-800"
                     }`}
                   >
-                    <span className="w-5 shrink-0 text-center text-lg">{item.icon}</span>
+                    <span className="term-nav-icon">{item.icon}</span>
                     <span className="min-w-0 truncate">{item.label}</span>
                     {item.soon && (
-                      <span className="ml-auto shrink-0 rounded-full bg-zinc-100 px-2 py-0.5 text-[10px] text-zinc-400">
+                      <span className="ml-auto shrink-0 rounded border border-zinc-200 bg-white px-1 py-px font-mono text-[8px] uppercase tracking-wide text-zinc-400">
                         soon
                       </span>
                     )}
                     {item.id === "signals" && feed.length > 0 && !item.soon && (
-                      <span className="ml-auto flex shrink-0 items-center gap-1 text-[9px] font-bold text-red-500">
-                        <span className="term-blink h-1.5 w-1.5 rounded-full bg-red-500" />
-                        LIVE
+                      <span className="ml-auto flex shrink-0 items-center gap-1 font-mono text-[8px] font-semibold uppercase tracking-wide text-red-600">
+                        <span className="term-blink h-1 w-1 rounded-full bg-red-500" />
+                        live
                       </span>
                     )}
                     {item.id === "watchlist" && watchlist.length > 0 && (
-                      <span className="ml-auto shrink-0 rounded-full bg-amber-100 px-2 py-0.5 font-mono text-xs text-amber-600">
+                      <span className="ml-auto shrink-0 rounded border border-zinc-200 bg-white px-1 py-px font-mono text-[9px] tabular-nums text-zinc-500">
                         {watchlist.length}
                       </span>
                     )}
-                  </button>
+                  </a>
                 ))}
               </div>
             </div>
           ))}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 border-t border-zinc-100 bg-white p-4 text-xs text-zinc-500">
-          <div className="flex items-center gap-2">
-            <div className={`h-2 w-2 rounded-full ${feed.length ? "animate-pulse bg-emerald-500" : "bg-amber-400"}`} />
-            <span>{loading ? "Connecting…" : `${feed.length} live tokens`}</span>
+        <div className="absolute bottom-0 left-0 right-0 border-t border-zinc-200/80 bg-[#fafafa] px-3 py-2.5 text-[10px] text-zinc-500">
+          <div className="flex items-center gap-1.5">
+            <div className={`h-1.5 w-1.5 rounded-full ${feed.length ? "bg-emerald-500" : "bg-amber-400"}`} />
+            <span className="font-mono tabular-nums">{loading ? "Connecting…" : `${feed.length} tokens`}</span>
           </div>
-          <p className="mt-3 text-[10px] leading-relaxed">
-            100% on-chain data · Only <span className="font-mono font-bold text-indigo-600">…EASY</span> contracts
+          <p className="mt-1.5 font-mono text-[9px] leading-snug text-zinc-400">
+            on-chain · <span className="text-zinc-600">…EASY</span> only
           </p>
         </div>
       </aside>
 
       {menuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-lg transition-opacity lg:hidden"
+          className="fixed inset-0 z-40 bg-black/40 transition-opacity lg:hidden"
           onClick={() => setMenuOpen(false)}
           aria-hidden
         />

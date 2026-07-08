@@ -1,3 +1,4 @@
+import { terminalHref } from "../../../routes";
 import { fmtUsd } from "../../data";
 import { BLUE, Delta } from "../../components";
 import { isVerified } from "../../kickstart";
@@ -20,6 +21,8 @@ export function ProjectsSection() {
     toggleWatch,
     setShareToken,
     openToken,
+    closeProject,
+    routeProjectCa,
     goto,
   } = useTerminalContext();
 
@@ -28,9 +31,26 @@ export function ProjectsSection() {
     setLiveFeed((prev) => (Array.isArray(prev) ? prev.map((c) => (c.ca === enriched.ca ? enriched : c)) : prev));
   });
 
+  const projectMissing = !!routeProjectCa && !selected && !loading;
+
   return (
     <>
-      {!selected ? (
+      {projectMissing ? (
+        <EmptyState
+          icon="N/A"
+          title="Project not found"
+          body="This contract isn't in the live Kickstart feed. It may not be indexed yet, or the URL may be wrong."
+          cta={
+            <button
+              type="button"
+              onClick={closeProject}
+              className="rounded border border-zinc-200 bg-white px-4 py-1.5 font-mono text-[10px] text-zinc-600 transition hover:border-zinc-300"
+            >
+              Back to projects
+            </button>
+          }
+        />
+      ) : !selected ? (
         <>
           <PageHead
             title="Projects"
@@ -52,11 +72,14 @@ export function ProjectsSection() {
           {!loading && feed.length > 0 && (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {feed.map((c) => (
-                <button
+                <a
                   key={c.ca}
-                  type="button"
-                  onClick={() => openToken(c)}
-                  className="rounded-2xl border border-zinc-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md"
+                  href={terminalHref({ section: "projects", projectCa: c.ca })}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    openToken(c);
+                  }}
+                  className="rounded-md border border-zinc-200 bg-white p-4 text-left transition hover:border-zinc-300 hover:bg-zinc-50/50"
                 >
                   <div className="flex items-center gap-2.5">
                     {c.icon && (
@@ -95,7 +118,7 @@ export function ProjectsSection() {
                       <Delta v={c.change24h} suffix="%" />
                     </div>
                   </div>
-                </button>
+                </a>
               ))}
             </div>
           )}
@@ -103,7 +126,7 @@ export function ProjectsSection() {
       ) : (
         <ProjectDetail
           token={selected}
-          onBack={() => setSelected(null)}
+          onBack={closeProject}
           feed={feed}
           watchlist={watchlist}
           toggleWatch={toggleWatch}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { terminalHref } from "../../../routes";
 import { BLUE } from "../../components";
 import {
   isVerified,
@@ -70,13 +71,16 @@ export default function ProjectDetail({
 
   return (
     <div className="animate-fade-up space-y-8 pb-12">
-      <button
-        type="button"
-        onClick={onBack}
-        className="mb-4 flex items-center gap-1.5 text-[13px] font-semibold text-zinc-400 transition hover:text-indigo-600"
+      <a
+        href={terminalHref({ section: "projects" })}
+        onClick={(e) => {
+          e.preventDefault();
+          onBack();
+        }}
+        className="mb-4 inline-flex items-center gap-1.5 font-mono text-[11px] text-zinc-400 transition hover:text-zinc-700"
       >
-        ← All tokens
-      </button>
+        ← All projects
+      </a>
 
       <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">

@@ -35,7 +35,7 @@ export const PROJECT_CATEGORIES: ProjectCategory[] = [
 export type Section = "market" | "projects" | "signals" | "record" | "watchlist" | "portfolio" | "smart" | "indexes" | "thesis";
 export type MarketTab = "ALL" | "TRENDING" | "VERIFIED" | "BONDED" | "BONDING" | "UPCOMING";
 
-export type TerminalTarget = { section?: Section; marketTab?: MarketTab };
+export type TerminalTarget = { section?: Section; marketTab?: MarketTab; projectCa?: string };
 
 export interface Notif {
   key: string;
@@ -90,19 +90,19 @@ export interface FounderProfile {
 }
 
 export const NAV_GROUPS: { workflow: string; items: { id: Section; icon: string; label: string; soon?: boolean }[] }[] = [
-  { workflow: "Discover", items: [{ id: "market", icon: "◉", label: "Market" }] },
+  { workflow: "Discover", items: [{ id: "market", icon: "MKT", label: "Market" }] },
   { workflow: "Research", items: [
-    { id: "projects", icon: "📟", label: "Projects" },
-    { id: "thesis", icon: "🧠", label: "Investor Thesis" },
+    { id: "projects", icon: "PRJ", label: "Projects" },
+    { id: "thesis", icon: "THS", label: "Investor Thesis" },
   ]},
   { workflow: "Track", items: [
-    { id: "signals", icon: "⚡", label: "Signals" },
-    { id: "record", icon: "🎯", label: "Track Record" },
-    { id: "watchlist", icon: "★", label: "Watchlist" },
+    { id: "signals", icon: "SIG", label: "Signals" },
+    { id: "record", icon: "REC", label: "Track Record" },
+    { id: "watchlist", icon: "WCH", label: "Watchlist" },
   ]},
   { workflow: "Invest", items: [
-    { id: "indexes", icon: "🧺", label: "EasyA Indexes" },
-    { id: "portfolio", icon: "💼", label: "Portfolio" },
-    { id: "smart", icon: "🤖", label: "Smart Investing", soon: true },
+    { id: "indexes", icon: "IDX", label: "EasyA Indexes" },
+    { id: "portfolio", icon: "PRT", label: "Portfolio" },
+    { id: "smart", icon: "SMT", label: "Smart Investing", soon: true },
   ]},
 ];

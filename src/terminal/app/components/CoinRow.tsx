@@ -1,3 +1,4 @@
+import { terminalHref } from "../../../routes";
 import { BLUE, Delta } from "../../components";
 import CategoryTag from "../../components/CategoryTag";
 import { fmtUsd } from "../../data";
@@ -29,17 +30,13 @@ export function CoinRow({
   onShare,
 }: CoinRowProps) {
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => onOpen(c)}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onOpen(c);
-        }
+    <a
+      href={terminalHref({ section: "projects", projectCa: c.ca })}
+      onClick={(e) => {
+        e.preventDefault();
+        onOpen(c);
       }}
-      className="coin-row flex cursor-pointer flex-col gap-x-4 gap-y-3 border-b border-zinc-50 px-4 py-4 transition active:bg-zinc-50 lg:flex-row lg:items-center lg:px-5"
+      className="coin-row flex cursor-pointer flex-col gap-x-4 gap-y-3 border-b border-zinc-50 px-4 py-4 no-underline transition active:bg-zinc-50 lg:flex-row lg:items-center lg:px-5"
     >
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <span
@@ -181,7 +178,7 @@ export function CoinRow({
           Terminal
         </button>
       </div>
-    </div>
+    </a>
   );
 }
 

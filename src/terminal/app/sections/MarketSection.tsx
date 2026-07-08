@@ -1,19 +1,19 @@
 import { useMemo } from "react";
 import { ALUMNI } from "../../kickstart";
 import { fmtUsd } from "../../data";
-import { BLUE, Card, Num, Stat } from "../../components";
+import { Card, Num, Stat } from "../../components";
 import { PageHead, EmptyState, LaunchCta } from "../components/PageLayout";
 import { TerminalCoinTable } from "../components/TerminalCoinTable";
 import { useTerminalContext } from "../TerminalContext";
 import type { MarketTab } from "../types";
 
 const MARKET_TABS: [MarketTab, string][] = [
-  ["ALL", "🏆 All · by mcap"],
-  ["TRENDING", "🔥 Trending Today"],
-  ["VERIFIED", "✓ Verified"],
-  ["BONDED", "🔗 Bonded"],
-  ["BONDING", "⏳ Bonding"],
-  ["UPCOMING", "🗓 Upcoming"],
+  ["ALL", "All"],
+  ["TRENDING", "Trending"],
+  ["VERIFIED", "Verified"],
+  ["BONDED", "Bonded"],
+  ["BONDING", "Bonding"],
+  ["UPCOMING", "Upcoming"],
 ];
 
 export function MarketSection() {
@@ -65,31 +65,31 @@ export function MarketSection() {
               <PageHead title="Market" sub="Discover opportunities — the EasyA Kickstart token market, live and on-chain." />
 
               {/* stat cards drive the filter */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                <div className="col-span-2 rounded-2xl px-4 py-4 text-white shadow-lg shadow-indigo-600/20 sm:col-span-1 sm:px-5" style={{ background: `linear-gradient(135deg, ${BLUE}, #4f2ff0)` }}>
-                  <div className="text-[11px] font-semibold uppercase tracking-widest text-white/60">Market Cap</div>
-                  <div className="mt-1"><Num size="xl" bold>{loading ? "…" : fmtUsd(totalMcap)}</Num></div>
-                  <div className="mt-0.5 text-[11px] text-white/60">{feed.length} live token{feed.length !== 1 ? "s" : ""}</div>
+              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-2.5">
+                <div className="col-span-2 rounded-md border border-zinc-200 bg-white px-3 py-2.5 sm:col-span-1 sm:px-4 sm:py-3">
+                  <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-zinc-400">Market Cap</div>
+                  <div className="mt-0.5"><Num size="xl" bold>{loading ? "…" : fmtUsd(totalMcap)}</Num></div>
+                  <div className="mt-0.5 font-mono text-[10px] text-zinc-400">{feed.length} live token{feed.length !== 1 ? "s" : ""}</div>
                 </div>
                 <button onClick={() => setMarketTab("VERIFIED")} className="text-left">
-                  <Stat label="Verified Projects" value={loading ? "…" : String(verified.length)} sub={<span className="flex items-center gap-1"><span className="flex h-3.5 w-3.5 items-center justify-center rounded-full text-[8px] font-black text-white" style={{ background: BLUE }}>✓</span> X account authorized</span>} />
+                  <Stat label="Verified Projects" value={loading ? "…" : String(verified.length)} sub="X account authorized" />
                 </button>
                 <button onClick={() => setMarketTab("BONDED")} className="text-left">
-                  <Stat label="Bonded Projects" value={loading ? "…" : String(bonded.length)} sub="🔗 curve completed · graduated" />
+                  <Stat label="Bonded Projects" value={loading ? "…" : String(bonded.length)} sub="Curve completed" />
                 </button>
                 <button onClick={() => setMarketTab("BONDING")} className="text-left">
-                  <Stat label="Bonding Now" value={loading ? "…" : String(bonding.length)} sub="⏳ live on the curve" />
+                  <Stat label="Bonding Now" value={loading ? "…" : String(bonding.length)} sub="Live on curve" />
                 </button>
               </div>
 
               {/* Mobile-friendly filter tabs */}
-              <div className="flex gap-1 overflow-x-auto pb-2 -mx-1 px-1 mt-4 lg:hidden">
+              <div className="-mx-1 mt-3 flex gap-1 overflow-x-auto px-1 pb-1.5 lg:hidden">
                 {MARKET_TABS.map(([id, label]) => (
                   <button
                     key={id}
                     onClick={() => setMarketTab(id)}
-                    className={`whitespace-nowrap px-4 py-2 text-sm rounded-2xl flex-shrink-0 ${
-                      marketTab === id ? "bg-blue-600 text-white" : "bg-zinc-100"
+                    className={`flex-shrink-0 whitespace-nowrap rounded px-3 py-1.5 font-mono text-[10px] ${
+                      marketTab === id ? "bg-zinc-900 text-white" : "border border-zinc-200 bg-white text-zinc-600"
                     }`}
                   >
                     {label}
@@ -98,11 +98,11 @@ export function MarketSection() {
               </div>
 
               {/* Desktop filter tabs */}
-              <div className="term-tab-rail term-scroll-x mt-4 hidden lg:flex">
+              <div className="term-tab-rail term-scroll-x mt-3 hidden lg:flex">
                 {MARKET_TABS.map(([id, label]) => (
                   <button key={id} onClick={() => setMarketTab(id)}
-                    className={`whitespace-nowrap rounded-full px-4 py-2 text-[12px] font-bold transition ${marketTab === id ? "text-white" : "text-zinc-500 hover:text-zinc-800"}`}
-                    style={marketTab === id ? { background: BLUE } : undefined}>
+                    className={`whitespace-nowrap rounded px-3 py-1 font-mono text-[10px] font-medium transition ${marketTab === id ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-800"}`}
+                    style={marketTab === id ? { boxShadow: "inset 0 -2px 0 0 #2743f0" } : undefined}>
                     {label}
                   </button>
                 ))}
@@ -112,7 +112,7 @@ export function MarketSection() {
                 {marketTab !== "UPCOMING" && (
                   <div className="mb-4">
                     <div className="mb-2 flex items-center gap-2">
-                      <span className="text-xs uppercase tracking-widest text-zinc-400">Categories</span>
+                      <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-400">Categories</span>
                       {categoryFilter && (
                         <button
                           type="button"
@@ -130,10 +130,10 @@ export function MarketSection() {
                           key={cat}
                           type="button"
                           onClick={() => setCategoryFilter(cat === categoryFilter ? null : cat)}
-                          className={`rounded-2xl px-4 py-1.5 text-sm font-medium transition ${
+                          className={`rounded px-2.5 py-1 font-mono text-[10px] transition ${
                             categoryFilter === cat
-                              ? "bg-blue-600 text-white"
-                              : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                              ? "bg-zinc-900 text-white"
+                              : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300"
                           }`}
                         >
                           {cat}
@@ -144,36 +144,36 @@ export function MarketSection() {
                 )}
 
                 {marketTab === "ALL" && (
-                  <TerminalCoinTable coins={filteredTokens} title="🏆 All live Kickstart tokens · by market cap"
+                  <TerminalCoinTable coins={filteredTokens} title="All live Kickstart tokens · by market cap"
                     right={<span className="text-[11px] text-zinc-400">{feed.length} tokens · {fmtUsd(totalMcap)} combined · {fmtUsd(totalVol)} vol 24h</span>} />
                 )}
                 {marketTab === "TRENDING" && (
-                  <TerminalCoinTable coins={filteredTokens} title="🔥 Trending Today · ranked by 24h move"
+                  <TerminalCoinTable coins={filteredTokens} title="Trending today · ranked by 24h move"
                     right={<span className="text-[11px] text-zinc-400">recomputed on every load</span>} />
                 )}
                 {marketTab === "VERIFIED" && (
                   !loading && verified.length === 0
-                    ? <EmptyState icon="✓" title="No verified tokens right now"
+                    ? <EmptyState icon="VER" title="No verified tokens right now"
                         body="A token is verified when its X account is authorized — the project links its X this way, following Kickstart's address-in-bio model. It confirms the link only, not the project. Bonded tokens upgrade automatically once their X is indexed."
                         cta={<LaunchCta />} />
-                    : <TerminalCoinTable coins={filteredTokens} title="✓ Verified Kickstart tokens · by market cap" />
+                    : <TerminalCoinTable coins={filteredTokens} title="Verified Kickstart tokens · by market cap" />
                 )}
                 {marketTab === "BONDED" && (
                   !loading && bonded.length === 0
-                    ? <EmptyState icon="🔗" title="No graduated tokens yet"
+                    ? <EmptyState icon="BND" title="No graduated tokens yet"
                         body="A token is Bonded once it completes its bonding curve and graduates to an AMM pool — real state read live from Jupiter."
                         cta={<LaunchCta />} />
-                    : <TerminalCoinTable coins={filteredTokens} title="🔗 Bonded · curve completed (graduated) · by market cap" />
+                    : <TerminalCoinTable coins={filteredTokens} title="Bonded · curve completed · by market cap" />
                 )}
                 {marketTab === "BONDING" && (
                   !loading && bonding.length === 0
-                    ? <EmptyState icon="⏳" title="Nothing on the curve right now"
+                    ? <EmptyState icon="CRV" title="Nothing on the curve right now"
                         body="Fresh launches appear here with their live bonding-curve progress the moment Jupiter indexes them — and move to Bonded when the curve completes."
                         cta={<LaunchCta />} />
-                    : <TerminalCoinTable coins={filteredTokens} title="⏳ Bonding · live curve progress via Jupiter" />
+                    : <TerminalCoinTable coins={filteredTokens} title="Bonding · live curve progress via Jupiter" />
                 )}
                 {marketTab === "UPCOMING" && (
-                  <EmptyState icon="⏳" title="No upcoming launches announced yet"
+                  <EmptyState icon="UPC" title="No upcoming launches announced yet"
                     body="Kickstart is permissionless — founders can launch at any moment, and new tokens appear in Bonded automatically the instant their …EASY pair is created."
                     cta={<LaunchCta />} />
                 )}
@@ -188,9 +188,9 @@ export function MarketSection() {
                 </Card>
                 <Card title="How discovery works" pad>
                   <ul className="space-y-2 text-[13px] leading-relaxed text-zinc-600">
-                    <li className="flex gap-2"><span className="text-indigo-400">1.</span> Founder launches on kickstart.easya.io → contract mints ending in <span className="font-mono font-bold text-indigo-600">EASY</span></li>
-                    <li className="flex gap-2"><span className="text-indigo-400">2.</span> Pair indexes on DexScreener → appears here in minutes, auto-classified 🔗 Bonded</li>
-                    <li className="flex gap-2"><span className="text-indigo-400">3.</span> X account authorized (address-in-bio) → upgraded to ✓ Verified</li>
+                    <li className="flex gap-2"><span className="font-mono text-[10px] text-zinc-400">01</span> Founder launches on kickstart.easya.io → contract mints ending in <span className="font-mono font-semibold text-zinc-700">EASY</span></li>
+                    <li className="flex gap-2"><span className="font-mono text-[10px] text-zinc-400">02</span> Pair indexes on DexScreener → appears here in minutes, auto-classified Bonded</li>
+                    <li className="flex gap-2"><span className="font-mono text-[10px] text-zinc-400">03</span> X account authorized (address-in-bio) → upgraded to Verified</li>
                   </ul>
                 </Card>
               </div>

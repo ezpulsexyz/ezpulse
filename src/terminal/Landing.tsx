@@ -281,7 +281,7 @@ export default function Landing() {
               {feed === "loading" && <div className="px-4 py-6 text-center text-[12px] text-zinc-400">Scanning for …EASY contracts…</div>}
               {Array.isArray(feed) && coins.length === 0 && <div className="px-4 py-6 text-center text-[12px] text-zinc-400">New launches appear the moment their pair is indexed.</div>}
               {coins.slice(0, 5).map((c, i) => (
-                <TerminalLink key={c.ca} target={{ section: "market" }} className="flex w-full items-center gap-3 border-b border-zinc-50 px-4 py-2.5 text-left text-[13px] last:border-0 hover:bg-zinc-50">
+                <TerminalLink key={c.ca} target={{ section: "projects", projectCa: c.ca }} className="flex w-full items-center gap-3 border-b border-zinc-50 px-4 py-2.5 text-left text-[13px] last:border-0 hover:bg-zinc-50">
                   <span className="w-5 text-zinc-300">{i + 1}</span>
                   {c.icon && <img src={c.icon} alt="" className="h-5 w-5 rounded-full" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />}
                   <span className="font-semibold text-zinc-900">{c.name}</span>
@@ -426,7 +426,7 @@ export default function Landing() {
             {coins.map((c, i) => (
               <TermRow key={c.ca} grid={DIRECTORY_GRID}>
                 <TermNum className={`text-left ${i < 3 ? "font-bold text-indigo-600" : "text-zinc-400"}`}>{i + 1}</TermNum>
-                <TerminalLink target={{ section: "projects" }} className="min-w-0 text-left">
+                <TerminalLink target={{ section: "projects", projectCa: c.ca }} className="min-w-0 text-left">
                   <div className="flex min-w-0 items-center gap-2.5">
                     {c.icon && <img src={c.icon} alt="" className="h-7 w-7 shrink-0 rounded-full border border-zinc-100" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />}
                     <div className="min-w-0">

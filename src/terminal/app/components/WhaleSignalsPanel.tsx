@@ -29,7 +29,7 @@ export function WhaleSignalsPanel({
   return (
     <Card
       className="mb-4"
-      title="🐋 Whale signals"
+      title="Whale signals"
       right={
         <span className="text-[10px] text-zinc-400">
           {loading ? "scanning…" : `${directional} directional · ${whales.length} total · live flow`}

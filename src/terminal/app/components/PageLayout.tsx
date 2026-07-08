@@ -4,10 +4,10 @@ import { COIN_GRID, TermRow } from "./TermTable";
 
 export function PageHead({ title, sub, right }: { title: string; sub: string; right?: React.ReactNode }) {
   return (
-    <div className="mb-4 flex flex-wrap items-start justify-between gap-3 sm:mb-5 sm:items-end">
+    <div className="mb-3 flex flex-wrap items-start justify-between gap-2 sm:mb-4 sm:items-end">
       <div className="min-w-0 flex-1">
-        <h1 className="font-display text-xl font-semibold tracking-tight text-zinc-900 sm:text-2xl">{title}</h1>
-        <p className="mt-1 text-[12.5px] leading-relaxed text-zinc-500 sm:mt-0.5 sm:text-[13px]">{sub}</p>
+        <h1 className="text-sm font-semibold tracking-tight text-zinc-900 sm:text-[15px]">{title}</h1>
+        <p className="mt-0.5 text-[11px] leading-snug text-zinc-500">{sub}</p>
       </div>
       {right && <div className="shrink-0">{right}</div>}
     </div>
@@ -40,11 +40,11 @@ export function LoadingRows() {
 
 export function EmptyState({ icon, title, body, cta }: { icon: string; title: string; body: string; cta?: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-dashed border-zinc-300 bg-white p-6 text-center sm:p-12">
-      <div className="mb-2 text-3xl">{icon}</div>
-      <h2 className="font-display text-lg font-semibold text-zinc-900">{title}</h2>
-      <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-zinc-500">{body}</p>
-      {cta && <div className="mt-5 flex flex-wrap justify-center gap-3">{cta}</div>}
+    <div className="rounded-md border border-dashed border-zinc-300 bg-white p-5 text-center sm:p-8">
+      <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400">{icon}</div>
+      <h2 className="text-sm font-semibold text-zinc-900">{title}</h2>
+      <p className="mx-auto mt-1.5 max-w-md text-[11px] leading-relaxed text-zinc-500">{body}</p>
+      {cta && <div className="mt-4 flex flex-wrap justify-center gap-2">{cta}</div>}
     </div>
   );
 }
@@ -52,12 +52,12 @@ export function EmptyState({ icon, title, body, cta }: { icon: string; title: st
 export const LaunchCta = () => (
   <>
     <a href="https://kickstart.easya.io" target="_blank" rel="noopener noreferrer"
-      className="rounded-full px-6 py-2.5 text-[12px] font-bold uppercase tracking-wide text-white" style={{ background: BLUE }}>
-      Launch on Kickstart →
+      className="rounded px-4 py-1.5 font-mono text-[10px] font-medium text-white transition hover:opacity-90" style={{ background: BLUE }}>
+      Launch on Kickstart
     </a>
     <a href="https://t.me/+PYEPxw-L9n81NDA0" target="_blank" rel="noopener noreferrer"
-      className="rounded-full border border-zinc-200 bg-white px-6 py-2.5 text-[12px] font-bold uppercase tracking-wide text-zinc-600 transition hover:border-indigo-300 hover:text-indigo-700">
-      ✈️ Join the chat
+      className="rounded border border-zinc-200 bg-white px-4 py-1.5 font-mono text-[10px] text-zinc-600 transition hover:border-zinc-300 hover:text-zinc-800">
+      Join Telegram
     </a>
   </>
 );

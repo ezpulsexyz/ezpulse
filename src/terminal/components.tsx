@@ -6,7 +6,7 @@ export const BLUE = "#2743f0";
 export function Num({ children, className = "", bold = false, size = "md" }: {
   children: ReactNode; className?: string; bold?: boolean; size?: "sm" | "md" | "lg" | "xl";
 }) {
-  const sizes = { sm: "text-[11px]", md: "text-[12px]", lg: "text-xl", xl: "text-2xl sm:text-3xl" };
+  const sizes = { sm: "text-[10px]", md: "text-[11px]", lg: "text-base", xl: "text-lg sm:text-xl" };
   return (
     <span className={`font-mono tabular-nums tracking-tight ${sizes[size]} ${bold ? "font-semibold" : "font-medium"} ${className}`}>
       {children}
@@ -18,14 +18,14 @@ export function Card({ title, right, children, className = "", pad = false }: {
   title?: string; right?: ReactNode; children: ReactNode; className?: string; pad?: boolean;
 }) {
   return (
-    <section className={`overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm ${className}`}>
+    <section className={`overflow-hidden rounded-md border border-zinc-200 bg-white ${className}`}>
       {title && (
-        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 px-4 py-3 sm:px-5">
-          <span className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400">{title}</span>
+        <header className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 px-3 py-2 sm:px-4">
+          <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-zinc-400">{title}</span>
           {right}
         </header>
       )}
-      <div className={pad ? "p-5" : ""}>{children}</div>
+      <div className={pad ? "p-4" : ""}>{children}</div>
     </section>
   );
 }
@@ -33,7 +33,7 @@ export function Card({ title, right, children, className = "", pad = false }: {
 export function Delta({ v, suffix = "" }: { v: number; suffix?: string }) {
   const up = v >= 0;
   return (
-    <span className={`font-mono text-[12px] font-semibold tabular-nums tracking-tight ${up ? "text-emerald-600" : "text-red-500"}`}>
+    <span className={`font-mono text-[11px] font-medium tabular-nums tracking-tight ${up ? "text-emerald-700" : "text-red-600"}`}>
       {up ? "▲" : "▼"}{Math.abs(v).toFixed(1)}{suffix}
     </span>
   );
@@ -41,10 +41,10 @@ export function Delta({ v, suffix = "" }: { v: number; suffix?: string }) {
 
 export function Stat({ label, value, sub, accent = false }: { label: ReactNode; value: string; sub?: ReactNode; accent?: boolean }) {
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white px-4 py-3.5 shadow-sm sm:px-5 sm:py-4">
-      <div className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 sm:text-[11px]">{label}</div>
-      <div className={`mt-1 font-mono text-xl font-semibold tabular-nums tracking-tight sm:text-2xl ${accent ? "" : "text-zinc-900"}`} style={accent ? { color: BLUE } : undefined}>{value}</div>
-      {sub && <div className="mt-0.5 text-[11px] text-zinc-400">{sub}</div>}
+    <div className="rounded-md border border-zinc-200 bg-white px-3 py-2.5 sm:px-4 sm:py-3">
+      <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-zinc-400">{label}</div>
+      <div className={`mt-0.5 font-mono text-base font-semibold tabular-nums tracking-tight sm:text-lg ${accent ? "" : "text-zinc-900"}`} style={accent ? { color: BLUE } : undefined}>{value}</div>
+      {sub && <div className="mt-0.5 text-[10px] text-zinc-400">{sub}</div>}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { navigateToTerminal } from "../../../routes";
 import { syncWatchlist, pullWalletWatchlist } from "../../backend";
 import {
   fetchLiveFeed, isGraduated, verifiedOf, bondedOf, trendingOf, tokenNote, tokenSignals,
@@ -15,7 +16,7 @@ export function useTerminal(target?: TerminalTarget) {
   const phantom = connectedWallet;
 
   const [section, setSection] = useState<Section>(target?.section ?? "market");
-  const [marketTab, setMarketTab] = useState<MarketTab>(target?.marketTab ?? "ALL");
+  const [marketTab, setMarketTabState] = useState<MarketTab>(target?.marketTab ?? "ALL");
   const [categoryFilter, setCategoryFilter] = useState<ProjectCategory | null>(null);
   const [selected, setSelected] = useState<LiveLaunch | null>(null);
   const [query, setQuery] = useState("");
@@ -222,7 +223,11 @@ export function useTerminal(target?: TerminalTarget) {
           setPaletteOpen(false);
           return;
         }
-        setSelected(null);
+        if (target?.projectCa) {
+          navigateToTerminal({ section: "projects" });
+        } else {
+          setSelected(null);
+        }
         setQuery("");
         setNotifOpen(false);
         searchRef.current?.blur();
@@ -230,7 +235,7 @@ export function useTerminal(target?: TerminalTarget) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [paletteOpen]);
+  }, [paletteOpen, target?.projectCa]);
 
   const copyCa = async (ca: string) => {
     try {
@@ -244,6 +249,41 @@ export function useTerminal(target?: TerminalTarget) {
 
   const feed = Array.isArray(liveFeed) ? liveFeed : [];
   const loading = liveFeed === "loading";
+
+  useEffect(() => {
+    const nextSection = target?.section ?? "market";
+    const nextTab = target?.marketTab ?? "ALL";
+    setSection(nextSection);
+    setMarketTabState(nextTab);
+
+    if (target?.projectCa) {
+      if (loading) return;
+      const token = feed.find((c) => c.ca === target.projectCa);
+      setSelected(token ?? null);
+      if (token) setSection("projects");
+      return;
+    }
+
+    setSelected(null);
+  }, [target?.section, target?.marketTab, target?.projectCa, feed, loading]);
+
+  useEffect(() => {
+    const sectionTitles: Record<Section, string> = {
+      market: "Market",
+      projects: "Projects",
+      signals: "Signals",
+      record: "Track Record",
+      watchlist: "Watchlist",
+      portfolio: "Portfolio",
+      smart: "Smart Investing",
+      indexes: "EasyA Indexes",
+      thesis: "Investor Thesis",
+    };
+    const token = target?.projectCa ? feed.find((c) => c.ca === target.projectCa) : null;
+    const page = token ? `${token.name} ($${token.symbol})` : sectionTitles[target?.section ?? section];
+    document.title = `${page} · ezpulse`;
+  }, [target?.section, target?.projectCa, section, feed]);
+
   const watchedCoins = useMemo(
     () => (watchlist.length ? feed.filter((c) => watchlist.includes(c.ca)) : []),
     [feed, watchlist],
@@ -325,21 +365,34 @@ export function useTerminal(target?: TerminalTarget) {
     }
   }, []);
 
-  const goto = (s: Section) => {
-    setSection(s);
-    setSelected(null);
+  const setMarketTab = useCallback((tab: MarketTab) => {
+    navigateToTerminal({ section: "market", marketTab: tab });
+    setMenuOpen(false);
+    window.scrollTo({ top: 0 });
+  }, []);
+
+  const goto = useCallback((s: Section) => {
+    navigateToTerminal({
+      section: s,
+      marketTab: s === "market" ? marketTab : undefined,
+    });
     setMenuOpen(false);
     setQuery("");
     setNotifOpen(false);
     window.scrollTo({ top: 0 });
-  };
-  const openToken = (c: LiveLaunch) => {
-    setSelected(c);
-    setSection("projects");
+  }, [marketTab]);
+
+  const openToken = useCallback((c: LiveLaunch) => {
+    navigateToTerminal({ section: "projects", projectCa: c.ca });
     setMenuOpen(false);
     setQuery("");
     window.scrollTo({ top: 0 });
-  };
+  }, []);
+
+  const closeProject = useCallback(() => {
+    navigateToTerminal({ section: "projects" });
+    window.scrollTo({ top: 0 });
+  }, []);
 
   const note = selected ? tokenNote(selected, feed) : null;
   return {
@@ -405,6 +458,8 @@ export function useTerminal(target?: TerminalTarget) {
     note,
     goto,
     openToken,
+    closeProject,
+    routeProjectCa: target?.projectCa,
     refreshFeed,
   };
 }

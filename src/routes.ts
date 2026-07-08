@@ -6,6 +6,21 @@ const SECTIONS = new Set<Section>([
 
 const MARKET_TABS = new Set<MarketTab>(["ALL", "TRENDING", "VERIFIED", "BONDED", "BONDING", "UPCOMING"]);
 
+const MARKET_TAB_PATH: Record<MarketTab, string | null> = {
+  ALL: null,
+  TRENDING: "trending",
+  VERIFIED: "verified",
+  BONDED: "bonded",
+  BONDING: "bonding",
+  UPCOMING: "upcoming",
+};
+
+const PATH_TO_MARKET_TAB = Object.fromEntries(
+  Object.entries(MARKET_TAB_PATH)
+    .filter(([, path]) => path)
+    .map(([tab, path]) => [path!, tab as MarketTab]),
+) as Record<string, MarketTab>;
+
 /** App base path (`` at ezpulse.xyz root, `/ezpulse` on project Pages without custom domain). */
 export function appBase(): string {
   let base = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
@@ -14,37 +29,105 @@ export function appBase(): string {
   return base;
 }
 
+export function terminalRoot(): string {
+  const base = appBase();
+  return base ? `${base}/terminal` : "/terminal";
+}
+
 export function landingHref(): string {
   const base = appBase();
   return base ? `${base}/` : "/";
 }
 
+/** Build a shareable terminal URL from section / tab / project. */
 export function terminalHref(target?: TerminalTarget): string {
-  const base = appBase();
-  const path = base ? `${base}/terminal` : "/terminal";
-  if (!target?.section && !target?.marketTab) return path;
-  const q = new URLSearchParams();
-  if (target.section) q.set("section", target.section);
-  if (target.marketTab) q.set("tab", target.marketTab);
-  const qs = q.toString();
-  return qs ? `${path}?${qs}` : path;
+  const root = terminalRoot();
+  if (!target) return `${root}/market`;
+
+  if (target.projectCa) {
+    return `${root}/project/${encodeURIComponent(target.projectCa)}`;
+  }
+
+  const section = target.section ?? "market";
+  let path = `${root}/${section}`;
+
+  if (section === "market" && target.marketTab && target.marketTab !== "ALL") {
+    const tabPath = MARKET_TAB_PATH[target.marketTab];
+    if (tabPath) path += `/${tabPath}`;
+  }
+
+  return path;
 }
 
+/** @deprecated Use terminalHref({ section, projectCa }) — kept as alias. */
+export function projectHref(ca: string): string {
+  return terminalHref({ section: "projects", projectCa: ca });
+}
+
+export function terminalTargetFromPath(pathname: string): TerminalTarget | undefined {
+  const root = terminalRoot();
+  const normalized = pathname.replace(/\/$/, "") || "/";
+
+  if (normalized === root) return { section: "market", marketTab: "ALL" };
+  if (!normalized.startsWith(`${root}/`)) return undefined;
+
+  const rest = normalized.slice(root.length + 1);
+  const parts = rest.split("/").filter(Boolean);
+  if (!parts.length) return { section: "market", marketTab: "ALL" };
+
+  if (parts[0] === "project" && parts[1]) {
+    return {
+      section: "projects",
+      projectCa: decodeURIComponent(parts[1]),
+    };
+  }
+
+  const section = parts[0];
+  if (!SECTIONS.has(section as Section)) return undefined;
+
+  const target: TerminalTarget = { section: section as Section };
+
+  if (section === "market" && parts[1]) {
+    const tab = PATH_TO_MARKET_TAB[parts[1].toLowerCase()];
+    if (tab) target.marketTab = tab;
+  }
+
+  return target;
+}
+
+/** Legacy `?section=` / `?tab=` query URLs (still parsed for old links). */
 export function terminalTargetFromSearch(search: string): TerminalTarget | undefined {
   const q = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
   const section = q.get("section");
   const tab = q.get("tab") ?? q.get("marketTab");
+  const projectCa = q.get("project") ?? q.get("ca");
   const target: TerminalTarget = {};
   if (section && SECTIONS.has(section as Section)) target.section = section as Section;
   if (tab && MARKET_TABS.has(tab as MarketTab)) target.marketTab = tab as MarketTab;
-  return target.section || target.marketTab ? target : undefined;
+  if (projectCa) {
+    target.projectCa = projectCa;
+    target.section = "projects";
+  }
+  return target.section || target.marketTab || target.projectCa ? target : undefined;
+}
+
+export function resolveTerminalTarget(pathname: string, search: string): TerminalTarget {
+  const defaults: TerminalTarget = { section: "market", marketTab: "ALL" };
+  const fromSearch = terminalTargetFromSearch(search);
+  const fromPath = terminalTargetFromPath(pathname);
+  return { ...defaults, ...fromSearch, ...fromPath };
 }
 
 export function isTerminalPath(pathname: string): boolean {
-  const base = appBase();
+  const root = terminalRoot();
   const normalized = pathname.replace(/\/$/, "") || "/";
-  const terminalPath = base ? `${base}/terminal` : "/terminal";
-  return normalized === terminalPath;
+  return normalized === root || normalized.startsWith(`${root}/`);
+}
+
+export function hasLegacyTerminalSearch(search: string): boolean {
+  if (!search || search === "?") return false;
+  const q = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  return q.has("section") || q.has("tab") || q.has("marketTab") || q.has("project") || q.has("ca");
 }
 
 type NavigationListener = () => void;
@@ -65,7 +148,7 @@ function notifyNavigation(): void {
   for (const listener of navigationListeners) listener();
 }
 
-export function navigate(href: string): void {
+export function navigate(href: string, replace = false): void {
   const next = new URL(href, window.location.origin);
   const current = `${window.location.pathname}${window.location.search}`;
   const target = `${next.pathname}${next.search}`;
@@ -73,8 +156,9 @@ export function navigate(href: string): void {
     notifyNavigation();
     return;
   }
-  // Full navigation: GitHub Pages serves our SPA via 404.html — more reliable than pushState alone.
-  window.location.assign(target);
+  if (replace) window.history.replaceState(null, "", target);
+  else window.history.pushState(null, "", target);
+  notifyNavigation();
 }
 
 export function navigateToLanding(): void {

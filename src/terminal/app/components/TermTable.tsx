@@ -18,10 +18,10 @@ export const PEER_COLS = "grid-cols-[minmax(0,1fr)_5.5rem_4.5rem]";
 export const PEER_GRID = `grid ${PEER_COLS} ${GRID_BASE}`;
 
 const ROW =
-  "term-row-interactive group relative w-full border-b border-zinc-100/90 px-3 py-2.5 font-mono text-[12px] transition-all duration-150 last:border-0 sm:px-5";
+  "term-row-interactive group relative w-full border-b border-zinc-100 px-2.5 py-2 font-mono text-[11px] transition-colors duration-100 last:border-0 sm:px-4";
 
 const ACCENT =
-  "before:pointer-events-none before:absolute before:inset-y-1 before:left-0 before:w-[3px] before:rounded-r before:bg-indigo-600 before:opacity-0 before:transition-all before:duration-200";
+  "before:pointer-events-none before:absolute before:inset-y-0.5 before:left-0 before:w-[2px] before:rounded-r before:bg-[#2743f0] before:opacity-0 before:transition-all before:duration-150";
 
 export function TermRow({
   children,
@@ -53,7 +53,7 @@ export function TermHead({ children, cols, breakpoint = "lg", className = "" }: 
   const show = breakpoint === "sm" ? "hidden sm:grid" : "hidden lg:grid";
   return (
     <div
-      className={`${show} ${cols} ${GRID_BASE} border-b border-zinc-200 bg-zinc-50/70 px-5 py-2 font-mono text-[10px] font-semibold uppercase tracking-widest text-zinc-400 ${className}`}
+      className={`${show} ${cols} ${GRID_BASE} border-b border-zinc-200 bg-zinc-50 px-4 py-1.5 font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-zinc-400 ${className}`}
     >
       {children}
     </div>
@@ -67,7 +67,7 @@ export function TermHeadCell({ children, align = "left", className = "" }: { chi
 /** Monospace numeric cell — right-aligned, tabular. */
 export function TermNum({ children, className = "", bold = false }: { children: ReactNode; className?: string; bold?: boolean }) {
   return (
-    <span className={`block text-right font-mono text-[12px] tabular-nums tracking-tight ${bold ? "font-bold text-zinc-900" : "text-zinc-700"} ${className}`}>
+    <span className={`block text-right font-mono text-[11px] tabular-nums tracking-tight ${bold ? "font-semibold text-zinc-900" : "text-zinc-700"} ${className}`}>
       {children}
     </span>
   );
