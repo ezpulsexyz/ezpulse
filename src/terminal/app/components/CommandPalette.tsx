@@ -178,7 +178,7 @@ export function CommandPalette() {
         id: `nav-${i.id}`,
         label: i.label,
         hint: g.workflow,
-        icon: i.icon,
+        icon: i.id.slice(0, 3).toUpperCase(),
         group: "Navigate",
         run: () => { goto(i.id as Section); close(); },
         keywords: `${i.label} ${g.workflow} ${i.id} go section navigate`,

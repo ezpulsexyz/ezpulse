@@ -4,12 +4,12 @@ import { BLUE } from "../../components";
 import {
   isVerified,
   isGraduated,
-  kickstartUrl,
   type LiveLaunch,
 } from "../../kickstart";
 import { getRecentThesesCount } from "../../backend";
 import type { Section } from "../types";
 import { HistoryChart } from "../components/HistoryChart";
+import { ProjectActions } from "../components/ProjectActions";
 import { FounderTerminal } from "../components/FounderTerminal";
 import { OverviewTab } from "../components/project/OverviewTab";
 import { SignalsTab } from "../components/project/SignalsTab";
@@ -137,66 +137,13 @@ export default function ProjectDetail({
           </div>
         </div>
 
-        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
-          <button
-            type="button"
-            onClick={() => setShareToken(token)}
-            className="rounded-full border border-zinc-200 bg-white px-4 py-2 text-[11px] font-bold uppercase tracking-wide text-zinc-600 transition hover:border-indigo-300 hover:text-indigo-700 sm:px-5 sm:py-2.5 sm:text-[12px]"
-          >
-            📤 Share
-          </button>
-          <button
-            type="button"
-            onClick={() => toggleWatch(token.ca)}
-            className={`rounded-full px-4 py-2 text-[11px] font-bold uppercase tracking-wide transition sm:px-5 sm:py-2.5 sm:text-[12px] ${
-              isWatching
-                ? "text-white shadow-lg"
-                : "border border-zinc-200 bg-white text-zinc-600 hover:border-amber-300 hover:text-amber-600"
-            }`}
-            style={isWatching ? { background: "#f59e0b" } : undefined}
-          >
-            {isWatching ? "★ Watching" : "☆ Watch"}
-          </button>
-          {isGraduated(token) ? (
-            <a
-              href={token.links.dexscreener}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="col-span-2 rounded-full px-5 py-2 text-center text-[11px] font-bold uppercase tracking-wide text-white shadow-lg transition hover:-translate-y-px sm:col-span-1 sm:px-6 sm:py-2.5 sm:text-[12px]"
-              style={{ background: "#0b0e13" }}
-            >
-              📊 Trade →
-            </a>
-          ) : (
-            <a
-              href={kickstartUrl(token.ca)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="col-span-2 rounded-full px-5 py-2 text-center text-[11px] font-bold uppercase tracking-wide text-white shadow-lg shadow-indigo-600/25 transition hover:-translate-y-px sm:col-span-1 sm:px-6 sm:py-2.5 sm:text-[12px]"
-              style={{ background: BLUE }}
-            >
-              🚀 Buy on Kickstart →
-            </a>
-          )}
-          {verified && (
-            <button
-              type="button"
-              onClick={() => setProjTab("founder")}
-              className="col-span-2 rounded-full px-5 py-2 text-[11px] font-bold uppercase tracking-wide text-white shadow-lg shadow-indigo-600/20 transition hover:-translate-y-px sm:col-span-1 sm:py-2.5 sm:text-[12px]"
-              style={{ background: `linear-gradient(135deg, ${BLUE}, #4f2ff0)` }}
-            >
-              👤 Founder Terminal
-            </button>
-          )}
-          <a
-            href={kickstartUrl(token.ca)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="col-span-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-center text-[11px] font-bold uppercase tracking-wide text-zinc-600 transition hover:border-indigo-300 hover:text-indigo-700 sm:col-span-1 sm:px-5 sm:py-2.5 sm:text-[12px]"
-          >
-            Kickstart ↗
-          </a>
-        </div>
+        <ProjectActions
+          token={token}
+          isWatching={isWatching}
+          onShare={() => setShareToken(token)}
+          onWatch={() => toggleWatch(token.ca)}
+          onFounder={verified ? () => setProjTab("founder") : undefined}
+        />
       </div>
 
       <div className="term-scroll-x flex border-b border-zinc-200 text-sm">

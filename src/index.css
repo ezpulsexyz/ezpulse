@@ -147,12 +147,194 @@ input, textarea, select, button { color-scheme: light; }
 
 /* ─── Terminal: dense professional workspace ─── */
 .term-app {
-  --term-sidebar: 11.5rem;
+  --term-sidebar: 14.5rem;
   font-size: 13px;
   line-height: 1.45;
   letter-spacing: -0.01em;
   background: #f4f4f5;
   color: #27272a;
+}
+
+/* Bankr-style sidebar nav */
+.term-sidebar {
+  box-shadow: 1px 0 0 rgba(24, 24, 27, 0.04), 4px 0 24px -8px rgba(24, 24, 27, 0.06);
+}
+
+.term-nav-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.625rem;
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.625rem;
+  text-align: left;
+  color: #52525b;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.term-nav-item:hover {
+  background: #f4f4f5;
+  color: #18181b;
+}
+
+.term-nav-item--active {
+  background: #18181b;
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(24, 24, 27, 0.12);
+}
+
+.term-nav-item--active:hover {
+  background: #27272a;
+  color: #fff;
+}
+
+.term-nav-item__icon {
+  display: flex;
+  height: 2rem;
+  width: 2rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  background: #f4f4f5;
+  color: #71717a;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.term-nav-item--active .term-nav-item__icon {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.term-nav-glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Project page action buttons */
+.term-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border-radius: 0.625rem;
+  padding: 0.625rem 1rem;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease, transform 0.15s ease;
+}
+
+.term-action:hover {
+  transform: translateY(-1px);
+}
+
+.term-action--primary {
+  border: 1px solid #18181b;
+  background: #18181b;
+  color: #fff;
+}
+
+.term-action--primary:hover {
+  background: #27272a;
+}
+
+.term-action--brand {
+  border: 1px solid #2743f0;
+  background: #2743f0;
+  color: #fff;
+}
+
+.term-action--brand:hover {
+  background: #1f36c4;
+}
+
+.term-action--watch {
+  border: 1px solid #d97706;
+  background: #f59e0b;
+  color: #fff;
+}
+
+.term-action--founder {
+  border: 1px solid #2743f0;
+  background: linear-gradient(135deg, #2743f0, #3b2fc9);
+  color: #fff;
+}
+
+.term-action--outline {
+  border: 1px solid #e4e4e7;
+  background: #fff;
+  color: #3f3f46;
+}
+
+.term-action--outline:hover {
+  border-color: #d4d4d8;
+  background: #fafafa;
+  color: #18181b;
+}
+
+/* Market stat tiles */
+.term-market-stat {
+  border-radius: 0.75rem;
+  border: 1px solid #e4e4e7;
+  background: #fff;
+  padding: 1rem 1.125rem;
+  text-align: left;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+button.term-market-stat:hover {
+  border-color: #d4d4d8;
+  box-shadow: 0 2px 8px -2px rgba(24, 24, 27, 0.08);
+}
+
+.term-market-stat--hero {
+  background: linear-gradient(180deg, #fff 0%, #fafafa 100%);
+}
+
+.term-market-stat__label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #a1a1aa;
+}
+
+.term-market-stat__value {
+  margin-top: 0.375rem;
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: #18181b;
+}
+
+@media (min-width: 640px) {
+  .term-market-stat__value {
+    font-size: 1.75rem;
+  }
+}
+
+.term-market-stat--hero .term-market-stat__value {
+  font-size: 1.75rem;
+}
+
+@media (min-width: 640px) {
+  .term-market-stat--hero .term-market-stat__value {
+    font-size: 2rem;
+  }
+}
+
+.term-market-stat__sub {
+  margin-top: 0.375rem;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #71717a;
 }
 
 .term-app .term-safe-x {
@@ -187,18 +369,7 @@ input, textarea, select, button { color-scheme: light; }
 }
 .term-tab-rail > button { scroll-snap-align: start; flex-shrink: 0; }
 
-.term-nav-icon {
-  display: inline-flex;
-  width: 1.375rem;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  color: #a1a1aa;
-}
+
 
 /* monospace numeric utility */
 .term-num {

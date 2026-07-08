@@ -89,20 +89,20 @@ export interface FounderProfile {
   refresh: () => void;
 }
 
-export const NAV_GROUPS: { workflow: string; items: { id: Section; icon: string; label: string; soon?: boolean }[] }[] = [
-  { workflow: "Discover", items: [{ id: "market", icon: "MKT", label: "Market" }] },
+export const NAV_GROUPS: { workflow: string; items: { id: Section; label: string; soon?: boolean }[] }[] = [
+  { workflow: "Discover", items: [{ id: "market", label: "Market" }] },
   { workflow: "Research", items: [
-    { id: "projects", icon: "PRJ", label: "Projects" },
-    { id: "thesis", icon: "THS", label: "Investor Thesis" },
+    { id: "projects", label: "Projects" },
+    { id: "thesis", label: "Investor Thesis" },
   ]},
   { workflow: "Track", items: [
-    { id: "signals", icon: "SIG", label: "Signals" },
-    { id: "record", icon: "REC", label: "Track Record" },
-    { id: "watchlist", icon: "WCH", label: "Watchlist" },
+    { id: "signals", label: "Signals" },
+    { id: "record", label: "Track Record" },
+    { id: "watchlist", label: "Watchlist" },
   ]},
   { workflow: "Invest", items: [
-    { id: "indexes", icon: "IDX", label: "EasyA Indexes" },
-    { id: "portfolio", icon: "PRT", label: "Portfolio" },
-    { id: "smart", icon: "SMT", label: "Smart Investing", soon: true },
+    { id: "indexes", label: "EasyA Indexes" },
+    { id: "portfolio", label: "Portfolio" },
+    { id: "smart", label: "Smart Investing", soon: true },
   ]},
 ];

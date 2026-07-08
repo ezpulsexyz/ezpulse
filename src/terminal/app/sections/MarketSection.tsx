@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { ALUMNI } from "../../kickstart";
 import { fmtUsd } from "../../data";
-import { Card, Num, Stat } from "../../components";
+import { Card } from "../../components";
 import { PageHead, EmptyState, LaunchCta } from "../components/PageLayout";
 import { TerminalCoinTable } from "../components/TerminalCoinTable";
 import { useTerminalContext } from "../TerminalContext";
@@ -65,20 +65,26 @@ export function MarketSection() {
               <PageHead title="Market" sub="Discover opportunities — the EasyA Kickstart token market, live and on-chain." />
 
               {/* stat cards drive the filter */}
-              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 lg:gap-2.5">
-                <div className="col-span-2 rounded-md border border-zinc-200 bg-white px-3 py-2.5 sm:col-span-1 sm:px-4 sm:py-3">
-                  <div className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em] text-zinc-400">Market Cap</div>
-                  <div className="mt-0.5"><Num size="xl" bold>{loading ? "…" : fmtUsd(totalMcap)}</Num></div>
-                  <div className="mt-0.5 font-mono text-[10px] text-zinc-400">{feed.length} live token{feed.length !== 1 ? "s" : ""}</div>
+              <div className="grid grid-cols-2 gap-2.5 lg:grid-cols-4 lg:gap-3">
+                <div className="term-market-stat term-market-stat--hero col-span-2 sm:col-span-1">
+                  <div className="term-market-stat__label">Market Cap</div>
+                  <div className="term-market-stat__value">{loading ? "…" : fmtUsd(totalMcap)}</div>
+                  <div className="term-market-stat__sub">{feed.length} live token{feed.length !== 1 ? "s" : ""}</div>
                 </div>
-                <button onClick={() => setMarketTab("VERIFIED")} className="text-left">
-                  <Stat label="Verified Projects" value={loading ? "…" : String(verified.length)} sub="X account authorized" />
+                <button type="button" onClick={() => setMarketTab("VERIFIED")} className="term-market-stat">
+                  <div className="term-market-stat__label">Verified Projects</div>
+                  <div className="term-market-stat__value">{loading ? "…" : verified.length}</div>
+                  <div className="term-market-stat__sub">X account authorized</div>
                 </button>
-                <button onClick={() => setMarketTab("BONDED")} className="text-left">
-                  <Stat label="Bonded Projects" value={loading ? "…" : String(bonded.length)} sub="Curve completed" />
+                <button type="button" onClick={() => setMarketTab("BONDED")} className="term-market-stat">
+                  <div className="term-market-stat__label">Bonded Projects</div>
+                  <div className="term-market-stat__value">{loading ? "…" : bonded.length}</div>
+                  <div className="term-market-stat__sub">Curve completed</div>
                 </button>
-                <button onClick={() => setMarketTab("BONDING")} className="text-left">
-                  <Stat label="Bonding Now" value={loading ? "…" : String(bonding.length)} sub="Live on curve" />
+                <button type="button" onClick={() => setMarketTab("BONDING")} className="term-market-stat">
+                  <div className="term-market-stat__label">Bonding Now</div>
+                  <div className="term-market-stat__value">{loading ? "…" : bonding.length}</div>
+                  <div className="term-market-stat__sub">Live on curve</div>
                 </button>
               </div>
 

@@ -4,9 +4,9 @@ export const BLUE = "#2743f0";
 
 /** Monospace numeric display — prices, mcap, %, balances. */
 export function Num({ children, className = "", bold = false, size = "md" }: {
-  children: ReactNode; className?: string; bold?: boolean; size?: "sm" | "md" | "lg" | "xl";
+  children: ReactNode; className?: string; bold?: boolean; size?: "sm" | "md" | "lg" | "xl" | "2xl";
 }) {
-  const sizes = { sm: "text-[10px]", md: "text-[11px]", lg: "text-base", xl: "text-lg sm:text-xl" };
+  const sizes = { sm: "text-[10px]", md: "text-[11px]", lg: "text-base", xl: "text-lg sm:text-xl", "2xl": "text-xl sm:text-2xl" };
   return (
     <span className={`font-mono tabular-nums tracking-tight ${sizes[size]} ${bold ? "font-semibold" : "font-medium"} ${className}`}>
       {children}
