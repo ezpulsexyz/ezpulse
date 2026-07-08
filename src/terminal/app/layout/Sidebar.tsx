@@ -31,25 +31,15 @@ export function Sidebar() {
           <a href={landingHref()} title="Back to ezpulse.xyz" onClick={closeSidebar} className="min-w-0">
             <Logo size={26} textClass="text-[13px]" />
           </a>
-          <div className="flex shrink-0 items-center gap-1">
-            <button
-              type="button"
-              onClick={hideSidebar}
-              aria-label="Hide sidebar"
-              title="Hide sidebar"
-              className="term-icon-btn hidden lg:flex"
-            >
-              <SidebarCollapseIcon />
-            </button>
-            <button
-              type="button"
-              onClick={closeSidebar}
-              aria-label="Close menu"
-              className="term-icon-btn lg:hidden"
-            >
-              ×
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={hideSidebar}
+            aria-label="Hide sidebar"
+            title="Hide sidebar"
+            className="term-icon-btn shrink-0"
+          >
+            <SidebarCollapseIcon />
+          </button>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 pb-32 scrollbar-thin">
