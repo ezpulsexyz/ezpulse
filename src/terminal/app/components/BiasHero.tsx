@@ -1,6 +1,6 @@
 import type { SignalBias } from "../../../../shared/signals-core";
 
-export function BiasHero({ label, bias }: { label: string; bias: SignalBias }) {
+export function BiasHero({ label, bias, className = "" }: { label: string; bias: SignalBias; className?: string }) {
   const tone =
     bias.label === "BULLISH"
       ? "term-bias-hero--bull"
@@ -9,7 +9,7 @@ export function BiasHero({ label, bias }: { label: string; bias: SignalBias }) {
         : "term-bias-hero--neutral";
 
   return (
-    <div className={`term-bias-hero ${tone}`}>
+    <div className={`term-bias-hero ${tone} ${className}`.trim()}>
       <div className="term-bias-hero__label">{label}</div>
       <div className="term-bias-hero__value">{bias.label}</div>
       <div className="term-bias-hero__sub">

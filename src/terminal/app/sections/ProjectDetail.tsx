@@ -79,7 +79,7 @@ export default function ProjectDetail({
           e.preventDefault();
           onBack();
         }}
-        className="mb-4 inline-flex items-center gap-1.5 font-mono text-[11px] text-zinc-400 transition hover:text-zinc-700"
+        className="term-back-link mb-4 inline-flex items-center gap-1.5 font-mono text-[11px]"
       >
         ← All projects
       </a>
@@ -148,17 +148,13 @@ export default function ProjectDetail({
         />
       </div>
 
-      <div className="term-scroll-x flex border-b border-zinc-200 text-sm">
+      <div className="term-scroll-x flex border-b text-sm" style={{ borderColor: "var(--term-border)" }}>
         {tabs.map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setProjTab(tab.id)}
-            className={`relative flex shrink-0 items-center gap-2 border-b-2 px-6 py-4 font-medium transition-all sm:px-8 ${
-              projTab === tab.id
-                ? "border-blue-600 text-blue-700"
-                : "border-transparent text-zinc-500 hover:text-zinc-700"
-            }`}
+            className={`term-proj-tab ${projTab === tab.id ? "term-proj-tab--active" : ""}`}
           >
             {tab.label}
             {tab.count != null && tab.count > 0 && (

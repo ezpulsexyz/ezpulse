@@ -3,7 +3,7 @@ import type { SignalKind, SignalStrength } from "../../../../shared/signals-core
 
 export function KindBadge({ kind }: { kind: string }) {
   return (
-    <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[8px] font-bold tracking-widest text-zinc-500">
+    <span className="term-kind-badge">
       {KIND_ICON[kind] ?? "•"} {kind}
     </span>
   );
@@ -22,9 +22,7 @@ export function HitRateBadge({ rate, total }: { rate: number; total: number }) {
   const pct = Math.round(rate * 100);
   return (
     <span
-      className={`rounded-full px-2 py-0.5 text-[8px] font-bold tabular-nums ${
-        rate >= 0.5 ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
-      }`}
+      className={`term-hit-rate ${rate >= 0.5 ? "term-hit-rate--good" : "term-hit-rate--bad"}`}
       title={`${pct}% hit rate across ${total} archived ${total === 1 ? "signal" : "signals"}`}
     >
       {pct}% track record

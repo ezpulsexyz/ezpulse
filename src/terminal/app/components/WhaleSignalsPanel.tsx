@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { formatRelativeTime } from "../../../lib/utils";
 import type { EcoEvent } from "../../kickstart";
-import { BLUE, Card } from "../../components";
+import { Card } from "../../components";
 import { KindBadge, StrengthBadge } from "./SignalBadges";
 
 export function WhaleSignalsPanel({
@@ -32,7 +32,7 @@ export function WhaleSignalsPanel({
       className="mb-4"
       title="Whale signals"
       right={
-        <span className="text-[10px] text-zinc-400">
+        <span className="text-[10px]" style={{ color: "var(--term-text-subtle)" }}>
           {loading ? "scanning…" : `${directional} directional · ${whales.length} total · live flow`}
         </span>
       }
@@ -43,36 +43,36 @@ export function WhaleSignalsPanel({
         </div>
       )}
       {!loading && whales.length === 0 && (
-        <div className="px-5 py-6 text-center text-[12px] text-zinc-400">
+        <div className="px-5 py-6 text-center text-[12px]" style={{ color: "var(--term-text-muted)" }}>
           No whale-scale flow right now — signals fire on large clips, one-sided flow, or hourly volume bursts.
         </div>
       )}
       {!loading && whales.length > 0 && (
-        <div className="divide-y divide-zinc-50">
+        <div className="divide-y" style={{ borderColor: "var(--term-border-subtle)" }}>
           {whales.map((e, i) => (
             <button
               key={`${e.token.ca}-${i}`}
               onClick={() => onOpen(e)}
-              className="flex w-full items-start gap-3 px-5 py-3.5 text-left transition hover:bg-indigo-50/50"
+              className="term-whale-row flex w-full items-start gap-3 px-5 py-3.5 text-left"
             >
-              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-sky-50 text-[15px]">🐋</span>
+              <span className="term-signal-row__icon term-signal-row__icon--whale mt-0.5 text-[15px]">🐋</span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[13px] font-bold text-zinc-900">{e.title}</span>
+                  <span className="text-[13px] font-bold" style={{ color: "var(--term-text)" }}>{e.title}</span>
                   <StrengthBadge strength={e.strength} />
                   <KindBadge kind="WHALE" />
                 </div>
-                <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">{e.detail}</p>
-                <div className="mt-1.5 flex items-center gap-2 text-[11px] text-zinc-400">
+                <p className="mt-1 text-[12px] leading-relaxed" style={{ color: "var(--term-text-muted)" }}>{e.detail}</p>
+                <div className="mt-1.5 flex items-center gap-2 text-[11px]" style={{ color: "var(--term-text-subtle)" }}>
                   {e.token.icon && (
                     <img src={e.token.icon} alt="" className="h-4 w-4 rounded-full" onError={(ev) => { (ev.target as HTMLImageElement).style.display = "none"; }} />
                   )}
-                  <span className="font-semibold text-zinc-600">{e.token.name}</span>
+                  <span className="font-semibold" style={{ color: "var(--term-text-secondary)" }}>{e.token.name}</span>
                   <span className="font-mono">${e.token.symbol}</span>
                   <span className="term-signal-time" title={new Date(e.occurredAt).toLocaleString()}>
                     {formatRelativeTime(e.occurredAt)}
                   </span>
-                  <span className="ml-auto font-semibold" style={{ color: BLUE }}>Open →</span>
+                  <span className="ml-auto font-semibold" style={{ color: "var(--term-accent)" }}>Open →</span>
                 </div>
               </div>
             </button>

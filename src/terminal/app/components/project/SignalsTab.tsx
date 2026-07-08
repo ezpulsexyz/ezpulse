@@ -21,11 +21,9 @@ type DisplaySignal = {
 };
 
 function strengthClass(strength: string): string {
-  if (strength === "BULLISH" || strength === "STRONG") {
-    return "bg-emerald-100 text-emerald-700";
-  }
-  if (strength === "BEARISH") return "bg-red-100 text-red-700";
-  return "bg-zinc-100 text-zinc-600";
+  if (strength === "BULLISH" || strength === "STRONG") return "term-strength-pill term-strength-pill--bull";
+  if (strength === "BEARISH") return "term-strength-pill term-strength-pill--bear";
+  return "term-strength-pill term-strength-pill--neutral";
 }
 
 export function SignalsTab({

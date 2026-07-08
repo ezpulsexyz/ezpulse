@@ -92,9 +92,9 @@ export function Header() {
               onClick={openNotifs}
               title="Watchlist notifications"
               aria-label="Watchlist notifications"
-              className="term-icon-btn relative font-mono text-[10px]"
+              className="term-icon-btn relative"
             >
-              !
+              <BellIcon />
               {unseenCount > 0 && (
                 <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-sm bg-red-600 px-0.5 font-mono text-[8px] font-semibold text-white">
                   {unseenCount > 9 ? "9+" : unseenCount}
@@ -103,7 +103,7 @@ export function Header() {
             </button>
             {notifOpen && <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />}
             {notifOpen && (
-              <div className="term-panel fixed inset-x-2 top-[2.75rem] z-50 overflow-hidden rounded-md sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-1 sm:w-72">
+              <div className="term-panel term-notif-panel fixed inset-x-2 z-50 overflow-hidden rounded-md sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-1 sm:w-72">
                 <div className="flex items-center justify-between border-b px-3 py-2" style={{ borderColor: "var(--term-border-subtle)" }}>
                   <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em]" style={{ color: "var(--term-text-subtle)" }}>Alerts</span>
                   <button onClick={() => { setNotifOpen(false); goto("watchlist"); }} className="font-mono text-[10px]" style={{ color: "var(--term-text-muted)" }}>Preferences</button>
@@ -161,5 +161,19 @@ export function Header() {
         </div>
       </div>
     </header>
+  );
+}
+
+function BellIcon() {
+  return (
+    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden>
+      <path
+        d="M8 1.75a3.5 3.5 0 00-3.5 3.5v1.6c0 .47-.19.92-.52 1.25l-.78.9a.75.75 0 00.57 1.25h8.46a.75.75 0 00.57-1.25l-.78-.9a1.75 1.75 0 01-.52-1.25V5.25A3.5 3.5 0 008 1.75z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <path d="M6.5 12.25a1.5 1.5 0 003 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
   );
 }

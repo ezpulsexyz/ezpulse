@@ -588,6 +588,211 @@ button.term-market-stat:hover {
   color: var(--term-text-subtle);
 }
 
+/* Signal rows & badges */
+.term-signal-row {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  gap: 0.875rem;
+  border-radius: 1rem;
+  border: 1px solid var(--term-border);
+  background: var(--term-surface);
+  padding: 1rem 1.25rem;
+  text-align: left;
+  box-shadow: 0 1px 2px 0 var(--term-shadow);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .term-signal-row:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--term-accent) 28%, var(--term-border));
+    box-shadow: 0 4px 12px -4px var(--term-shadow);
+  }
+}
+
+.term-signal-row__icon {
+  display: flex;
+  height: 2rem;
+  width: 2rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-size: 13px;
+}
+
+.term-signal-row__icon--bull {
+  background: color-mix(in srgb, #10b981 12%, var(--term-surface));
+}
+
+.term-signal-row__icon--bear {
+  background: color-mix(in srgb, #ef4444 12%, var(--term-surface));
+}
+
+.term-signal-row__icon--neutral {
+  background: var(--term-surface-3);
+}
+
+.term-signal-row__icon--whale {
+  background: color-mix(in srgb, #0ea5e9 12%, var(--term-surface));
+}
+
+.term-kind-badge {
+  border-radius: 9999px;
+  background: var(--term-surface-3);
+  padding: 0.125rem 0.5rem;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--term-text-muted);
+}
+
+.term-hit-rate {
+  border-radius: 9999px;
+  padding: 0.125rem 0.5rem;
+  font-size: 8px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.term-hit-rate--good {
+  background: color-mix(in srgb, #10b981 12%, var(--term-surface));
+  color: #059669;
+}
+
+.term-app[data-theme="dark"] .term-hit-rate--good {
+  color: #34d399;
+}
+
+.term-hit-rate--bad {
+  background: color-mix(in srgb, #ef4444 12%, var(--term-surface));
+  color: #dc2626;
+}
+
+.term-app[data-theme="dark"] .term-hit-rate--bad {
+  color: #f87171;
+}
+
+.term-hit-chip {
+  border: 1px solid var(--term-border);
+  background: var(--term-surface-2);
+}
+
+.term-filter-pill {
+  white-space: nowrap;
+  border-radius: 9999px;
+  padding: 0.375rem 0.75rem;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--term-text-muted);
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.term-filter-pill:hover {
+  color: var(--term-text);
+}
+
+.term-filter-pill--active {
+  color: #fff;
+}
+
+.term-pending-btn {
+  background: color-mix(in srgb, #f59e0b 12%, var(--term-surface));
+  color: #d97706;
+}
+
+.term-pending-btn:hover {
+  background: color-mix(in srgb, #f59e0b 20%, var(--term-surface));
+}
+
+.term-app[data-theme="dark"] .term-pending-btn {
+  color: #fbbf24;
+}
+
+.term-whale-row {
+  transition: background-color 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .term-whale-row:hover {
+    background: var(--term-row-hover);
+  }
+}
+
+.term-strength-pill {
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.term-strength-pill--bull {
+  background: color-mix(in srgb, #10b981 14%, var(--term-surface));
+  color: #059669;
+}
+
+.term-app[data-theme="dark"] .term-strength-pill--bull {
+  color: #34d399;
+}
+
+.term-strength-pill--bear {
+  background: color-mix(in srgb, #ef4444 14%, var(--term-surface));
+  color: #dc2626;
+}
+
+.term-app[data-theme="dark"] .term-strength-pill--bear {
+  color: #f87171;
+}
+
+.term-strength-pill--neutral {
+  background: var(--term-surface-3);
+  color: var(--term-text-muted);
+}
+
+/* Project detail tabs */
+.term-proj-tab {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 2px solid transparent;
+  padding: 0.75rem 1rem;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--term-text-muted);
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+@media (min-width: 640px) {
+  .term-proj-tab {
+    padding: 1rem 2rem;
+  }
+}
+
+.term-proj-tab:hover {
+  color: var(--term-text);
+}
+
+.term-proj-tab--active {
+  border-bottom-color: var(--term-accent);
+  color: var(--term-accent);
+}
+
+.term-notif-panel {
+  top: calc(2.75rem + env(safe-area-inset-top, 0px));
+}
+
+.term-back-link {
+  color: var(--term-text-subtle);
+  transition: color 0.15s ease;
+}
+
+.term-back-link:hover {
+  color: var(--term-text-secondary);
+}
+
 .term-app .term-safe-x {
   padding-left: max(0.625rem, env(safe-area-inset-left));
   padding-right: max(0.625rem, env(safe-area-inset-right));
@@ -780,7 +985,7 @@ button.term-market-stat:hover {
 
 /* ─── Mobile thesis UX ─── */
 @media (max-width: 640px) {
-  button,
+  button:not(.term-icon-btn):not(.term-tab):not(.term-tab-pill):not(.term-filter-pill):not(.term-proj-tab),
   .clickable {
     min-height: 44px;
     min-width: 44px;
@@ -807,7 +1012,7 @@ button.term-market-stat:hover {
 
 /* Prevent text overflow on mobile */
 .truncate-mobile {
-  max-width: 140px;
+  max-width: min(200px, 42vw);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

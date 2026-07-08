@@ -46,7 +46,7 @@ export function SignalsSection() {
             {record.ready && pendingCount > 0 && (
               <button
                 onClick={() => goto("record")}
-                className="rounded-full bg-amber-50 px-3 py-1.5 text-[11px] font-semibold text-amber-700 transition hover:bg-amber-100"
+                className="term-pending-btn rounded-full px-3 py-1.5 text-[11px] font-semibold transition"
               >
                 ⏳ {pendingCount} awaiting score
               </button>
@@ -64,7 +64,7 @@ export function SignalsSection() {
 
       {record.ready && record.byKind && Object.keys(record.byKind).length > 0 && (
         <Card className="mb-4" title="Historical hit rates · archived signals" right={
-          <button onClick={() => goto("record")} className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800">
+          <button onClick={() => goto("record")} className="text-[11px] font-semibold transition" style={{ color: "var(--term-accent)" }}>
             Full track record →
           </button>
         }>
@@ -73,12 +73,12 @@ export function SignalsSection() {
               .filter(([, v]) => v.total >= 3)
               .sort((a, b) => b[1].rate - a[1].rate)
               .map(([kind, v]) => (
-                <span key={kind} className="flex items-center gap-1.5 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-[11px]">
+                <span key={kind} className="term-hit-chip flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px]">
                   <KindBadge kind={kind} />
-                  <span className={`font-bold tabular-nums ${v.rate >= 0.5 ? "text-emerald-600" : "text-red-500"}`}>
+                  <span className={`font-bold tabular-nums ${v.rate >= 0.5 ? "text-emerald-600 dark:text-emerald-400" : "text-red-500 dark:text-red-400"}`}>
                     {(v.rate * 100).toFixed(0)}%
                   </span>
-                  <span className="text-zinc-400">({v.hits}/{v.total})</span>
+                  <span style={{ color: "var(--term-text-subtle)" }}>({v.hits}/{v.total})</span>
                 </span>
               ))}
           </div>
@@ -92,7 +92,7 @@ export function SignalsSection() {
       {!loading && feed.length > 0 && (
         <>
           <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <BiasHero label="Ecosystem bias" bias={bias} />
+            <BiasHero label="Ecosystem bias" bias={bias} className="col-span-2 lg:col-span-1" />
             <Stat label="Signals firing" value={String(events.length)} sub={`${filtered.length} shown · ${feed.length} tokens`} />
             <Stat label="Top mover" value={topMover ? `${topMover.change24h >= 0 ? "+" : ""}${topMover.change24h.toFixed(1)}%` : "—"} sub={topMover ? `$${topMover.symbol}` : ""} />
             <Stat label="Archive pipeline" value={record.ready ? (pendingCount ? `${pendingCount} pending` : "Live") : "Local"} sub={record.ready ? "scored at +24h via snapshots" : "connect backend for track record"} />
@@ -102,7 +102,7 @@ export function SignalsSection() {
             <div className="term-tab-rail term-scroll-x flex-1">
               {(["ALL", "WHALE", "MOMENTUM", "VOLUME", "LIQUIDITY", "RANK", "LAUNCH"] as KindFilter[]).map((k) => (
                 <button key={k} onClick={() => setKindFilter(k)}
-                  className={`whitespace-nowrap rounded-full px-3 py-1.5 text-[11px] font-bold transition ${kindFilter === k ? "text-white" : "text-zinc-500 hover:text-zinc-800"}`}
+                  className={`term-filter-pill ${kindFilter === k ? "term-filter-pill--active" : ""}`}
                   style={kindFilter === k ? { background: BLUE } : undefined}>
                   {k === "ALL" ? `All (${events.length})` : `${k} (${kindCounts[k as SignalKind] ?? 0})`}
                 </button>
@@ -111,7 +111,7 @@ export function SignalsSection() {
             <div className="term-tab-rail term-scroll-x shrink-0 sm:w-auto">
               {(["ALL", "BULLISH", "BEARISH"] as StrengthFilter[]).map((s) => (
                 <button key={s} onClick={() => setStrengthFilter(s)}
-                  className={`rounded-full px-3 py-1.5 text-[11px] font-bold transition ${strengthFilter === s ? "text-white" : "text-zinc-500 hover:text-zinc-800"}`}
+                  className={`term-filter-pill ${strengthFilter === s ? "term-filter-pill--active" : ""}`}
                   style={strengthFilter === s ? { background: s === "BULLISH" ? "#059669" : s === "BEARISH" ? "#ef4444" : BLUE } : undefined}>
                   {s}
                 </button>
@@ -121,13 +121,13 @@ export function SignalsSection() {
 
           <div className="space-y-2.5">
             {filtered.length === 0 && (
-              <Card><div className="px-5 py-8 text-center text-[13px] text-zinc-400">No signals match these filters — try ALL or loosen strength.</div></Card>
+              <Card><div className="px-5 py-8 text-center text-[13px]" style={{ color: "var(--term-text-muted)" }}>No signals match these filters — try ALL or loosen strength.</div></Card>
             )}
             {filtered.map((e, i) => (
               <SignalEventRow key={`${e.token.ca}-${e.kind}-${i}`} e={e} byKind={record.byKind} onOpen={() => openToken(e.token)} />
             ))}
           </div>
-          <p className="mt-4 text-[10px] text-zinc-400">
+          <p className="mt-4 text-[10px]" style={{ color: "var(--term-text-subtle)" }}>
             Directional signals are archived every 15 min and resolved against ezpulse price snapshots at +24h. VERIFY/LAUNCH appear live; WHALE/MOMENTUM/VOLUME/LIQUIDITY/RANK enter the permanent log. Not investment advice.
           </p>
         </>
@@ -142,25 +142,27 @@ function SignalEventRow({ e, byKind, onOpen }: {
   onOpen: () => void;
 }) {
   const hist = byKind?.[e.kind];
+  const iconTone =
+    e.strength === "BULLISH" ? "term-signal-row__icon--bull"
+    : e.strength === "BEARISH" ? "term-signal-row__icon--bear"
+    : "term-signal-row__icon--neutral";
+
   return (
-    <button onClick={onOpen}
-      className="flex w-full items-start gap-3.5 rounded-2xl border border-zinc-200 bg-white px-5 py-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md">
-      <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[13px] ${
-        e.strength === "BULLISH" ? "bg-emerald-50" : e.strength === "BEARISH" ? "bg-red-50" : "bg-zinc-100"
-      }`}>
+    <button onClick={onOpen} className="term-signal-row">
+      <span className={`term-signal-row__icon ${iconTone}`}>
         {signalIcon(e.kind, e.strength)}
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[14px] font-bold text-zinc-900">{e.title}</span>
+          <span className="text-[14px] font-bold" style={{ color: "var(--term-text)" }}>{e.title}</span>
           <StrengthBadge strength={e.strength} />
           <KindBadge kind={e.kind} />
           {hist && <HitRateBadge rate={hist.rate} total={hist.total} />}
         </div>
-        <p className="mt-1 text-[12.5px] leading-relaxed text-zinc-500">{e.detail}</p>
-        <div className="mt-1.5 flex items-center gap-2 text-[11px] text-zinc-400">
+        <p className="mt-1 text-[12.5px] leading-relaxed" style={{ color: "var(--term-text-muted)" }}>{e.detail}</p>
+        <div className="mt-1.5 flex items-center gap-2 text-[11px]" style={{ color: "var(--term-text-subtle)" }}>
           {e.token.icon && <img src={e.token.icon} alt="" className="h-4 w-4 rounded-full" onError={(ev) => { (ev.target as HTMLImageElement).style.display = "none"; }} />}
-          <span className="font-semibold text-zinc-600">{e.token.name}</span> ${e.token.symbol}
+          <span className="font-semibold" style={{ color: "var(--term-text-secondary)" }}>{e.token.name}</span> ${e.token.symbol}
           <span className="term-signal-time" title={new Date(e.occurredAt).toLocaleString()}>
             {formatRelativeTime(e.occurredAt)}
           </span>
