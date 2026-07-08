@@ -542,6 +542,52 @@ button.term-market-stat:hover {
   color: var(--term-text-muted);
 }
 
+/* Bias hero — shared by ecosystem + per-token signal bias */
+.term-bias-hero {
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  color: #fff;
+}
+
+.term-bias-hero--bull { background: #059669; }
+.term-bias-hero--bear { background: #ef4444; }
+.term-bias-hero--neutral { background: #3f3f46; }
+
+.term-app[data-theme="dark"] .term-bias-hero--neutral {
+  background: #27272a;
+}
+
+.term-bias-hero__label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.65;
+}
+
+.term-bias-hero__value {
+  margin-top: 0.25rem;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.term-bias-hero__sub {
+  margin-top: 0.125rem;
+  font-size: 11px;
+  line-height: 1.35;
+  opacity: 0.75;
+}
+
+.term-signal-time {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--term-text-subtle);
+}
+
 .term-app .term-safe-x {
   padding-left: max(0.625rem, env(safe-area-inset-left));
   padding-right: max(0.625rem, env(safe-area-inset-right));

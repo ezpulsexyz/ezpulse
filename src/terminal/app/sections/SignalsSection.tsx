@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
+import { formatRelativeTime } from "../../../lib/utils";
 import { ecosystemBias, ecosystemSignals, type EcoEvent } from "../../kickstart";
 import { BLUE, Card, Stat } from "../../components";
+import { BiasHero } from "../components/BiasHero";
 import { PageHead, EmptyState, LaunchCta, LoadingRows } from "../components/PageLayout";
 import { LiveBadge } from "../components/LiveBadge";
 import { HitRateBadge, KindBadge, StrengthBadge, signalIcon } from "../components/SignalBadges";
@@ -18,7 +20,7 @@ export function SignalsSection() {
   const [kindFilter, setKindFilter] = useState<KindFilter>("ALL");
   const [strengthFilter, setStrengthFilter] = useState<StrengthFilter>("ALL");
 
-  const events = useMemo(() => (feed.length ? ecosystemSignals(feed) : []), [feed]);
+  const events = useMemo(() => (feed.length ? ecosystemSignals(feed, lastUpdated) : []), [feed, lastUpdated]);
   const filtered = useMemo(() => events.filter((e) => {
     if (kindFilter !== "ALL" && e.kind !== kindFilter) return false;
     if (strengthFilter !== "ALL" && e.strength !== strengthFilter) return false;
@@ -90,11 +92,7 @@ export function SignalsSection() {
       {!loading && feed.length > 0 && (
         <>
           <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div className={`rounded-2xl px-5 py-4 text-white shadow-lg ${bias.label === "BULLISH" ? "bg-emerald-600" : bias.label === "BEARISH" ? "bg-red-500" : "bg-zinc-700"}`}>
-              <div className="text-[11px] font-semibold uppercase tracking-widest text-white/60">Ecosystem bias</div>
-              <div className="mt-1 font-display text-2xl font-semibold">{bias.label}</div>
-              <div className="mt-0.5 text-[11px] text-white/70">{bias.bulls} bullish · {bias.bears} bearish · score {bias.score}/100</div>
-            </div>
+            <BiasHero label="Ecosystem bias" bias={bias} />
             <Stat label="Signals firing" value={String(events.length)} sub={`${filtered.length} shown · ${feed.length} tokens`} />
             <Stat label="Top mover" value={topMover ? `${topMover.change24h >= 0 ? "+" : ""}${topMover.change24h.toFixed(1)}%` : "—"} sub={topMover ? `$${topMover.symbol}` : ""} />
             <Stat label="Archive pipeline" value={record.ready ? (pendingCount ? `${pendingCount} pending` : "Live") : "Local"} sub={record.ready ? "scored at +24h via snapshots" : "connect backend for track record"} />
@@ -163,8 +161,10 @@ function SignalEventRow({ e, byKind, onOpen }: {
         <div className="mt-1.5 flex items-center gap-2 text-[11px] text-zinc-400">
           {e.token.icon && <img src={e.token.icon} alt="" className="h-4 w-4 rounded-full" onError={(ev) => { (ev.target as HTMLImageElement).style.display = "none"; }} />}
           <span className="font-semibold text-zinc-600">{e.token.name}</span> ${e.token.symbol}
-          <span className="rounded bg-zinc-100 px-2 py-0.5 font-mono text-[10px] text-zinc-500">Live</span>
-          <span className="ml-auto font-semibold text-indigo-500">Open terminal →</span>
+          <span className="term-signal-time" title={new Date(e.occurredAt).toLocaleString()}>
+            {formatRelativeTime(e.occurredAt)}
+          </span>
+          <span className="ml-auto text-[11px] font-medium" style={{ color: "var(--term-accent)" }}>Open →</span>
         </div>
       </div>
     </button>

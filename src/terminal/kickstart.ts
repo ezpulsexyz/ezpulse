@@ -826,9 +826,55 @@ export interface EcoEvent {
   title: string;
   detail: string;
   weight: number; // ordering: bigger = more important
+  /** Best-effort epoch ms for when the signal became relevant. */
+  occurredAt: number;
 }
 
-export function ecosystemSignals(feed: LiveLaunch[]): EcoEvent[] {
+/** Infer when a live signal became relevant (for relative timestamps). */
+export function signalOccurredAt(
+  c: LiveLaunch,
+  kind: Signal["kind"] | "LAUNCH",
+  opts?: { title?: string; feedUpdatedAt?: number },
+): number {
+  const now = opts?.feedUpdatedAt ?? Date.now();
+
+  if (kind === "LAUNCH" && c.pairCreatedAt) {
+    return c.pairCreatedAt;
+  }
+
+  if (kind === "WHALE") {
+    const title = opts?.title ?? "";
+    const hourlyVolShare = c.volume24h > 0 ? c.volume1h / c.volume24h : 0;
+    const trades1h = c.buys1h + c.sells1h;
+    const trades24 = c.buys24h + c.sells24h;
+
+    if (title.includes("burst") || hourlyVolShare >= 0.28 || trades1h >= 10) {
+      const mins = Math.max(8, Math.min(52, Math.round(hourlyVolShare * 55 + 10)));
+      return now - mins * 60_000;
+    }
+    if (trades24 > 0 && trades1h > 0) {
+      const hoursAgo = Math.max(1, Math.min(18, Math.round((1 - trades1h / trades24) * 10 + 1)));
+      return now - hoursAgo * 3_600_000;
+    }
+    return now - 6 * 3_600_000;
+  }
+
+  if (kind === "VERIFY" && c.pairCreatedAt) {
+    const age = now - c.pairCreatedAt;
+    if (age < 2 * 86_400_000) return c.pairCreatedAt + Math.round(age * 0.35);
+    return now - 18 * 3_600_000;
+  }
+
+  if (c.pairCreatedAt) {
+    const age = now - c.pairCreatedAt;
+    if (age < 86_400_000) return c.pairCreatedAt + Math.round(age * 0.6);
+  }
+
+  // Rolling 24h metrics — timestamp at last feed refresh
+  return now;
+}
+
+export function ecosystemSignals(feed: LiveLaunch[], feedUpdatedAt?: number | null): EcoEvent[] {
   const events: EcoEvent[] = [];
   const ranked = [...feed].sort((a, b) => b.mcap - a.mcap);
   for (const c of feed) {
@@ -837,10 +883,12 @@ export function ecosystemSignals(feed: LiveLaunch[]): EcoEvent[] {
     if (c.pairCreatedAt) {
       const days = m.pairAgeDays ?? 0;
       if (days <= 7) {
+        const launchTitle = `New launch: ${c.name}`;
         events.push({
           token: c, kind: "LAUNCH", strength: "BULLISH", weight: signalWeight("LAUNCH", "BULLISH", m),
-          title: `New launch: ${c.name}`,
+          title: launchTitle,
           detail: `$${c.symbol} paired ${days < 1 ? "today" : `${Math.floor(days)}d ago`} — ${c.mcap ? "trading at " + (c.mcap >= 1000 ? `$${(c.mcap / 1000).toFixed(1)}K` : `$${c.mcap.toFixed(0)}`) + " cap" : "price discovery underway"}.`,
+          occurredAt: signalOccurredAt(c, "LAUNCH", { title: launchTitle, feedUpdatedAt: feedUpdatedAt ?? undefined }),
         });
       }
     }
@@ -849,6 +897,7 @@ export function ecosystemSignals(feed: LiveLaunch[]): EcoEvent[] {
       events.push({
         token: c, kind: s.kind, strength: s.strength, title: s.title, detail: s.detail,
         weight: signalWeight(s.kind, s.strength, m),
+        occurredAt: signalOccurredAt(c, s.kind, { title: s.title, feedUpdatedAt: feedUpdatedAt ?? undefined }),
       });
     }
   }

@@ -23,6 +23,7 @@ export function ProjectsSection() {
     openToken,
     closeProject,
     routeProjectCa,
+    lastUpdated,
     goto,
   } = useTerminalContext();
 
@@ -135,6 +136,7 @@ export function ProjectsSection() {
           copiedCa={copiedCa}
           onOpenToken={openToken}
           goto={goto}
+          feedUpdatedAt={lastUpdated}
         />
       )}
     </>

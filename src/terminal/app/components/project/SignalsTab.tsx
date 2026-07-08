@@ -8,14 +8,15 @@ import {
   type PendingSignal,
   type ResolvedSignal,
 } from "../../../backend";
-import { tokenSignalBias, tokenSignals, type LiveLaunch } from "../../../kickstart";
+import { signalOccurredAt, tokenSignalBias, tokenSignals, type LiveLaunch } from "../../../kickstart";
+import { BiasHero } from "../BiasHero";
 
 type DisplaySignal = {
   key: string;
   kind: string;
   strength: string;
   detail: string;
-  created_at: string;
+  occurredAt: number;
   live?: boolean;
 };
 
@@ -27,7 +28,15 @@ function strengthClass(strength: string): string {
   return "bg-zinc-100 text-zinc-600";
 }
 
-export function SignalsTab({ token, feed }: { token: LiveLaunch; feed: LiveLaunch[] }) {
+export function SignalsTab({
+  token,
+  feed,
+  feedUpdatedAt,
+}: {
+  token: LiveLaunch;
+  feed: LiveLaunch[];
+  feedUpdatedAt?: number | null;
+}) {
   const [archived, setArchived] = useState<(PendingSignal | ResolvedSignal)[]>([]);
 
   useEffect(() => {
@@ -51,17 +60,14 @@ export function SignalsTab({ token, feed }: { token: LiveLaunch; feed: LiveLaunc
   }, [token.ca]);
 
   const bias = tokenSignalBias(token, feed);
-  const biasBg =
-    bias.label === "BULLISH" ? "bg-emerald-600" : bias.label === "BEARISH" ? "bg-red-500" : "bg-zinc-800";
 
   const sortedSignals = useMemo(() => {
-    const now = new Date().toISOString();
     const live: DisplaySignal[] = tokenSignals(token, feed).map((s, i) => ({
       key: `live-${s.kind}-${s.strength}-${i}`,
       kind: s.kind,
       strength: s.strength,
       detail: s.detail,
-      created_at: now,
+      occurredAt: signalOccurredAt(token, s.kind, { title: s.title, feedUpdatedAt: feedUpdatedAt ?? undefined }),
       live: true,
     }));
     const stored: DisplaySignal[] = archived.map((s) => ({
@@ -69,23 +75,15 @@ export function SignalsTab({ token, feed }: { token: LiveLaunch; feed: LiveLaunc
       kind: s.kind,
       strength: s.strength,
       detail: s.title,
-      created_at: s.ts,
+      occurredAt: new Date(s.ts).getTime(),
     }));
-    return [...live, ...stored].sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-    );
-  }, [token, feed, archived]);
+    return [...live, ...stored].sort((a, b) => b.occurredAt - a.occurredAt);
+  }, [token, feed, archived, feedUpdatedAt]);
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className={`rounded-2xl p-6 text-white ${biasBg}`}>
-          <div className="text-sm opacity-75">Signal Bias</div>
-          <div className="mt-2 text-4xl font-semibold">{bias.label}</div>
-          <div className="mt-1 text-xs opacity-75">
-            {bias.bulls} bullish · {bias.bears} bearish · score {bias.score}/100
-          </div>
-        </div>
+        <BiasHero label="Signal bias" bias={bias} />
         <Stat label="Active Signals" value={sortedSignals.length.toString()} />
         <Stat label="Data Source" value="Live" sub="DexScreener + Jupiter" />
       </div>
@@ -93,31 +91,28 @@ export function SignalsTab({ token, feed }: { token: LiveLaunch; feed: LiveLaunc
       <div className="space-y-4">
         {sortedSignals.length > 0 ? (
           sortedSignals.map((signal) => (
-            <div key={signal.key} className="rounded-2xl border border-zinc-200 p-6">
-              <div className="mb-3 flex items-center justify-between">
-                <div className="flex items-center gap-3">
+            <div key={signal.key} className="term-card p-5">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className={`rounded-full px-3 py-1 text-xs font-bold ${strengthClass(signal.strength)}`}>
                     {signal.strength}
                   </span>
-                  <span className="text-sm font-medium">{signal.kind}</span>
+                  <span className="text-sm font-medium" style={{ color: "var(--term-text-secondary)" }}>{signal.kind}</span>
                   {signal.live && (
-                    <span className="rounded bg-emerald-50 px-2 py-0.5 font-mono text-[10px] text-emerald-600">
+                    <span className="rounded px-2 py-0.5 font-mono text-[10px]" style={{ background: "color-mix(in srgb, #10b981 12%, var(--term-surface))", color: "#059669" }}>
                       Live
                     </span>
                   )}
                 </div>
-                <span
-                  className="text-xs text-zinc-400"
-                  title={new Date(signal.created_at).toLocaleString()}
-                >
-                  {formatRelativeTime(signal.created_at)}
+                <span className="term-signal-time shrink-0" title={new Date(signal.occurredAt).toLocaleString()}>
+                  {formatRelativeTime(signal.occurredAt)}
                 </span>
               </div>
-              <p className="text-zinc-700">{signal.detail || "No additional details"}</p>
+              <p className="text-[13px] leading-relaxed" style={{ color: "var(--term-text-secondary)" }}>{signal.detail || "No additional details"}</p>
             </div>
           ))
         ) : (
-          <div className="py-8 text-center text-zinc-500">No strong signals right now.</div>
+          <div className="py-8 text-center" style={{ color: "var(--term-text-muted)" }}>No strong signals right now.</div>
         )}
       </div>
     </div>

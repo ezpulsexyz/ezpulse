@@ -28,6 +28,7 @@ export interface ProjectDetailProps {
   copiedCa: string | null;
   onOpenToken: (c: LiveLaunch) => void;
   goto: (s: Section) => void;
+  feedUpdatedAt?: number | null;
 }
 
 export default function ProjectDetail({
@@ -41,6 +42,7 @@ export default function ProjectDetail({
   copiedCa,
   onOpenToken,
   goto,
+  feedUpdatedAt,
 }: ProjectDetailProps) {
   const [projTab, setProjTab] = useState<ProjTab>("overview");
   const [recentThesesCount, setRecentThesesCount] = useState(0);
@@ -178,7 +180,7 @@ export default function ProjectDetail({
             onViewSignals={() => setProjTab("signals")}
           />
         )}
-        {projTab === "signals" && <SignalsTab token={token} feed={feed} />}
+        {projTab === "signals" && <SignalsTab token={token} feed={feed} feedUpdatedAt={feedUpdatedAt} />}
         {projTab === "history" && <HistoryChart ca={token.ca} />}
         {projTab === "thesis" && <InvestorThesis token={token} feed={feed} />}
         {projTab === "founder" && verified && (

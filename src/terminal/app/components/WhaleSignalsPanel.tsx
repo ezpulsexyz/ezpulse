@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { formatRelativeTime } from "../../../lib/utils";
 import type { EcoEvent } from "../../kickstart";
 import { BLUE, Card } from "../../components";
 import { KindBadge, StrengthBadge } from "./SignalBadges";
@@ -68,6 +69,9 @@ export function WhaleSignalsPanel({
                   )}
                   <span className="font-semibold text-zinc-600">{e.token.name}</span>
                   <span className="font-mono">${e.token.symbol}</span>
+                  <span className="term-signal-time" title={new Date(e.occurredAt).toLocaleString()}>
+                    {formatRelativeTime(e.occurredAt)}
+                  </span>
                   <span className="ml-auto font-semibold" style={{ color: BLUE }}>Open →</span>
                 </div>
               </div>
