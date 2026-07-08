@@ -275,7 +275,7 @@ input, textarea, select, button { color-scheme: light; }
     display: none;
   }
 
-  .term-sidebar--collapsed nav {
+  .term-sidebar--collapsed .term-sidebar__nav {
     padding-left: 0.375rem;
     padding-right: 0.375rem;
     padding-bottom: 1.5rem;

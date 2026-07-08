@@ -52,9 +52,10 @@ export function Sidebar() {
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 pb-32 scrollbar-thin">
+        <nav className="term-sidebar__nav flex-1 overflow-y-auto px-3 pb-32 scrollbar-thin">
           {NAV_GROUPS.map((group, gi) => (
-            <div key={group.workflow} className={gi > 0 ? "term-nav-divider mt-5 border-t pt-5" : ""}>
+            <div key={group.workflow} className={gi > 0 ? "mt-5" : ""}>
+              {gi > 0 && <div className="term-nav-divider mb-5 border-t" aria-hidden />}
               <div className="term-nav-section mb-2 px-2 text-[10px] font-medium uppercase tracking-[0.16em]">
                 {group.workflow}
               </div>
