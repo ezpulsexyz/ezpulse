@@ -522,6 +522,15 @@ input, textarea, select, button { color-scheme: light; }
   padding-right: max(0.25rem, env(safe-area-inset-right));
 }
 
+.term-pending-icon {
+  background: color-mix(in srgb, #f59e0b 14%, var(--term-surface));
+  color: #d97706;
+}
+
+.term-app[data-theme="dark"] .term-pending-icon {
+  color: #fbbf24;
+}
+
 /* Project page action buttons */
 .term-action {
   display: inline-flex;
