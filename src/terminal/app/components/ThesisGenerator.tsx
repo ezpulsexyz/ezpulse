@@ -48,17 +48,21 @@ export function ThesisGenerator({ token, feed }: { token: LiveLaunch; feed: Live
         </span>
       }
     >
-      <div className="border-b border-zinc-100 px-5 py-3.5">
+      <div className="border-b px-5 py-3.5" style={{ borderColor: "var(--term-border-subtle)" }}>
         <div className="flex flex-wrap items-center gap-2">
           <span className={`rounded-full px-2.5 py-1 text-[9px] font-black tracking-widest text-white ${verdictCol}`}>
             {thesis.verdict}
           </span>
-          <span className="text-[13px] font-bold text-zinc-900">on {token.name} ${token.symbol}</span>
-          <span className="ml-auto rounded-full bg-indigo-50 px-2 py-0.5 text-[9px] font-bold text-indigo-600">
+          <span className="text-[13px] font-bold" style={{ color: "var(--term-text)" }}>
+            on {token.name} ${token.symbol}
+          </span>
+          <span className="term-thesis-horizon ml-auto rounded-full px-2 py-0.5 text-[9px] font-bold">
             {thesis.horizon} horizon
           </span>
         </div>
-        <div className="mt-1 text-[11px] text-zinc-400">{thesis.signalSummary}</div>
+        <div className="mt-1 text-[11px]" style={{ color: "var(--term-text-subtle)" }}>
+          {thesis.signalSummary}
+        </div>
       </div>
 
       <div className="space-y-3 px-5 py-4">
@@ -69,27 +73,31 @@ export function ThesisGenerator({ token, feed }: { token: LiveLaunch; feed: Live
           ["Main risk", thesis.risk],
         ].map(([label, value]) => (
           <div key={label as string}>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">{label}</div>
-            <div className="mt-0.5 text-[13px] leading-relaxed text-zinc-700">{value}</div>
+            <div className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "var(--term-text-subtle)" }}>
+              {label}
+            </div>
+            <div className="mt-0.5 text-[13px] leading-relaxed" style={{ color: "var(--term-text-secondary)" }}>
+              {value}
+            </div>
           </div>
         ))}
 
-        <div className="rounded-xl bg-amber-50/70 px-3.5 py-2.5">
-          <div className="text-[10px] font-bold uppercase tracking-widest text-amber-600">Falsifiable claim · auto-scored</div>
-          <div className="mt-0.5 text-[13px] font-semibold text-zinc-800">
+        <div className="term-thesis-claim">
+          <div className="term-thesis-claim__label">Falsifiable claim · auto-scored</div>
+          <div className="term-thesis-claim__body">
             "{thesis.falsifiableClaim}" — resolves {thesis.resolveDate} from live data
           </div>
         </div>
 
         {thesis.founderInsight && (
-          <div className="rounded-xl border border-indigo-100 bg-indigo-50/30 px-3.5 py-2.5">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-indigo-600">Founder context</div>
-            <p className="mt-1 text-[13px] leading-relaxed text-zinc-700">{thesis.founderInsight}</p>
+          <div className="term-thesis-founder">
+            <div className="term-thesis-founder__label">Founder context</div>
+            <p className="term-thesis-founder__body">{thesis.founderInsight}</p>
           </div>
         )}
       </div>
 
-      <div className="border-t border-zinc-100 px-5 py-2.5 text-[10px] text-zinc-400">
+      <div className="border-t px-5 py-2.5 text-[10px]" style={{ borderColor: "var(--term-border-subtle)", color: "var(--term-text-subtle)" }}>
         Sources: {thesis.sources.join(" · ")} · Not investment advice · regenerate on every load
       </div>
     </Card>

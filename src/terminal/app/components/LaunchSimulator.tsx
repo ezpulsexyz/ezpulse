@@ -75,14 +75,14 @@ function SimulatorChart({ result }: { result: LaunchSimResult }) {
   const xLabels = [0, 0.5, 1].map((f) => ({ ts: t0 + tr * f, x: PAD_L + plotW * f }));
 
   return (
-    <div className="rounded-xl border border-zinc-100 bg-zinc-50/50 p-3">
-      <div className="mb-1 flex flex-wrap justify-between gap-2 px-1 text-[10px] text-zinc-400">
+    <div className="term-sim-chart">
+      <div className="term-sim-chart__head">
         <span>Portfolio value · {result.entryLabel}</span>
         <span className={up ? "text-emerald-600" : "text-red-500"}>
           {up ? "▲" : "▼"} {result.roiPct >= 0 ? "+" : ""}{result.roiPct}% vs cost basis
         </span>
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label="Portfolio simulation chart">
+      <svg viewBox={`0 0 ${W} ${H}`} className="term-sim-chart__svg w-full" role="img" aria-label="Portfolio simulation chart">
         <defs>
           <linearGradient id="sim-area" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={col} stopOpacity=".18" />
@@ -93,8 +93,21 @@ function SimulatorChart({ result }: { result: LaunchSimResult }) {
           const y = toY(v);
           return (
             <g key={i}>
-              <line x1={PAD_L} x2={W - PAD_R} y1={y} y2={y} stroke="#f1f1f4" strokeDasharray={i === 0 || i === 4 ? "0" : "4 4"} />
-              <text x={PAD_L - 6} y={y + 3} textAnchor="end" className="fill-zinc-400" style={{ fontSize: 9, fontFamily: "JetBrains Mono, ui-monospace, monospace" }}>
+              <line
+                x1={PAD_L}
+                x2={W - PAD_R}
+                y1={y}
+                y2={y}
+                className="term-sim-chart__grid"
+                strokeDasharray={i === 0 || i === 4 ? "0" : "4 4"}
+              />
+              <text
+                x={PAD_L - 6}
+                y={y + 3}
+                textAnchor="end"
+                className="term-sim-chart__axis"
+                style={{ fontSize: 9, fontFamily: "JetBrains Mono, ui-monospace, monospace" }}
+              >
                 {fmtAxisUsd(v)}
               </text>
             </g>
@@ -102,20 +115,27 @@ function SimulatorChart({ result }: { result: LaunchSimResult }) {
         })}
         <path d={area} fill="url(#sim-area)" />
         <path d={path} fill="none" stroke={col} strokeWidth="2" strokeLinejoin="round" />
-        <line x1={PAD_L} x2={W - PAD_R} y1={basisY} y2={basisY} stroke="#a1a1aa" strokeDasharray="5 4" strokeWidth="1" />
-        <circle cx={pts[peakIdx][0]} cy={pts[peakIdx][1]} r="3.5" fill="#10b981" stroke="#fff" strokeWidth="1.5" />
-        <circle cx={pts[troughIdx][0]} cy={pts[troughIdx][1]} r="3.5" fill="#ef4444" stroke="#fff" strokeWidth="1.5" />
-        <circle cx={pts[pts.length - 1][0]} cy={pts[pts.length - 1][1]} r="4" fill={col} stroke="#fff" strokeWidth="2" />
+        <line x1={PAD_L} x2={W - PAD_R} y1={basisY} y2={basisY} className="term-sim-chart__basis" strokeDasharray="5 4" strokeWidth="1" />
+        <circle cx={pts[peakIdx][0]} cy={pts[peakIdx][1]} r="3.5" fill="#10b981" className="term-sim-chart__marker" strokeWidth="1.5" />
+        <circle cx={pts[troughIdx][0]} cy={pts[troughIdx][1]} r="3.5" fill="#ef4444" className="term-sim-chart__marker" strokeWidth="1.5" />
+        <circle cx={pts[pts.length - 1][0]} cy={pts[pts.length - 1][1]} r="4" fill={col} className="term-sim-chart__marker" strokeWidth="2" />
         {xLabels.map(({ ts, x }, i) => (
-          <text key={i} x={x} y={H - 6} textAnchor="middle" className="fill-zinc-400" style={{ fontSize: 9, fontFamily: "JetBrains Mono, ui-monospace, monospace" }}>
+          <text
+            key={i}
+            x={x}
+            y={H - 6}
+            textAnchor="middle"
+            className="term-sim-chart__axis"
+            style={{ fontSize: 9, fontFamily: "JetBrains Mono, ui-monospace, monospace" }}
+          >
             {fmtAxisDate(ts)}
           </text>
         ))}
       </svg>
-      <div className="mt-1 flex flex-wrap gap-3 px-1 text-[9px] text-zinc-400">
+      <div className="term-sim-chart__legend">
         <span><span className="inline-block h-2 w-2 rounded-full bg-emerald-500 align-middle" /> peak</span>
         <span><span className="inline-block h-2 w-2 rounded-full bg-red-500 align-middle" /> trough</span>
-        <span className="border-l border-zinc-200 pl-3">— cost basis</span>
+        <span className="term-sim-chart__legend-divider">— cost basis</span>
       </div>
     </div>
   );
