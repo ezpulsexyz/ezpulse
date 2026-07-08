@@ -32,6 +32,13 @@ export interface InvestorThesisPost {
 
 const STORAGE_KEY = "ezpulse:investor-theses";
 
+export const REFRESH_THESES_EVENT = "refresh-theses";
+
+/** Notify all mounted ThesesList instances to reload. */
+export function refreshThesesList(): void {
+  window.dispatchEvent(new Event(REFRESH_THESES_EVENT));
+}
+
 export type ThesisEditorVerdict = "Bullish" | "Bearish" | "Neutral";
 
 export interface ThesisSubmission {

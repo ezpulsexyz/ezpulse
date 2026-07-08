@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
 import Toast, { type ToastState } from "../components/Toast";
+import SuccessToast from "../components/SuccessToast";
 import WalletGate from "../components/WalletGate";
 import ThesisEditorModal from "../components/ThesisEditorModal";
 import ThesesList from "../components/ThesesList";
 import { useWallet } from "../hooks/useWallet";
-import { persistInvestorThesis } from "../investorThesis";
+import { persistInvestorThesis, refreshThesesList } from "../investorThesis";
 import type { LiveLaunch } from "../kickstart";
 
 interface InvestorThesisProps {
@@ -18,14 +19,22 @@ export default function InvestorThesis({ token, feed: _feed }: InvestorThesisPro
   const [isVerifiedHolder, setIsVerifiedHolder] = useState(false);
   const [holdingBalance, setHoldingBalance] = useState(0);
   const [thesesRefresh, setThesesRefresh] = useState(0);
-  const [toast, setToast] = useState<ToastState>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorToast, setErrorToast] = useState<ToastState>(null);
 
   useEffect(() => {
-    if (toast) {
-      const timer = setTimeout(() => setToast(null), 4000);
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(null), 4000);
       return () => clearTimeout(timer);
     }
-  }, [toast]);
+  }, [successMessage]);
+
+  useEffect(() => {
+    if (errorToast) {
+      const timer = setTimeout(() => setErrorToast(null), 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [errorToast]);
 
   const handlePostThesis = () => {
     if (isVerifiedHolder) {
@@ -45,7 +54,8 @@ export default function InvestorThesis({ token, feed: _feed }: InvestorThesisPro
       holdingBalance > 0 &&
       (token.priceUsd <= 0 || holdingBalance * token.priceUsd >= 0.01);
 
-    setToast(null);
+    setErrorToast(null);
+    setSuccessMessage(null);
 
     const result = await persistInvestorThesis({
       tokenCa: token.ca,
@@ -57,24 +67,25 @@ export default function InvestorThesis({ token, feed: _feed }: InvestorThesisPro
 
     if (result.ok) {
       setShowModal(false);
+      setSuccessMessage(result.message || "Thesis posted successfully!");
       setThesesRefresh((k) => k + 1);
-      setToast({ type: "success", message: result.message });
+      refreshThesesList();
     } else {
-      setToast({ type: "error", message: result.message });
+      setErrorToast({ type: "error", message: result.message });
     }
   };
 
   return (
     <>
-      <div className="max-w-3xl mx-auto space-y-10">
+      <div className="mx-auto max-w-3xl space-y-10">
         <div>
           <h2 className="text-3xl font-semibold tracking-tight">Investor Thesis</h2>
-          <p className="text-zinc-500 mt-2">
+          <p className="mt-2 text-zinc-500">
             Share and read structured analysis from the community.
           </p>
         </div>
 
-        <div className="bg-white border border-zinc-200 rounded-3xl p-6">
+        <div className="rounded-3xl border border-zinc-200 bg-white p-6">
           <WalletGate
             tokenCa={token.ca}
             showPostButton={true}
@@ -88,10 +99,14 @@ export default function InvestorThesis({ token, feed: _feed }: InvestorThesisPro
         </div>
 
         <div>
-          <div className="flex items-center justify-between mb-6">
+          <div className="mb-6 flex items-center justify-between">
             <h3 className="text-xl font-semibold">Community Theses</h3>
           </div>
-          <ThesesList tokenCa={token.ca} currentWallet={wallet} refreshKey={thesesRefresh} />
+          <ThesesList
+            tokenCa={token.ca}
+            currentWallet={wallet}
+            refreshKey={thesesRefresh}
+          />
         </div>
 
         <ThesisEditorModal
@@ -102,8 +117,16 @@ export default function InvestorThesis({ token, feed: _feed }: InvestorThesisPro
           onSubmit={handleThesisSubmit}
         />
       </div>
-      {toast && (
-        <Toast type={toast.type} message={toast.message} onClose={() => setToast(null)} />
+
+      {successMessage && (
+        <SuccessToast message={successMessage} onClose={() => setSuccessMessage(null)} />
+      )}
+      {errorToast && (
+        <Toast
+          type={errorToast.type}
+          message={errorToast.message}
+          onClose={() => setErrorToast(null)}
+        />
       )}
     </>
   );

@@ -7,7 +7,7 @@ import {
   upvoteThesis,
   type SavedInvestorThesis,
 } from "../backend";
-import { loadInvestorTheses, localPostToSaved } from "../investorThesis";
+import { loadInvestorTheses, localPostToSaved, REFRESH_THESES_EVENT } from "../investorThesis";
 
 interface ThesesListProps {
   tokenCa: string;
@@ -69,6 +69,15 @@ export default function ThesesList({
   useEffect(() => {
     void loadTheses();
   }, [loadTheses, refreshKey]);
+
+  useEffect(() => {
+    const handleRefresh = () => {
+      void loadTheses(true);
+    };
+
+    window.addEventListener(REFRESH_THESES_EVENT, handleRefresh);
+    return () => window.removeEventListener(REFRESH_THESES_EVENT, handleRefresh);
+  }, [loadTheses]);
 
   useEffect(() => {
     if (!currentWallet || !backendReady) {

@@ -1,5 +1,6 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import type { ProjectCategory } from "./app/types";
+import { resolveProjectCategories } from "./projectCategories";
 import { getSupabaseUrl } from "../utils/supabase/config";
 import {
   whaleSignal as coreWhaleSignal,
@@ -296,7 +297,7 @@ const applySupplyOverride = (launch: LiveLaunch, overrides: Map<string, SupplyOv
 /** Fill circulating / max supply for a single token (Jupiter + optional override endpoint). */
 export async function enrichTokenSupply(token: LiveLaunch): Promise<LiveLaunch> {
   const overrides = await fetchSupplyOverrides();
-  return applyCategoryOverride(applySocialOverride(applySupplyOverride(token, overrides)));
+  return applyCategoryClassification(applySocialOverride(applySupplyOverride(token, overrides)));
 }
 
 /** Graduated = completed the bonding curve (migrated to AMM). */
@@ -440,26 +441,14 @@ function applySocialOverride(launch: LiveLaunch): LiveLaunch {
   return { ...launch, links: { ...launch.links, ...override } };
 }
 
-/** Curated project categories for tracked Kickstart launches. */
-const CATEGORY_OVERRIDES: Record<string, ProjectCategory[]> = {
-  FKshTXX4wUcirV9b4LhLrNP4cxAsA2VBAFdMEw5EASY: ["Utility"],
-  bS532krUcXBMNqXURPtGqYA7dhEsenYe2z9QKkcEASY: ["AI", "Infra"],
-  "12z7AWnW5Q8mAS9qFtCWnnMdhNvqScZHe8w627EfEASY": ["AI"],
-  iu3A7azWTm3zQSk81SUC1JctB4zPYnxLmcmqq71EASY: ["AI"], // BIT AGENTS $BITAGENTS
-  fmTCoRQFRiFUDFdjFYzzkfMbJfjpQea4LuaapNNEASY: ["Gaming"], // The Lobby $LOBBY
-  "6bTQPMctA5V8RNJnUc59mP1tAJB5dzLpUep4JuFEASY": ["Gaming"], // World Colony $ANT
-  AXqEggnJtaWeu4ds6HcBS3dLXJh58Z17hcmo3AhEASY: ["Gaming"], // Flappy Birbs $BIRBS
-  "6gnvghh8LKoM59p1WZSuTgYmdJrnZnhU7BzCcEaEASY": ["Infra", "Utility"],
-  EhkrQGCnGfVSJc118G1r1S9pxdFdPWJuSyz1iYKEASY: ["AI"],
-  "9ufM9TJd1UEmi9awnGfxCkCHAgQ3JZ5Sw6YxeSeEASY": ["AI"],
-  VtZmMdFowJcaXAqaW951RVuH84WeLTQxfs83XZWEASY: ["Utility", "Infra"],
-  AKKAPZBnJnzfE83DspsBSoqGSMwa2haFvoEJj1qzdrmk: ["AI"],
-};
-
-function applyCategoryOverride(launch: LiveLaunch): LiveLaunch {
-  const categories =
-    CATEGORY_OVERRIDES[launch.ca] ?? CATEGORY_OVERRIDES[launch.ca.toLowerCase()];
-  if (!categories?.length) return launch;
+function applyCategoryClassification(launch: LiveLaunch): LiveLaunch {
+  const categories = resolveProjectCategories({
+    ca: launch.ca,
+    name: launch.name,
+    symbol: launch.symbol,
+    description: launch.description,
+    website: launch.links.website,
+  });
   return { ...launch, categories };
 }
 
@@ -674,7 +663,7 @@ export async function fetchLiveFeed(): Promise<{ launches: LiveLaunch[]; source:
     const launches = [...found.values()]
       .map((launch) => applySupplyOverride(launch, supplyOverrides))
       .map(applySocialOverride)
-      .map(applyCategoryOverride)
+      .map(applyCategoryClassification)
       .sort((a, b) => b.mcap - a.mcap);
     return launches.length ? { launches, source: "KICKSTART" } : null;
   } catch {

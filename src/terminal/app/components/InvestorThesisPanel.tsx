@@ -12,6 +12,7 @@ import {
   formatTokenAmount,
   loadInvestorTheses,
   persistInvestorThesis,
+  refreshThesesList,
   shortWallet,
   type InvestorThesisPost,
   type ThesisVerdict,
@@ -259,6 +260,7 @@ export function InvestorThesisPanel({ token }: { token: LiveLaunch }) {
             setToast({ type: "success", message: result.message });
             if (result.remote) {
               setThesesRefresh((k) => k + 1);
+              refreshThesesList();
             } else {
               refreshLocal();
             }
