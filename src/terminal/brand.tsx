@@ -19,10 +19,18 @@ export function PulseMark({ size = 32, className = "" }: { size?: number; classN
 
 /** ezpulse wordmark: "ez" bold + "pulse" light. */
 export function Wordmark({ className = "", dark = false }: { className?: string; dark?: boolean }) {
+  if (dark) {
+    return (
+      <span className={`font-bold tracking-tight ${className}`}>
+        <span className="text-white">ez</span>
+        <span className="font-normal text-white/60">pulse</span>
+      </span>
+    );
+  }
   return (
     <span className={`font-bold tracking-tight ${className}`}>
-      <span className={dark ? "text-white" : "text-zinc-900"}>ez</span>
-      <span className={dark ? "font-normal text-white/60" : "font-normal text-zinc-500"}>pulse</span>
+      <span className="term-wordmark-strong">ez</span>
+      <span className="term-wordmark-muted font-normal">pulse</span>
     </span>
   );
 }

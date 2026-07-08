@@ -6,8 +6,8 @@ export function PageHead({ title, sub, right }: { title: string; sub: string; ri
   return (
     <div className="mb-3 flex flex-wrap items-start justify-between gap-2 sm:mb-4 sm:items-end">
       <div className="min-w-0 flex-1">
-        <h1 className="text-sm font-semibold tracking-tight text-zinc-900 sm:text-[15px]">{title}</h1>
-        <p className="mt-0.5 text-[11px] leading-snug text-zinc-500">{sub}</p>
+        <h1 className="term-page-title">{title}</h1>
+        <p className="term-page-sub">{sub}</p>
       </div>
       {right && <div className="shrink-0">{right}</div>}
     </div>
@@ -40,10 +40,10 @@ export function LoadingRows() {
 
 export function EmptyState({ icon, title, body, cta }: { icon: string; title: string; body: string; cta?: React.ReactNode }) {
   return (
-    <div className="rounded-md border border-dashed border-zinc-300 bg-white p-5 text-center sm:p-8">
-      <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em] text-zinc-400">{icon}</div>
-      <h2 className="text-sm font-semibold text-zinc-900">{title}</h2>
-      <p className="mx-auto mt-1.5 max-w-md text-[11px] leading-relaxed text-zinc-500">{body}</p>
+    <div className="term-card rounded-md border-dashed p-5 text-center sm:p-8" style={{ borderStyle: "dashed" }}>
+      <div className="mb-2 font-mono text-[10px] uppercase tracking-[0.12em]" style={{ color: "var(--term-text-subtle)" }}>{icon}</div>
+      <h2 className="term-page-title">{title}</h2>
+      <p className="term-page-sub mx-auto mt-1.5 max-w-md leading-relaxed">{body}</p>
       {cta && <div className="mt-4 flex flex-wrap justify-center gap-2">{cta}</div>}
     </div>
   );

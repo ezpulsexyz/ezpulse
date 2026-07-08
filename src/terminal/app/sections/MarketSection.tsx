@@ -94,9 +94,7 @@ export function MarketSection() {
                   <button
                     key={id}
                     onClick={() => setMarketTab(id)}
-                    className={`flex-shrink-0 whitespace-nowrap rounded px-3 py-1.5 font-mono text-[10px] ${
-                      marketTab === id ? "bg-zinc-900 text-white" : "border border-zinc-200 bg-white text-zinc-600"
-                    }`}
+                    className={`term-tab-pill flex-shrink-0 whitespace-nowrap ${marketTab === id ? "term-tab-pill--active" : ""}`}
                   >
                     {label}
                   </button>
@@ -106,9 +104,11 @@ export function MarketSection() {
               {/* Desktop filter tabs */}
               <div className="term-tab-rail term-scroll-x mt-3 hidden lg:flex">
                 {MARKET_TABS.map(([id, label]) => (
-                  <button key={id} onClick={() => setMarketTab(id)}
-                    className={`whitespace-nowrap rounded px-3 py-1 font-mono text-[10px] font-medium transition ${marketTab === id ? "bg-white text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-800"}`}
-                    style={marketTab === id ? { boxShadow: "inset 0 -2px 0 0 #2743f0" } : undefined}>
+                  <button
+                    key={id}
+                    onClick={() => setMarketTab(id)}
+                    className={`term-tab whitespace-nowrap ${marketTab === id ? "term-tab--active" : ""}`}
+                  >
                     {label}
                   </button>
                 ))}
@@ -118,7 +118,7 @@ export function MarketSection() {
                 {marketTab !== "UPCOMING" && (
                   <div className="mb-4">
                     <div className="mb-2 flex items-center gap-2">
-                      <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-zinc-400">Categories</span>
+                      <span className="term-card__title">Categories</span>
                       {categoryFilter && (
                         <button
                           type="button"
@@ -136,11 +136,7 @@ export function MarketSection() {
                           key={cat}
                           type="button"
                           onClick={() => setCategoryFilter(cat === categoryFilter ? null : cat)}
-                          className={`rounded px-2.5 py-1 font-mono text-[10px] transition ${
-                            categoryFilter === cat
-                              ? "bg-zinc-900 text-white"
-                              : "border border-zinc-200 bg-white text-zinc-600 hover:border-zinc-300"
-                          }`}
+                          className={`term-tab-pill px-2.5 py-1 transition ${categoryFilter === cat ? "term-tab-pill--active" : ""}`}
                         >
                           {cat}
                         </button>
