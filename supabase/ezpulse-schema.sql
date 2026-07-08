@@ -58,6 +58,16 @@ create table if not exists public.signal_events (
 create index if not exists signal_events_ca_ts on public.signal_events (ca, ts desc);
 create index if not exists signal_events_open on public.signal_events (resolved, ts) where resolved = false;
 
+-- ─── Telegram notification allowlist ───
+-- Edge Function send-signal-to-telegram reads this with the service role.
+create table if not exists public.monitored_tokens (
+  token_ca     text primary key,
+  token_symbol text,
+  is_active    boolean not null default true,
+  created_at   timestamptz not null default now()
+);
+alter table public.monitored_tokens enable row level security;
+
 -- Public accuracy aggregate (safe to expose)
 create or replace view public.signal_accuracy as
   select kind, strength,
