@@ -4,16 +4,31 @@
  * Deployed frontend: GitHub Pages (static). Backend: Supabase project.
  *
  * Configure via Vite env vars at build time (GitHub Actions secrets):
- *   VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY (or legacy VITE_SUPABASE_ANON_KEY)
+ *   VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY (or VITE_SUPABASE_PUBLISHABLE_KEY)
  * Unset → the app runs local-only (localStorage), identical UX.
  * Schema: supabase/ezpulse-schema.sql
  */
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { createClient as createBrowserSupabaseClient } from "../utils/supabase/client";
-import { getSupabaseKey, getSupabaseUrl, isSupabaseConfigured } from "../utils/supabase/config";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-export const supabase: SupabaseClient | null = createBrowserSupabaseClient();
-export const backendReady = isSupabaseConfigured() && !!supabase;
+const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim() ?? "";
+const supabaseKey = (
+  (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim()
+  || (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined)?.trim()
+  || ""
+);
+
+export const supabase: SupabaseClient | null =
+  supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
+export const backendReady = !!supabase;
+
+function getSupabaseUrl(): string {
+  return supabaseUrl;
+}
+
+function getSupabaseKey(): string {
+  return supabaseKey;
+}
 
 /** Anonymous device id — lets watchlists sync without accounts. */
 function deviceId(): string {
@@ -261,62 +276,46 @@ export async function checkThesisRateLimit(
 
 export async function saveInvestorThesis(payload: ThesisPayload): Promise<SaveThesisResult> {
   if (!supabase) {
+    console.warn("Supabase not configured - saving locally instead");
     return { ok: false, error: "Supabase not configured" };
   }
 
-  try {
-    const { data, error } = await supabase
-      .from("investor_theses")
-      .insert({
-        token_ca: payload.token_ca,
-        wallet_address: payload.wallet_address,
-        verdict: payload.verdict,
-        content: payload.content,
-        key_points: payload.key_points ?? [],
-      })
-      .select();
+  const { data, error } = await supabase
+    .from("investor_theses")
+    .insert({
+      token_ca: payload.token_ca,
+      wallet_address: payload.wallet_address,
+      verdict: payload.verdict,
+      content: payload.content,
+      key_points: payload.key_points ?? [],
+    })
+    .select()
+    .single();
 
-    if (error) {
-      console.error("Failed to save thesis:", error);
-      return { ok: false, error: error.message };
-    }
-
-    const row = Array.isArray(data) ? data[0] : data;
-    if (!row) {
-      return {
-        ok: false,
-        error: "Insert succeeded but no row was returned — check investor_theses RLS policies.",
-      };
-    }
-
-    return { ok: true, data: row as SavedInvestorThesis };
-  } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("Failed to save thesis:", err);
-    return { ok: false, error: message };
+  if (error) {
+    console.error("Error saving thesis:", error);
+    return { ok: false, error: error.message };
   }
+
+  return { ok: true, data: data as SavedInvestorThesis };
 }
 
-/** Latest theses for a token — capped for fast loads on busy tokens. */
-export async function getThesesForToken(
-  tokenCa: string,
-  limit = 20,
-): Promise<SavedInvestorThesis[]> {
+/** Latest theses for a token, newest first. */
+export async function getThesesForToken(tokenCa: string): Promise<SavedInvestorThesis[]> {
   if (!supabase) return [];
 
   const { data, error } = await supabase
     .from("investor_theses")
     .select("*")
     .eq("token_ca", tokenCa)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+    .order("created_at", { ascending: false });
 
   if (error) {
-    console.error("Failed to fetch theses:", error);
+    console.error("Error fetching theses:", error);
     return [];
   }
 
-  return (data as SavedInvestorThesis[]) || [];
+  return data || [];
 }
 
 /** Theses posted in the last N days — via Postgres RPC (indexed count). */
