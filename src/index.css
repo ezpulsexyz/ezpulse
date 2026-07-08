@@ -161,7 +161,7 @@ input, textarea, select, button { color-scheme: light; }
   overflow-x: clip;
   overscroll-behavior-x: none;
   --term-sidebar: 14.5rem;
-  --term-sidebar-collapsed: 3.5rem;
+  --term-sidebar-collapsed: 4rem;
   --term-accent: #2743f0;
   --term-accent-hover: #1f36c4;
   --term-accent-glow: rgba(39, 67, 240, 0.28);
@@ -249,15 +249,44 @@ input, textarea, select, button { color-scheme: light; }
     max-width: var(--term-sidebar-collapsed);
   }
 
-  .term-sidebar__body--collapsed {
-    display: none;
-  }
-
-  .term-sidebar__head--collapsed {
+  .term-sidebar--collapsed .term-sidebar__head {
     flex-direction: column;
     align-items: center;
     gap: 0.75rem;
     padding: 1rem 0.5rem;
+  }
+
+  .term-sidebar--collapsed .term-sidebar__footer {
+    display: none;
+  }
+
+  .term-sidebar--collapsed .term-nav-section,
+  .term-sidebar--collapsed .term-nav-divider {
+    display: none;
+  }
+
+  .term-sidebar--collapsed .term-nav-item {
+    justify-content: center;
+    padding: 0.375rem;
+  }
+
+  .term-sidebar--collapsed .term-nav-item__label,
+  .term-sidebar--collapsed .term-nav-item__meta {
+    display: none;
+  }
+
+  .term-sidebar--collapsed nav {
+    padding-left: 0.375rem;
+    padding-right: 0.375rem;
+    padding-bottom: 1.5rem;
+  }
+
+  .term-sidebar--collapsed .term-nav-live-dot {
+    box-shadow: 0 0 0 2px var(--term-surface);
+  }
+
+  .term-sidebar--collapsed .term-nav-count-dot {
+    box-shadow: 0 0 0 2px var(--term-surface);
   }
 
   .term-main--with-sidebar {
