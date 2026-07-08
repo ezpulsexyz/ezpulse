@@ -3,7 +3,10 @@ import Toast, { type ToastState } from "./Toast";
 import {
   backendReady,
   getThesesForToken,
+  getThesisVoterId,
   getUserUpvotedTheses,
+  loadLocalThesisUpvotes,
+  saveLocalThesisUpvote,
   upvoteThesis,
   type SavedInvestorThesis,
 } from "../backend";
@@ -80,8 +83,10 @@ export default function ThesesList({
   }, [loadTheses]);
 
   useEffect(() => {
-    if (!currentWallet || !backendReady) {
-      setUserUpvotes([]);
+    const voterId = getThesisVoterId(currentWallet);
+
+    if (!backendReady) {
+      setUserUpvotes(loadLocalThesisUpvotes(voterId));
       return;
     }
 
@@ -95,31 +100,30 @@ export default function ThesesList({
   }, [currentWallet, refreshKey]);
 
   const handleUpvote = async (thesisId: string) => {
-    if (!backendReady) {
-      setToast({ type: "error", message: "Upvoting requires Supabase to be configured." });
-      return;
-    }
-    if (!currentWallet) {
-      setToast({ type: "error", message: "Connect your wallet to upvote" });
-      return;
-    }
     if (userUpvotes.includes(thesisId)) return;
 
     setToast(null);
-    const success = await upvoteThesis(thesisId, currentWallet);
-    if (success) {
-      setUserUpvotes((prev) => [...prev, thesisId]);
-      setTheses((prev) =>
-        prev.map((t) =>
-          t.id === thesisId ? { ...t, upvotes: (t.upvotes ?? 0) + 1 } : t,
-        ),
-      );
+    const voterId = getThesisVoterId(currentWallet);
+
+    if (backendReady) {
+      const success = await upvoteThesis(thesisId, currentWallet);
+      if (!success) {
+        setToast({
+          type: "error",
+          message: "Could not register your upvote. You may have already voted.",
+        });
+        return;
+      }
     } else {
-      setToast({
-        type: "error",
-        message: "Could not register your upvote. You may have already voted.",
-      });
+      saveLocalThesisUpvote(voterId, thesisId);
     }
+
+    setUserUpvotes((prev) => [...prev, thesisId]);
+    setTheses((prev) =>
+      prev.map((t) =>
+        t.id === thesisId ? { ...t, upvotes: (t.upvotes ?? 0) + 1 } : t,
+      ),
+    );
   };
 
   if (loading) {
@@ -182,7 +186,7 @@ export default function ThesesList({
                       <button
                         type="button"
                         onClick={() => void handleUpvote(thesis.id)}
-                        disabled={!backendReady || hasUpvoted}
+                        disabled={hasUpvoted}
                         className={`flex items-center gap-1 rounded-xl px-3 py-1 transition ${
                           hasUpvoted
                             ? "cursor-default bg-blue-50 text-blue-700"

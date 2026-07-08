@@ -324,14 +324,54 @@ export async function getRecentThesesCount(tokenCa: string, days = 7): Promise<n
   return typeof data === "number" ? data : 0;
 }
 
-/** Upvote a thesis — one vote per wallet (UNIQUE on thesis_id + wallet_address). */
-export async function upvoteThesis(thesisId: string, walletAddress: string): Promise<boolean> {
+const LOCAL_THESIS_UPVOTES_KEY = "ezpulse:thesis-upvotes";
+
+/** Voter id — connected wallet, or anonymous device (no sign-in required to upvote). */
+export function getThesisVoterId(walletAddress?: string | null): string {
+  if (walletAddress?.trim()) return walletAddress.trim();
+  return `device:${deviceId()}`;
+}
+
+export function loadLocalThesisUpvotes(voterId: string): string[] {
+  try {
+    const all = JSON.parse(localStorage.getItem(LOCAL_THESIS_UPVOTES_KEY) || "{}") as Record<
+      string,
+      string[]
+    >;
+    return all[voterId] ?? [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalThesisUpvote(voterId: string, thesisId: string): void {
+  try {
+    const all = JSON.parse(localStorage.getItem(LOCAL_THESIS_UPVOTES_KEY) || "{}") as Record<
+      string,
+      string[]
+    >;
+    const prev = all[voterId] ?? [];
+    if (prev.includes(thesisId)) return;
+    all[voterId] = [...prev, thesisId];
+    localStorage.setItem(LOCAL_THESIS_UPVOTES_KEY, JSON.stringify(all));
+  } catch {
+    /* noop */
+  }
+}
+
+/** Upvote a thesis — one vote per voter id (wallet or device). */
+export async function upvoteThesis(
+  thesisId: string,
+  walletAddress?: string | null,
+): Promise<boolean> {
   if (!supabase) return false;
+
+  const voterId = getThesisVoterId(walletAddress);
 
   try {
     const { error: voteError } = await supabase
       .from("thesis_votes")
-      .insert({ thesis_id: thesisId, wallet_address: walletAddress });
+      .insert({ thesis_id: thesisId, wallet_address: voterId });
 
     if (voteError) return false;
 
@@ -342,13 +382,14 @@ export async function upvoteThesis(thesisId: string, walletAddress: string): Pro
   }
 }
 
-/** Thesis ids the wallet has upvoted. */
-export async function getUserUpvotedTheses(walletAddress: string): Promise<string[]> {
+/** Thesis ids this voter (wallet or device) has upvoted. */
+export async function getUserUpvotedTheses(walletAddress?: string | null): Promise<string[]> {
   if (!supabase) return [];
+  const voterId = getThesisVoterId(walletAddress);
   const { data } = await supabase
     .from("thesis_votes")
     .select("thesis_id")
-    .eq("wallet_address", walletAddress);
+    .eq("wallet_address", voterId);
   return data?.map((v) => v.thesis_id as string) || [];
 }
 
