@@ -37,6 +37,9 @@ export function OverviewTab({
         <div className="term-market-stat term-hero-accent col-span-2 md:col-span-1">
           <div className="term-market-stat__label">Market Cap</div>
           <div className="term-market-stat__value">{token.mcap ? fmtUsd(token.mcap) : "—"}</div>
+          <div className="term-market-stat__sub flex items-center gap-1">
+            <Delta v={token.change24h} suffix="% 24h" />
+          </div>
         </div>
         <Stat
           label="Price"
