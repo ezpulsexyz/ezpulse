@@ -143,7 +143,49 @@ async function fetchFeed(): Promise<Snap[]> {
   return [...found.values()].filter((s) => s.price > 0);
 }
 
-function toMetrics(s: Snap, rank: number, avgTurnover: number): SignalMetrics {
+const LAUNCH_KINDS = new Set(["NEW_LAUNCH", "GRADUATED", "BONDING_CURVE_COMPLETED", "LAUNCH"]);
+
+type SignalEvent = {
+  ca: string;
+  symbol: string;
+  kind: string;
+  strength: string;
+  title: string;
+  price_at: number;
+  mcap_at: number;
+  change_24h: number;
+};
+
+async function notifyTelegram(event: SignalEvent): Promise<boolean> {
+  const base = Deno.env.get("SUPABASE_URL");
+  if (!base) return false;
+
+  const fn = LAUNCH_KINDS.has(event.kind)
+    ? "send-new-launch-to-telegram"
+    : "send-signal-to-telegram";
+
+  try {
+    const res = await fetch(`${base}/functions/v1/${fn}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "INSERT",
+        table: "signal_events",
+        record: event,
+      }),
+    });
+    if (!res.ok) {
+      console.error(`Telegram ${fn} failed:`, await res.text());
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error(`Telegram ${fn} error:`, err);
+    return false;
+  }
+}
+
+function toMetrics(s: Snap, rank: number, _avgTurnover: number): SignalMetrics {
   const pairAgeDays = s.pairCreatedAt ? (Date.now() - s.pairCreatedAt) / 86400000 : undefined;
   return {
     symbol: s.symbol,
@@ -206,10 +248,17 @@ Deno.serve(async () => {
         title: e.title,
         price_at: s.price,
         mcap_at: s.mcap,
+        change_24h: s.change24h,
       }));
   });
 
-  if (events.length) await db.from("signal_events").insert(events);
+  let telegramSent = 0;
+  if (events.length) {
+    await db.from("signal_events").insert(events);
+    for (const event of events) {
+      if (await notifyTelegram(event)) telegramSent++;
+    }
+  }
 
   const { data: open } = await db.from("signal_events")
     .select("id, ca, strength, price_at, ts")
@@ -252,7 +301,13 @@ Deno.serve(async () => {
     resolved++;
   }
 
-  return new Response(JSON.stringify({ ok: true, tokens: feed.length, signals: events.length, resolved }), {
+  return new Response(JSON.stringify({
+    ok: true,
+    tokens: feed.length,
+    signals: events.length,
+    telegramSent,
+    resolved,
+  }), {
     headers: { "content-type": "application/json" },
   });
 });
