@@ -149,11 +149,14 @@ export function OverviewTab({
 
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">
-          <Card title="Live chart · DexScreener">
+          <Card
+            title="Live chart · DexScreener"
+            className="max-lg:-mx-3 max-lg:rounded-none max-lg:border-x-0"
+          >
             <iframe
               title={`${token.symbol} chart`}
               src={`${token.links.dexscreener}?embed=1&theme=light&trades=0&info=0`}
-              className="h-[min(420px,55vw)] min-h-[240px] w-full border-0 sm:h-[380px] lg:h-[420px]"
+              className="dex-chart-embed w-full border-0"
               loading="lazy"
             />
           </Card>

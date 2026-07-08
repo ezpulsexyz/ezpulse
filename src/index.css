@@ -256,3 +256,14 @@ input, textarea, select, button { color-scheme: light; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* DexScreener embed — tall enough to read on phones/tablets */
+.dex-chart-embed {
+  height: 420px;
+}
+@media (max-width: 1023px) {
+  .dex-chart-embed {
+    height: min(500px, 62vh);
+    min-height: 380px;
+  }
+}
