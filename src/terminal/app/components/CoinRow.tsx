@@ -29,6 +29,8 @@ export function CoinRow({
   onWatch,
   onShare,
 }: CoinRowProps) {
+  const isNew = c.pairCreatedAt && Date.now() - c.pairCreatedAt < 3 * 86400000;
+
   return (
     <a
       href={terminalHref({ section: "projects", projectCa: c.ca })}
@@ -36,13 +38,159 @@ export function CoinRow({
         e.preventDefault();
         onOpen(c);
       }}
-      className="coin-row flex cursor-pointer flex-col gap-x-4 gap-y-3 border-b border-zinc-50 px-4 py-4 no-underline transition active:bg-zinc-50 lg:flex-row lg:items-center lg:px-5"
+      className="coin-row block cursor-pointer border-b no-underline transition"
+      style={{ borderColor: "var(--term-border-subtle)" }}
     >
-      <div className="flex min-w-0 flex-1 items-center gap-3">
+      {/* Mobile */}
+      <div className="coin-row-mobile px-3 py-3.5 sm:px-4 lg:hidden">
+        <div className="flex items-start gap-2.5">
+          <span
+            className={`coin-row__rank w-5 shrink-0 pt-0.5 text-sm font-semibold tabular-nums ${
+              i < 3 ? "text-blue-600" : ""
+            }`}
+            style={i >= 3 ? { color: "var(--term-text-subtle)" } : undefined}
+          >
+            {i + 1}
+          </span>
+
+          {c.icon && (
+            <img
+              src={c.icon}
+              alt=""
+              className="h-9 w-9 shrink-0 rounded-full border"
+              style={{ borderColor: "var(--term-border)" }}
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          )}
+
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
+                  <span className="truncate font-semibold" style={{ color: "var(--term-text)" }}>
+                    {c.name}
+                  </span>
+                  <span className="shrink-0 text-xs" style={{ color: "var(--term-text-subtle)" }}>
+                    ${c.symbol}
+                  </span>
+                  {isNew && (
+                    <span className="shrink-0 rounded-full bg-red-50 px-1.5 py-0.5 text-[8px] font-black tracking-widest text-red-500">
+                      NEW
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="shrink-0 text-right">
+                <div className="font-mono text-[13px] font-semibold tabular-nums" style={{ color: "var(--term-text)" }}>
+                  {c.mcap ? fmtUsd(c.mcap) : "—"}
+                </div>
+                <Delta v={c.change24h} suffix="%" />
+              </div>
+            </div>
+
+            {c.categories && c.categories.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {c.categories.slice(0, 3).map((cat) => (
+                  <CategoryTag key={cat} category={cat} size="sm" />
+                ))}
+              </div>
+            )}
+
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              {isVerified(c) && (
+                <span
+                  className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black text-white"
+                  style={{ background: BLUE }}
+                  title="Verified"
+                >
+                  ✓
+                </span>
+              )}
+              <CurveBadge c={c} />
+              {copyCa && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    copyCa(c.ca);
+                  }}
+                  title={c.ca}
+                  className="coin-row__chip rounded px-1.5 py-0.5 font-mono text-[10px] transition"
+                  style={{ background: "var(--term-surface-3)", color: "var(--term-text-muted)" }}
+                >
+                  {copiedCa === c.ca ? "✓ copied" : `${c.ca.slice(0, 4)}…${c.ca.slice(-4)}`}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="coin-row__stats mt-3 grid grid-cols-3 gap-2 rounded-lg px-2 py-2" style={{ background: "var(--term-surface-2)" }}>
+          <div>
+            <div className="font-mono text-[9px] uppercase tracking-wide" style={{ color: "var(--term-text-subtle)" }}>Price</div>
+            <div className="mt-0.5 font-mono text-[11px] tabular-nums" style={{ color: "var(--term-text-secondary)" }}>
+              {c.priceUsd ? fmtPrice(c.priceUsd) : "—"}
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="font-mono text-[9px] uppercase tracking-wide" style={{ color: "var(--term-text-subtle)" }}>24h</div>
+            <div className="mt-0.5 flex justify-center">
+              <Delta v={c.change24h} suffix="%" />
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="font-mono text-[9px] uppercase tracking-wide" style={{ color: "var(--term-text-subtle)" }}>Vol</div>
+            <div className="mt-0.5 font-mono text-[11px] tabular-nums" style={{ color: "var(--term-text-secondary)" }}>
+              {c.volume24h ? fmtUsd(c.volume24h) : "—"}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between gap-2">
+          {onWatch ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onWatch(c.ca);
+              }}
+              title={watched ? "Remove from watchlist" : "Add to watchlist"}
+              className={`coin-row__chip flex h-8 w-8 items-center justify-center rounded-lg text-lg transition ${
+                watched ? "text-amber-500" : ""
+              }`}
+              style={watched ? undefined : { color: "var(--term-text-subtle)" }}
+            >
+              {watched ? "★" : "☆"}
+            </button>
+          ) : (
+            <span />
+          )}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              onOpen(c);
+            }}
+            className="coin-row__terminal rounded-lg px-4 py-2 text-xs font-bold text-white transition"
+            style={{ background: "var(--term-text)" }}
+          >
+            Terminal
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop */}
+      <div className="coin-row-desktop hidden items-center gap-x-4 px-5 py-3 lg:flex">
         <span
           className={`w-5 shrink-0 text-sm font-semibold tabular-nums ${
-            i < 3 ? "text-blue-600" : "text-zinc-300"
+            i < 3 ? "text-blue-600" : ""
           }`}
+          style={i >= 3 ? { color: "var(--term-text-subtle)" } : undefined}
         >
           {i + 1}
         </span>
@@ -51,7 +199,8 @@ export function CoinRow({
           <img
             src={c.icon}
             alt=""
-            className="h-8 w-8 shrink-0 rounded-full border border-zinc-100"
+            className="h-8 w-8 shrink-0 rounded-full border"
+            style={{ borderColor: "var(--term-border)" }}
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
             }}
@@ -60,11 +209,11 @@ export function CoinRow({
 
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
-            <span className="truncate-mobile lg:max-w-none truncate font-semibold text-zinc-900">
+            <span className="truncate font-semibold" style={{ color: "var(--term-text)" }}>
               {c.name}
             </span>
-            <span className="shrink-0 text-xs text-zinc-400">${c.symbol}</span>
-            {c.pairCreatedAt && Date.now() - c.pairCreatedAt < 3 * 86400000 && (
+            <span className="shrink-0 text-xs" style={{ color: "var(--term-text-subtle)" }}>${c.symbol}</span>
+            {isNew && (
               <span className="shrink-0 rounded-full bg-red-50 px-1.5 py-0.5 text-[8px] font-black tracking-widest text-red-500">
                 NEW
               </span>
@@ -95,10 +244,12 @@ export function CoinRow({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
+                  e.preventDefault();
                   copyCa(c.ca);
                 }}
                 title={c.ca}
-                className="rounded bg-zinc-100 px-1.5 py-0.5 font-mono text-[10px] text-zinc-500 transition hover:bg-zinc-200"
+                className="coin-row__chip rounded px-1.5 py-0.5 font-mono text-[10px] transition"
+                style={{ background: "var(--term-surface-3)", color: "var(--term-text-muted)" }}
               >
                 {copiedCa === c.ca ? "✓ copied" : `${c.ca.slice(0, 4)}…${c.ca.slice(-4)}`}
               </button>
@@ -106,77 +257,79 @@ export function CoinRow({
           </div>
         </div>
 
-        <div className="shrink-0 text-right lg:hidden">
-          <div className="font-mono text-sm font-semibold">{c.mcap ? fmtUsd(c.mcap) : "—"}</div>
-          <Delta v={c.change24h} suffix="%" />
-        </div>
-      </div>
+        {metric ?? (
+          <div className="flex flex-1 items-center gap-4">
+            <div className="w-24 text-right font-mono text-sm">{c.priceUsd ? fmtPrice(c.priceUsd) : "—"}</div>
+            <div className="w-16 text-right">
+              <Delta v={c.change24h} suffix="%" />
+            </div>
+            <div className="w-24 text-right font-mono text-sm font-semibold">
+              {c.mcap ? fmtUsd(c.mcap) : "—"}
+            </div>
+            <div className="w-24 text-right text-sm" style={{ color: "var(--term-text-muted)" }}>
+              {c.volume24h ? fmtUsd(c.volume24h) : "—"}
+            </div>
+          </div>
+        )}
 
-      {metric ?? (
-        <div className="hidden flex-1 items-center gap-4 lg:flex">
-          <div className="w-24 text-right font-mono text-sm">{c.priceUsd ? fmtPrice(c.priceUsd) : "—"}</div>
-          <div className="w-16 text-right">
-            <Delta v={c.change24h} suffix="%" />
-          </div>
-          <div className="w-24 text-right font-mono text-sm font-semibold">
-            {c.mcap ? fmtUsd(c.mcap) : "—"}
-          </div>
-          <div className="w-24 text-right text-sm text-zinc-500">
-            {c.volume24h ? fmtUsd(c.volume24h) : "—"}
-          </div>
-        </div>
-      )}
+        <div className="ml-auto flex items-center gap-2">
+          {onWatch && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onWatch(c.ca);
+              }}
+              title={watched ? "Remove from watchlist" : "Add to watchlist"}
+              className={`coin-row__chip px-2 text-xl transition ${watched ? "text-amber-500" : ""}`}
+              style={watched ? undefined : { color: "var(--term-text-subtle)" }}
+            >
+              {watched ? "★" : "☆"}
+            </button>
+          )}
 
-      <div className="flex items-center gap-2 lg:ml-auto">
-        {onWatch && (
+          {onShare && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onShare(c);
+              }}
+              title="Share card"
+              className="coin-row__chip flex h-9 w-9 items-center justify-center rounded-xl border text-sm transition"
+              style={{ borderColor: "var(--term-border)", color: "var(--term-text-muted)" }}
+            >
+              📤
+            </button>
+          )}
+
+          <a
+            href={kickstartUrl(c.ca)}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Open on Kickstart"
+            onClick={(e) => e.stopPropagation()}
+            className="coin-row__chip flex h-9 w-9 items-center justify-center rounded-xl border text-sm transition"
+            style={{ borderColor: "var(--term-border)", background: "var(--term-surface-2)" }}
+          >
+            🚀
+          </a>
+
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              onWatch(c.ca);
+              e.preventDefault();
+              onOpen(c);
             }}
-            title={watched ? "Remove from watchlist" : "Add to watchlist"}
-            className={`px-2 text-xl transition ${watched ? "text-amber-500" : "text-zinc-300 hover:text-amber-400"}`}
+            className="coin-row__terminal rounded-xl px-4 py-1.5 text-xs font-bold text-white transition"
+            style={{ background: "var(--term-text)" }}
           >
-            {watched ? "★" : "☆"}
+            Terminal
           </button>
-        )}
-
-        {onShare && (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onShare(c);
-            }}
-            title="Share card"
-            className="hidden h-9 w-9 items-center justify-center rounded-xl border border-zinc-200 text-sm text-zinc-500 transition hover:border-indigo-300 sm:flex"
-          >
-            📤
-          </button>
-        )}
-
-        <a
-          href={kickstartUrl(c.ca)}
-          target="_blank"
-          rel="noopener noreferrer"
-          title="Open on Kickstart"
-          onClick={(e) => e.stopPropagation()}
-          className="hidden h-9 w-9 items-center justify-center rounded-xl border border-indigo-100 bg-indigo-50/50 text-sm transition hover:border-indigo-300 sm:flex"
-        >
-          🚀
-        </a>
-
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpen(c);
-          }}
-          className="rounded-xl bg-zinc-900 px-4 py-1.5 text-xs font-bold text-white active:bg-black"
-        >
-          Terminal
-        </button>
+        </div>
       </div>
     </a>
   );

@@ -1302,7 +1302,7 @@ button.term-market-stat:hover {
 
 /* ─── Mobile thesis UX ─── */
 @media (max-width: 640px) {
-  button:not(.term-icon-btn):not(.term-tab):not(.term-tab-pill):not(.term-filter-pill):not(.term-proj-tab),
+  button:not(.term-icon-btn):not(.term-tab):not(.term-tab-pill):not(.term-filter-pill):not(.term-proj-tab):not(.coin-row__chip):not(.coin-row__terminal),
   .clickable {
     min-height: 44px;
     min-width: 44px;
@@ -1319,12 +1319,13 @@ button.term-market-stat:hover {
   }
 }
 
-/* Better mobile table experience */
-@media (max-width: 1024px) {
-  .coin-row {
-    padding-top: 14px;
-    padding-bottom: 14px;
-  }
+.coin-row__terminal:hover {
+  opacity: 0.92;
+}
+
+.term-app[data-theme="dark"] .coin-row__terminal {
+  background: #fafafa !important;
+  color: #09090b !important;
 }
 
 /* Prevent text overflow on mobile */
