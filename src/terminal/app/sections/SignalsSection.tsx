@@ -99,7 +99,7 @@ export function SignalsSection() {
           </div>
 
           <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            <div className="term-tab-rail term-scroll-x flex-1">
+            <div className="term-tab-rail term-scroll-x flex flex-1">
               {(["ALL", "WHALE", "MOMENTUM", "VOLUME", "LIQUIDITY", "RANK", "LAUNCH"] as KindFilter[]).map((k) => (
                 <button key={k} onClick={() => setKindFilter(k)}
                   className={`term-filter-pill ${kindFilter === k ? "term-filter-pill--active" : ""}`}
@@ -108,7 +108,7 @@ export function SignalsSection() {
                 </button>
               ))}
             </div>
-            <div className="term-tab-rail term-scroll-x shrink-0 sm:w-auto">
+            <div className="term-tab-rail term-scroll-x flex shrink-0 sm:w-auto">
               {(["ALL", "BULLISH", "BEARISH"] as StrengthFilter[]).map((s) => (
                 <button key={s} onClick={() => setStrengthFilter(s)}
                   className={`term-filter-pill ${strengthFilter === s ? "term-filter-pill--active" : ""}`}

@@ -88,24 +88,11 @@ export function MarketSection() {
                 </button>
               </div>
 
-              {/* Mobile-friendly filter tabs */}
-              <div className="term-scroll-x mt-3 flex gap-1 overflow-x-auto pb-1.5 lg:hidden">
+              <div className="term-tab-rail term-scroll-x mt-3 flex">
                 {MARKET_TABS.map(([id, label]) => (
                   <button
                     key={id}
-                    onClick={() => setMarketTab(id)}
-                    className={`term-tab-pill flex-shrink-0 whitespace-nowrap ${marketTab === id ? "term-tab-pill--active" : ""}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Desktop filter tabs */}
-              <div className="term-tab-rail term-scroll-x mt-3 hidden lg:flex">
-                {MARKET_TABS.map(([id, label]) => (
-                  <button
-                    key={id}
+                    type="button"
                     onClick={() => setMarketTab(id)}
                     className={`term-tab whitespace-nowrap ${marketTab === id ? "term-tab--active" : ""}`}
                   >

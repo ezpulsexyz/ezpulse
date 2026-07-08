@@ -82,7 +82,7 @@ export function TrackRecord({ onOpen }: { onOpen: (ca: string) => void }) {
           </div>
 
           {kinds.length > 1 && (
-            <div className="term-tab-rail mt-4 w-full sm:w-fit">
+            <div className="term-tab-rail mt-4 flex w-full sm:w-fit">
               <button onClick={() => setKindFilter("ALL")}
                 className={`term-filter-pill ${kindFilter === "ALL" ? "term-filter-pill--active" : ""}`}
                 style={kindFilter === "ALL" ? { background: BLUE } : undefined}>ALL</button>

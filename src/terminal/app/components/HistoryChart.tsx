@@ -18,7 +18,7 @@ export function HistoryChart({ ca }: { ca: string }) {
   const gradId = `chartGrad-${ca.slice(0, 8)}`;
 
   const rangeButtons = (
-    <div className="term-tab-rail w-fit shrink-0">
+    <div className="term-tab-rail flex w-fit shrink-0">
       {([24, 168] as const).map((h) => (
         <button
           key={h}

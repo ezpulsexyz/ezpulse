@@ -1256,7 +1256,6 @@ button.term-market-stat:hover {
 .term-scroll-x::-webkit-scrollbar { display: none; }
 
 .term-tab-rail {
-  display: flex;
   width: 100%;
   max-width: 100%;
   gap: 0.125rem;
