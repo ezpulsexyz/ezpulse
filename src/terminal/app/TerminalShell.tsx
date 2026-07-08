@@ -27,7 +27,7 @@ function TerminalBody() {
       style={{ colorScheme: resolved }}
     >
       <Sidebar />
-      <div className={`term-main min-w-0 flex-1 ${sidebarHidden ? "" : "lg:ml-[var(--term-sidebar)]"}`}>
+      <div className={`term-main min-w-0 ${sidebarHidden ? "" : "term-main--with-sidebar"}`}>
         <Header />
         <CommandPalette />
         <Toasts />

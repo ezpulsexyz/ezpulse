@@ -241,6 +241,14 @@ input, textarea, select, button { color-scheme: light; }
   overscroll-behavior-x: contain;
 }
 
+@media (min-width: 1024px) {
+  .term-main--with-sidebar {
+    margin-left: var(--term-sidebar);
+    width: calc(100% - var(--term-sidebar));
+    max-width: calc(100% - var(--term-sidebar));
+  }
+}
+
 @media (max-width: 1024px) {
   .term-app {
     touch-action: pan-y pinch-zoom;
