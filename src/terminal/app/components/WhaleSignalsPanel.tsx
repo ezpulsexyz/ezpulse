@@ -3,6 +3,7 @@ import { formatRelativeTime } from "../../../lib/utils";
 import type { EcoEvent } from "../../kickstart";
 import { Card } from "../../components";
 import { KindBadge, StrengthBadge } from "./SignalBadges";
+import { TokenAvatar } from "./TokenAvatar";
 
 export function WhaleSignalsPanel({
   events,
@@ -64,9 +65,11 @@ export function WhaleSignalsPanel({
                 </div>
                 <p className="mt-1 text-[12px] leading-relaxed" style={{ color: "var(--term-text-muted)" }}>{e.detail}</p>
                 <div className="mt-1.5 flex items-center gap-2 text-[11px]" style={{ color: "var(--term-text-subtle)" }}>
-                  {e.token.icon && (
-                    <img src={e.token.icon} alt="" className="h-4 w-4 rounded-full" onError={(ev) => { (ev.target as HTMLImageElement).style.display = "none"; }} />
-                  )}
+                  <TokenAvatar
+                    token={e.token}
+                    className="h-4 w-4 rounded-full object-cover"
+                    fallbackClassName="flex h-4 w-4 items-center justify-center rounded-full bg-zinc-200 text-[8px] font-bold text-zinc-500"
+                  />
                   <span className="font-semibold" style={{ color: "var(--term-text-secondary)" }}>{e.token.name}</span>
                   <span className="font-mono">${e.token.symbol}</span>
                   <span className="term-signal-time" title={new Date(e.occurredAt).toLocaleString()}>

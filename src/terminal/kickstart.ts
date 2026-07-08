@@ -299,7 +299,9 @@ const applySupplyOverride = (launch: LiveLaunch, overrides: Map<string, SupplyOv
 /** Fill circulating / max supply for a single token (Jupiter + optional override endpoint). */
 export async function enrichTokenSupply(token: LiveLaunch): Promise<LiveLaunch> {
   const overrides = await fetchSupplyOverrides();
-  return applyCategoryClassification(applySocialOverride(applySupplyOverride(token, overrides)));
+  const enriched = applyCategoryClassification(applySocialOverride(applySupplyOverride(token, overrides)));
+  const [withIcon] = await enrichKickstartIcons([enriched]);
+  return withIcon;
 }
 
 /** Graduated = completed the bonding curve (migrated to AMM). */
@@ -588,7 +590,10 @@ async function fetchJupiterFeed(found: Map<string, LiveLaunch>): Promise<boolean
 export async function fetchLiveFeed(): Promise<{ launches: LiveLaunch[]; source: "KICKSTART" | "DEXSCREENER" } | null> {
   // 1 · Kickstart's own API, if it ever opens
   const ks = await tryKickstartApi();
-  if (ks?.length) return { launches: ks.sort((a, b) => b.mcap - a.mcap), source: "KICKSTART" };
+  if (ks?.length) {
+    const launches = await enrichKickstartIcons(ks.sort((a, b) => b.mcap - a.mcap));
+    return { launches, source: "KICKSTART" };
+  }
 
   try {
     const found = new Map<string, LiveLaunch>();
@@ -667,7 +672,9 @@ export async function fetchLiveFeed(): Promise<{ launches: LiveLaunch[]; source:
       .map(applySocialOverride)
       .map(applyCategoryClassification)
       .sort((a, b) => b.mcap - a.mcap);
-    return launches.length ? { launches, source: "KICKSTART" } : null;
+    if (!launches.length) return null;
+    const withIcons = await enrichKickstartIcons(launches);
+    return { launches: withIcons, source: "KICKSTART" };
   } catch {
     return null;
   }
@@ -676,8 +683,160 @@ export async function fetchLiveFeed(): Promise<{ launches: LiveLaunch[]; source:
 export const shortCa = (ca: string) => `${ca.slice(0, 4)}…${ca.slice(-4)}`;
 export const fmtPrice = (p: number) => (p >= 1 ? `$${p.toFixed(2)}` : `$${p.toFixed(5)}`);
 
+const KICKSTART_ORIGIN = "https://kickstart.easya.io";
+const KICKSTART_ICON_URL = (import.meta.env?.VITE_KICKSTART_TOKEN_URL as string | undefined)?.trim();
+const KICKSTART_ICON_CACHE_KEY = "ezpulse:kickstart-icons-v1";
+const KICKSTART_ICON_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const KICKSTART_BUILD_ID_KEY = "ezpulse:kickstart-build-id";
+const KICKSTART_BUILD_ID_TTL_MS = 60 * 60 * 1000;
+
 /** Canonical Kickstart project page for any token — kickstart.easya.io/token/{ca}. */
-export const kickstartUrl = (ca: string) => `https://kickstart.easya.io/token/${ca}`;
+export const kickstartUrl = (ca: string) => `${KICKSTART_ORIGIN}/token/${ca}`;
+
+function kickstartIconEndpoint(): string | null {
+  if (KICKSTART_ICON_URL) return KICKSTART_ICON_URL;
+  if (SUPABASE_URL) return `${SUPABASE_URL.replace(/\/$/, "")}/functions/v1/kickstart-token`;
+  return null;
+}
+
+function readKickstartIconCache(): Map<string, string> {
+  const out = new Map<string, string>();
+  try {
+    const raw = localStorage.getItem(KICKSTART_ICON_CACHE_KEY);
+    if (!raw) return out;
+    const parsed = JSON.parse(raw) as Record<string, { icon?: string; at?: number }>;
+    const now = Date.now();
+    for (const [ca, entry] of Object.entries(parsed)) {
+      if (!entry?.icon || typeof entry.at !== "number" || now - entry.at > KICKSTART_ICON_CACHE_TTL_MS) continue;
+      out.set(ca.toLowerCase(), entry.icon);
+    }
+  } catch {
+    /* ignore */
+  }
+  return out;
+}
+
+function writeKickstartIconCache(icons: Map<string, string>): void {
+  try {
+    const now = Date.now();
+    const next: Record<string, { icon: string; at: number }> = {};
+    for (const [ca, icon] of icons) next[ca] = { icon, at: now };
+    localStorage.setItem(KICKSTART_ICON_CACHE_KEY, JSON.stringify(next));
+  } catch {
+    /* ignore */
+  }
+}
+
+async function resolveKickstartBuildId(): Promise<string | null> {
+  try {
+    const raw = localStorage.getItem(KICKSTART_BUILD_ID_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as { id?: string; at?: number };
+      if (parsed.id && typeof parsed.at === "number" && Date.now() - parsed.at < KICKSTART_BUILD_ID_TTL_MS) {
+        return parsed.id;
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+
+  try {
+    const res = await fetch(`${KICKSTART_ORIGIN}/token/FKshTXX4wUcirV9b4LhLrNP4cxAsA2VBAFdMEw5EASY`, {
+      headers: { accept: "text/html" },
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    const match = html.match(/"buildId":"([^"]+)"/);
+    const id = match?.[1] ?? null;
+    if (id) {
+      try {
+        localStorage.setItem(KICKSTART_BUILD_ID_KEY, JSON.stringify({ id, at: Date.now() }));
+      } catch {
+        /* ignore */
+      }
+    }
+    return id;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchKickstartIconDirect(ca: string): Promise<string | null> {
+  const buildId = await resolveKickstartBuildId();
+  if (!buildId) return null;
+  try {
+    const res = await fetch(`${KICKSTART_ORIGIN}/_next/data/${buildId}/token/${encodeURIComponent(ca)}.json`, {
+      headers: { accept: "application/json" },
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as Rec;
+    const pageProps = data.pageProps as Rec | undefined;
+    const ogToken = pageProps?.ogToken as Rec | undefined;
+    const icon = ogToken?.icon;
+    return typeof icon === "string" && icon.trim() ? icon.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Fetch project logos from Kickstart token pages (ogToken.icon on kickstart.easya.io/token/{ca}). */
+export async function fetchKickstartIcons(cas: string[]): Promise<Map<string, string>> {
+  const unique = [...new Set(cas.map((ca) => ca.trim()).filter(Boolean))];
+  const out = readKickstartIconCache();
+  const missing = unique.filter((ca) => !out.has(ca.toLowerCase()));
+  if (!missing.length) return out;
+
+  const endpoint = kickstartIconEndpoint();
+  const chunks: string[][] = [];
+  for (let i = 0; i < missing.length; i += 20) chunks.push(missing.slice(i, i + 20));
+
+  for (const chunk of chunks) {
+    let fetched = false;
+    if (endpoint) {
+      try {
+        const res = await fetch(`${endpoint}?cas=${encodeURIComponent(chunk.join(","))}`, {
+          headers: { accept: "application/json" },
+        });
+        if (res.ok) {
+          const data = (await res.json()) as { icons?: Record<string, string> };
+          for (const [ca, icon] of Object.entries(data.icons ?? {})) {
+            if (typeof icon === "string" && icon.trim()) out.set(ca.toLowerCase(), icon.trim());
+          }
+          fetched = true;
+        }
+      } catch {
+        /* try direct fallback */
+      }
+    }
+
+    if (!fetched) {
+      await Promise.all(
+        chunk.map(async (ca) => {
+          const icon = await fetchKickstartIconDirect(ca);
+          if (icon) out.set(ca.toLowerCase(), icon);
+        }),
+      );
+    }
+  }
+
+  writeKickstartIconCache(out);
+  return out;
+}
+
+/** Prefer Kickstart project logos over Jupiter / DexScreener image fallbacks. */
+export async function enrichKickstartIcons(launches: LiveLaunch[]): Promise<LiveLaunch[]> {
+  if (!launches.length) return launches;
+  const icons = await fetchKickstartIcons(launches.map((launch) => launch.ca));
+  return launches.map((launch) => {
+    const icon = icons.get(launch.ca.toLowerCase());
+    return icon ? { ...launch, icon } : launch;
+  });
+}
+
+/** Resolve the best-known logo for a token (Kickstart page icon when cached). */
+export function resolveTokenIcon(token: Pick<LiveLaunch, "ca" | "icon">): string | undefined {
+  return readKickstartIconCache().get(token.ca.toLowerCase()) ?? token.icon;
+}
 
 /* ─── Discovery classification ───
  * VERIFIED: the project's X account is authorized — following Kickstart's

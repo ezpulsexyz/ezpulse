@@ -4,7 +4,7 @@
  */
 import { BLUE, X_HANDLE } from "./brand";
 import type { LiveLaunch } from "./kickstart";
-import { isVerified, isGraduated } from "./kickstart";
+import { isVerified, isGraduated, resolveTokenIcon } from "./kickstart";
 
 const W = 1200, H = 630;
 
@@ -92,8 +92,9 @@ export async function renderShareCard(c: LiveLaunch): Promise<Blob | null> {
 
   // token icon (best-effort; CORS-safe or skipped)
   let textX = 60;
-  if (c.icon) {
-    const img = await loadIcon(c.icon);
+  const icon = resolveTokenIcon(c);
+  if (icon) {
+    const img = await loadIcon(icon);
     if (img) {
       ctx.save();
       ctx.beginPath();

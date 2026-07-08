@@ -10,6 +10,7 @@ import { getRecentThesesCount } from "../../backend";
 import type { Section } from "../types";
 import { HistoryChart } from "../components/HistoryChart";
 import { ProjectActions } from "../components/ProjectActions";
+import { TokenAvatar } from "../components/TokenAvatar";
 import { FounderTerminal } from "../components/FounderTerminal";
 import { OverviewTab } from "../components/project/OverviewTab";
 import { SignalsTab } from "../components/project/SignalsTab";
@@ -86,16 +87,11 @@ export default function ProjectDetail({
 
       <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
         <div className="flex min-w-0 items-start gap-3">
-          {token.icon && (
-            <img
-              src={token.icon}
-              alt=""
-              className="h-10 w-10 shrink-0 rounded-full border border-zinc-100 sm:h-12 sm:w-12"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
-            />
-          )}
+          <TokenAvatar
+            token={token}
+            className="h-10 w-10 shrink-0 rounded-full border border-zinc-100 object-cover sm:h-12 sm:w-12"
+            fallbackClassName="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-100 bg-zinc-100 text-sm font-bold text-zinc-500 sm:h-12 sm:w-12"
+          />
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
               <h1 className="term-proj-title">

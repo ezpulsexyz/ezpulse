@@ -5,6 +5,7 @@ import { isVerified } from "../../kickstart";
 import ProjectDetail from "./ProjectDetail";
 import { useTokenSupply } from "../hooks/useTokenSupply";
 import { PageHead, EmptyState, LaunchCta, LoadingRows } from "../components/PageLayout";
+import { TokenAvatar } from "../components/TokenAvatar";
 import { Card } from "../../components";
 import { useTerminalContext } from "../TerminalContext";
 
@@ -83,16 +84,11 @@ export function ProjectsSection() {
                   className="rounded-md border border-zinc-200 bg-white p-4 text-left transition hover:border-zinc-300 hover:bg-zinc-50/50"
                 >
                   <div className="flex items-center gap-2.5">
-                    {c.icon && (
-                      <img
-                        src={c.icon}
-                        alt=""
-                        className="h-9 w-9 rounded-full border border-zinc-100"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = "none";
-                        }}
-                      />
-                    )}
+                    <TokenAvatar
+                      token={c}
+                      className="h-9 w-9 rounded-full border border-zinc-100 object-cover"
+                      fallbackClassName="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-100 bg-zinc-100 text-xs font-bold text-zinc-500"
+                    />
                     <div>
                       <div className="flex items-center gap-1.5 text-[15px] font-semibold text-zinc-900">
                         {c.name}

@@ -1,4 +1,5 @@
 import { fetchLiveFeed, fmtPrice, isVerified, isPhantomAvailable } from "../../kickstart";
+import { TokenAvatar } from "../components/TokenAvatar";
 import { BLUE, Card, Delta, Stat } from "../../components";
 import { LaunchSimulator } from "../components/LaunchSimulator";
 import { PageHead, EmptyState } from "../components/PageLayout";
@@ -223,16 +224,11 @@ export function PortfolioSection() {
                     <TermRow key={h.coin.ca} grid={PORTFOLIO_GRID}>
                       <button type="button" onClick={() => openToken(h.coin)} className="min-w-0 text-left">
                         <div className="flex min-w-0 items-center gap-2.5">
-                          {h.coin.icon && (
-                            <img
-                              src={h.coin.icon}
-                              alt=""
-                              className="h-7 w-7 shrink-0 rounded-full border border-zinc-100"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).style.display = "none";
-                              }}
-                            />
-                          )}
+                          <TokenAvatar
+                            token={h.coin}
+                            className="h-7 w-7 shrink-0 rounded-full border border-zinc-100 object-cover"
+                            fallbackClassName="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-zinc-100 bg-zinc-100 text-[10px] font-bold text-zinc-500"
+                          />
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <span className="truncate font-mono text-[13px] font-semibold text-zinc-900">
