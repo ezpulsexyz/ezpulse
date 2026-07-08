@@ -63,16 +63,16 @@ export default function ProjectDetail({
     };
   }, [token.ca]);
 
-  const tabs: { id: ProjTab; label: string; count?: number }[] = [
-    { id: "overview", label: "Overview" },
-    { id: "signals", label: "Live Signals" },
-    { id: "history", label: "Price History" },
-    { id: "thesis", label: "Investor Thesis", count: recentThesesCount },
-    ...(verified ? [{ id: "founder" as const, label: "Founder Terminal" }] : []),
+  const tabs: { id: ProjTab; label: string; shortLabel: string; count?: number }[] = [
+    { id: "overview", label: "Overview", shortLabel: "Overview" },
+    { id: "signals", label: "Live Signals", shortLabel: "Signals" },
+    { id: "history", label: "Price History", shortLabel: "History" },
+    { id: "thesis", label: "Investor Thesis", shortLabel: "Thesis", count: recentThesesCount },
+    ...(verified ? [{ id: "founder" as const, label: "Founder Terminal", shortLabel: "Founder" }] : []),
   ];
 
   return (
-    <div className="animate-fade-up space-y-8 pb-12">
+    <div className="animate-fade-up min-w-0 space-y-6 pb-12 sm:space-y-8">
       <a
         href={terminalHref({ section: "projects" })}
         onClick={(e) => {
@@ -98,10 +98,10 @@ export default function ProjectDetail({
           )}
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-              <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">
+              <h1 className="term-proj-title">
                 {token.name}
               </h1>
-              <span className="text-[14px] font-semibold text-zinc-400">${token.symbol}</span>
+              <span className="text-[14px] font-semibold" style={{ color: "var(--term-text-subtle)" }}>${token.symbol}</span>
               {verified && (
                 <span
                   className="flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold text-white"
@@ -129,7 +129,7 @@ export default function ProjectDetail({
             <button
               type="button"
               onClick={() => copyCa(token.ca)}
-              className="mt-1 flex max-w-full items-center gap-1 font-mono text-[11px] text-zinc-400 transition hover:text-zinc-700"
+              className="term-back-link mt-1 flex max-w-full items-center gap-1 font-mono text-[11px]"
             >
               <span className="truncate">
                 {copiedCa === token.ca ? "✓ copied to clipboard" : token.ca}
@@ -148,7 +148,7 @@ export default function ProjectDetail({
         />
       </div>
 
-      <div className="term-scroll-x flex border-b text-sm" style={{ borderColor: "var(--term-border)" }}>
+      <div className="term-proj-tabs term-scroll-x flex border-b text-sm" style={{ borderColor: "var(--term-border)" }}>
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -156,7 +156,8 @@ export default function ProjectDetail({
             onClick={() => setProjTab(tab.id)}
             className={`term-proj-tab ${projTab === tab.id ? "term-proj-tab--active" : ""}`}
           >
-            {tab.label}
+            <span className="sm:hidden">{tab.shortLabel}</span>
+            <span className="hidden sm:inline">{tab.label}</span>
             {tab.count != null && tab.count > 0 && (
               <span className="min-w-[18px] rounded-full bg-emerald-500 px-2 py-0.5 text-center text-[10px] font-black text-white">
                 +{tab.count}
@@ -166,7 +167,7 @@ export default function ProjectDetail({
         ))}
       </div>
 
-      <div className="pt-2">
+      <div className="min-w-0 pt-2">
         {projTab === "overview" && (
           <OverviewTab
             token={token}

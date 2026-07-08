@@ -77,15 +77,15 @@ export default function InvestorThesis({ token, feed: _feed }: InvestorThesisPro
 
   return (
     <>
-      <div className="mx-auto max-w-3xl space-y-10">
-        <div>
-          <h2 className="text-3xl font-semibold tracking-tight">Investor Thesis</h2>
-          <p className="mt-2 text-zinc-500">
+      <div className="w-full min-w-0 space-y-6 sm:space-y-8">
+        <div className="min-w-0">
+          <h2 className="term-page-title text-base sm:text-[0.9375rem]">Investor Thesis</h2>
+          <p className="term-page-sub mt-1">
             Share and read structured analysis from the community.
           </p>
         </div>
 
-        <div className="rounded-3xl border border-zinc-200 bg-white p-6">
+        <div className="term-surface-panel p-4 sm:p-6">
           <WalletGate
             tokenCa={token.ca}
             showPostButton={true}
@@ -98,10 +98,8 @@ export default function InvestorThesis({ token, feed: _feed }: InvestorThesisPro
           />
         </div>
 
-        <div>
-          <div className="mb-6 flex items-center justify-between">
-            <h3 className="text-xl font-semibold">Community Theses</h3>
-          </div>
+        <div className="min-w-0">
+          <h3 className="term-page-title">Community Theses</h3>
           <ThesesList
             tokenCa={token.ca}
             currentWallet={wallet}

@@ -42,17 +42,17 @@ export function SignalsSection() {
         title="Signals"
         sub="Everything happening in the ecosystem, in real time — archived to the public track record and scored at +24h."
         right={
-          <span className="flex flex-wrap items-center gap-2">
+          <>
+            <LiveBadge label="LIVE FEED" ts={lastUpdated} tone="red" size="md" />
             {record.ready && pendingCount > 0 && (
               <button
                 onClick={() => goto("record")}
-                className="term-pending-btn rounded-full px-3 py-1.5 text-[11px] font-semibold transition"
+                className="term-pending-btn w-full rounded-full px-3 py-1.5 text-[11px] font-semibold transition sm:w-auto"
               >
                 ⏳ {pendingCount} awaiting score
               </button>
             )}
-            <LiveBadge label="LIVE FEED" ts={lastUpdated} tone="red" size="md" />
-          </span>
+          </>
         }
       />
 

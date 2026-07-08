@@ -22,7 +22,7 @@ function TerminalBody() {
 
   return (
     <div
-      className="term-app boot-fade flex min-h-screen overflow-x-hidden font-sans antialiased"
+      className="term-app boot-fade flex min-h-screen min-w-0 font-sans antialiased"
       data-theme={resolved}
       style={{ colorScheme: resolved }}
     >

@@ -1,5 +1,5 @@
 import { fmtNum, fmtUsd } from "../../../data";
-import { BLUE, Card, Delta, InfoTip, Num, Stat } from "../../../components";
+import { BLUE, Card, Delta, InfoTip, Stat } from "../../../components";
 import {
   fmtPrice,
   isVerified,
@@ -34,16 +34,9 @@ export function OverviewTab({
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-7">
-        <div
-          className="col-span-2 rounded-2xl px-4 py-3.5 text-white md:col-span-1"
-          style={{ background: `linear-gradient(135deg, ${BLUE}, #4f2ff0)` }}
-        >
-          <div className="text-[10px] font-semibold uppercase tracking-widest text-white/60">Market Cap</div>
-          <div className="mt-0.5">
-            <Num size="lg" bold>
-              {token.mcap ? fmtUsd(token.mcap) : "—"}
-            </Num>
-          </div>
+        <div className="term-market-stat term-hero-accent col-span-2 md:col-span-1">
+          <div className="term-market-stat__label">Market Cap</div>
+          <div className="term-market-stat__value">{token.mcap ? fmtUsd(token.mcap) : "—"}</div>
         </div>
         <Stat
           label="Price"
@@ -103,18 +96,18 @@ export function OverviewTab({
         />
       </div>
 
-      <div className="rounded-2xl border border-zinc-200 bg-white px-5 py-3.5 shadow-sm">
+      <div className="term-surface-panel px-4 py-3.5 sm:px-5">
         {isGraduated(token) ? (
           <div className="flex flex-wrap items-center gap-3">
             <span className="rounded-full bg-emerald-600 px-3 py-1 text-[10px] font-black tracking-widest text-white">
               🔗 BONDED
             </span>
-            <span className="text-[13px] text-zinc-600">
+            <span className="text-[13px]" style={{ color: "var(--term-text-muted)" }}>
               Bonding curve completed
               {token.graduatedAt ? ` on ${new Date(token.graduatedAt).toLocaleDateString()}` : ""} — graduated
               to an AMM pool.
             </span>
-            <div className="ml-auto h-2 w-40 overflow-hidden rounded-full bg-zinc-100">
+            <div className="ml-auto h-2 w-full max-w-[10rem] overflow-hidden rounded-full" style={{ background: "var(--term-surface-3)" }}>
               <div className="h-full rounded-full bg-emerald-500" style={{ width: "100%" }} />
             </div>
             <span className="text-[12px] font-bold tabular-nums text-emerald-600">100%</span>
@@ -124,16 +117,16 @@ export function OverviewTab({
             <span className="rounded-full bg-amber-500 px-3 py-1 text-[10px] font-black tracking-widest text-white">
               ⏳ BONDING
             </span>
-            <span className="text-[13px] text-zinc-600">
+            <span className="min-w-0 flex-1 text-[13px]" style={{ color: "var(--term-text-muted)" }}>
               Bonding Curve:{" "}
-              <strong className="tabular-nums text-zinc-900">
+              <strong className="tabular-nums" style={{ color: "var(--term-text)" }}>
                 {typeof token.bondingCurve === "number"
                   ? `${Math.min(token.bondingCurve, 100).toFixed(1)}%`
                   : "—"}
               </strong>{" "}
               · live via Jupiter — graduates to Bonded at 100%.
             </span>
-            <div className="ml-auto h-2 w-40 overflow-hidden rounded-full bg-zinc-100">
+            <div className="ml-auto h-2 w-full max-w-[10rem] overflow-hidden rounded-full" style={{ background: "var(--term-surface-3)" }}>
               <div
                 className="h-full rounded-full bg-emerald-500"
                 style={{ width: `${Math.min(token.bondingCurve ?? 0, 100)}%` }}
@@ -150,10 +143,7 @@ export function OverviewTab({
 
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">
-          <Card
-            title="Live chart · DexScreener"
-            className="max-lg:-mx-3 max-lg:rounded-none max-lg:border-x-0"
-          >
+          <Card title="Live chart · DexScreener">
             <iframe
               title={`${token.symbol} chart`}
               src={`${token.links.dexscreener}?embed=1&theme=light&trades=0&info=0`}
@@ -181,7 +171,7 @@ export function OverviewTab({
               const turnover = token.mcap > 0 ? token.volume24h / token.mcap : 0;
               return (
                 <>
-                  <div className="flex flex-wrap items-center gap-3 border-b border-zinc-100 px-5 py-3.5">
+                  <div className="flex flex-wrap items-center gap-3 border-b px-5 py-3.5" style={{ borderColor: "var(--term-border-subtle)" }}>
                     <span
                       className={`rounded-full px-3 py-1 text-[10px] font-black tracking-widest text-white ${
                         bias.label === "BULLISH"
@@ -193,20 +183,21 @@ export function OverviewTab({
                     >
                       {bias.label}
                     </span>
-                    <span className="text-[12px] text-zinc-500">
+                    <span className="text-[12px]" style={{ color: "var(--term-text-muted)" }}>
                       {bias.bulls} bullish · {bias.bears} bearish · {bias.neutrals} neutral · score {bias.score}/100
                     </span>
                     <button
                       type="button"
                       onClick={onViewSignals}
-                      className="ml-auto text-[12px] font-semibold text-indigo-600 hover:text-indigo-800"
+                      className="ml-auto text-[12px] font-semibold transition"
+                      style={{ color: "var(--term-accent)" }}
                     >
                       All signals →
                     </button>
                   </div>
-                  <div className="grid gap-px bg-zinc-100 sm:grid-cols-3">
+                  <div className="grid gap-px sm:grid-cols-3" style={{ background: "var(--term-border-subtle)" }}>
                     {top.map((s, i) => (
-                      <div key={i} className="bg-white px-5 py-4">
+                      <div key={i} className="term-insight-cell px-5 py-4">
                         <div className="flex items-center gap-1.5">
                           <span className="text-[13px]">
                             {s.kind === "WHALE"
@@ -231,23 +222,23 @@ export function OverviewTab({
                             {s.kind}
                           </span>
                         </div>
-                        <div className="mt-1 text-[13px] font-bold leading-snug text-zinc-900">{s.title}</div>
-                        <p className="mt-1 text-[11.5px] leading-relaxed text-zinc-500">{s.detail}</p>
+                        <div className="mt-1 text-[13px] font-bold leading-snug" style={{ color: "var(--term-text)" }}>{s.title}</div>
+                        <p className="mt-1 text-[11.5px] leading-relaxed" style={{ color: "var(--term-text-muted)" }}>{s.detail}</p>
                       </div>
                     ))}
                     {top.length === 0 && (
-                      <div className="bg-white px-5 py-4 text-[13px] text-zinc-400 sm:col-span-3">
+                      <div className="term-insight-cell px-5 py-4 text-[13px] sm:col-span-3" style={{ color: "var(--term-text-muted)" }}>
                         Quiet tape — no directional signals firing right now.
                       </div>
                     )}
                   </div>
                   {note && (
-                    <div className="border-t border-zinc-100 px-5 py-3.5">
-                      <p className="text-[12.5px] leading-relaxed text-zinc-600">
-                        <span className="mr-1.5 font-bold text-zinc-900">Summary:</span>
+                    <div className="border-t px-5 py-3.5" style={{ borderColor: "var(--term-border-subtle)" }}>
+                      <p className="text-[12.5px] leading-relaxed" style={{ color: "var(--term-text-muted)" }}>
+                        <span className="mr-1.5 font-bold" style={{ color: "var(--term-text)" }}>Summary:</span>
                         {note.note}
                         {turnover > 0 && (
-                          <span className="text-zinc-400">
+                          <span style={{ color: "var(--term-text-subtle)" }}>
                             {" "}
                             Daily turnover {(turnover * 100).toFixed(0)}% of cap · {token.buys24h} buys /{" "}
                             {token.sells24h} sells.
@@ -275,8 +266,8 @@ export function OverviewTab({
               }
               pad
             >
-              <p className="text-[13px] leading-relaxed text-zinc-600">{note.note}</p>
-              <p className="mt-2 text-[10px] text-zinc-400">Computed from live DexScreener data. Not investment advice.</p>
+              <p className="text-[13px] leading-relaxed" style={{ color: "var(--term-text-muted)" }}>{note.note}</p>
+              <p className="mt-2 text-[10px]" style={{ color: "var(--term-text-subtle)" }}>Computed from live DexScreener data. Not investment advice.</p>
             </Card>
           )}
 

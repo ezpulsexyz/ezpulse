@@ -5,7 +5,7 @@ import { KIND_ICON } from "../../kickstart";
 import { backendReady } from "../../backend";
 import { formatResolvesIn, resolvesInMs, useSignalRecord } from "../hooks/useSignalRecord";
 import { KindBadge, StrengthBadge } from "./SignalBadges";
-import { EmptyState } from "./PageLayout";
+import { EmptyState, PageHead } from "./PageLayout";
 import { STATS_COLS, STATS_GRID, TermHead, TermHeadCell, TermNum, TermRow, TermRowButton } from "./TermTable";
 import type { SignalKind } from "../../../../shared/signals-core";
 
@@ -43,17 +43,15 @@ export function TrackRecord({ onOpen }: { onOpen: (ca: string) => void }) {
 
   return (
     <>
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-zinc-900">Track Record</h1>
-          <p className="mt-0.5 text-[13px] text-zinc-500">
-            Every archived signal is scored against ezpulse price snapshots at +24h — publicly, permanently, no retroactive edits.
-          </p>
-        </div>
-        <span className="rounded-full bg-indigo-50 px-3 py-1.5 text-[11px] font-semibold text-indigo-700">
-          🎯 Snapshot-based · auto-resolved
-        </span>
-      </div>
+      <PageHead
+        title="Track Record"
+        sub="Every archived signal is scored against ezpulse price snapshots at +24h — publicly, permanently, no retroactive edits."
+        right={
+          <span className="term-head-chip w-full sm:w-auto">
+            🎯 Snapshot-based · auto-resolved
+          </span>
+        }
+      />
 
       {acc === "loading" && <Card><div className="px-5 py-10 text-center text-[13px] text-zinc-400">Loading track record…</div></Card>}
 
@@ -68,10 +66,10 @@ export function TrackRecord({ onOpen }: { onOpen: (ca: string) => void }) {
       {Array.isArray(acc) && totals && (
         <>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div className="rounded-2xl px-5 py-4 text-white shadow-lg shadow-indigo-600/20" style={{ background: `linear-gradient(135deg, ${BLUE}, #4f2ff0)` }}>
-              <div className="text-[11px] font-semibold uppercase tracking-widest text-white/60">Overall hit rate</div>
-              <div className="mt-1 font-display text-3xl font-semibold tabular-nums">{totals.total ? `${((totals.hits / totals.total) * 100).toFixed(0)}%` : "—"}</div>
-              <div className="mt-0.5 text-[11px] text-white/60">{totals.hits}/{totals.total} signals correct at +24h</div>
+            <div className="term-market-stat term-hero-accent col-span-2 lg:col-span-1">
+              <div className="term-market-stat__label">Overall hit rate</div>
+              <div className="term-market-stat__value">{totals.total ? `${((totals.hits / totals.total) * 100).toFixed(0)}%` : "—"}</div>
+              <div className="term-market-stat__sub">{totals.hits}/{totals.total} signals correct at +24h</div>
             </div>
             <Stat label="Awaiting score" value={String(filteredPending?.length ?? 0)} sub="fired · not yet +24h old" />
             <Stat label="Signals scored" value={String(totals.total)} sub="resolved against snapshots" />
@@ -82,13 +80,13 @@ export function TrackRecord({ onOpen }: { onOpen: (ca: string) => void }) {
           </div>
 
           {kinds.length > 1 && (
-            <div className="mt-4 flex flex-wrap gap-1 rounded-full border border-zinc-200 bg-white p-1" style={{ width: "fit-content" }}>
+            <div className="term-tab-rail mt-4 w-full sm:w-fit">
               <button onClick={() => setKindFilter("ALL")}
-                className={`rounded-full px-3 py-1.5 text-[11px] font-bold transition ${kindFilter === "ALL" ? "text-white" : "text-zinc-500"}`}
+                className={`term-filter-pill ${kindFilter === "ALL" ? "term-filter-pill--active" : ""}`}
                 style={kindFilter === "ALL" ? { background: BLUE } : undefined}>ALL</button>
               {kinds.map((k) => (
                 <button key={k} onClick={() => setKindFilter(k)}
-                  className={`rounded-full px-3 py-1.5 text-[11px] font-bold transition ${kindFilter === k ? "text-white" : "text-zinc-500"}`}
+                  className={`term-filter-pill ${kindFilter === k ? "term-filter-pill--active" : ""}`}
                   style={kindFilter === k ? { background: BLUE } : undefined}>{KIND_ICON[k]} {k}</button>
               ))}
             </div>

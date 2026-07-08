@@ -4,12 +4,12 @@ import { COIN_GRID, TermRow } from "./TermTable";
 
 export function PageHead({ title, sub, right }: { title: string; sub: string; right?: React.ReactNode }) {
   return (
-    <div className="mb-3 flex flex-wrap items-start justify-between gap-2 sm:mb-4 sm:items-end">
-      <div className="min-w-0 flex-1">
+    <div className="term-page-head mb-3 sm:mb-4">
+      <div className="min-w-0">
         <h1 className="term-page-title">{title}</h1>
         <p className="term-page-sub">{sub}</p>
       </div>
-      {right && <div className="shrink-0">{right}</div>}
+      {right && <div className="term-page-head__actions">{right}</div>}
     </div>
   );
 }
