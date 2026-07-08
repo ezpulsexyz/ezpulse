@@ -18,17 +18,7 @@ export function ProjectActions({
 
   return (
     <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
-      {graduated ? (
-        <a
-          href={token.links.dexscreener}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="term-action term-action--primary col-span-2 sm:col-span-1 sm:min-w-[7.5rem]"
-        >
-          <TradeIcon />
-          Trade
-        </a>
-      ) : (
+      {!graduated && (
         <a
           href={kickstartUrl(token.ca)}
           target="_blank"
@@ -68,14 +58,6 @@ export function ProjectActions({
         <ExternalIcon />
       </a>
     </div>
-  );
-}
-
-function TradeIcon() {
-  return (
-    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden>
-      <path d="M2 12l4-4 3 3 5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }
 

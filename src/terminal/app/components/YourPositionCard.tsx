@@ -76,16 +76,8 @@ export function YourPositionCard({
         </div>
       )}
       {wallet && !loading && balance !== null && !hasHolding && (
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+        <div className="px-5 py-4">
           <p className="text-[13px] text-zinc-500">Your wallet holds no ${token.symbol}.</p>
-          <a
-            href={token.links.dexscreener}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-full bg-zinc-900 px-5 py-2 text-[11px] font-bold uppercase tracking-wide text-white transition hover:-translate-y-px"
-          >
-            📊 Trade on DexScreener →
-          </a>
         </div>
       )}
       {wallet && !loading && hasHolding && valueUsd !== null && (

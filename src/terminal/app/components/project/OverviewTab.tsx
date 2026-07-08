@@ -99,48 +99,46 @@ export function OverviewTab({
         />
       </div>
 
-      <div className="term-surface-panel px-4 py-3.5 sm:px-5">
+      <div className="term-bonding-card term-surface-panel px-4 py-3.5 sm:px-5">
         {isGraduated(token) ? (
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="rounded-full bg-emerald-600 px-3 py-1 text-[10px] font-black tracking-widest text-white">
-              🔗 BONDED
-            </span>
-            <span className="text-[13px]" style={{ color: "var(--term-text-muted)" }}>
-              Bonding curve completed
-              {token.graduatedAt ? ` on ${new Date(token.graduatedAt).toLocaleDateString()}` : ""} — graduated
-              to an AMM pool.
-            </span>
-            <div className="ml-auto h-2 w-full max-w-[10rem] overflow-hidden rounded-full" style={{ background: "var(--term-surface-3)" }}>
-              <div className="h-full rounded-full bg-emerald-500" style={{ width: "100%" }} />
+          <>
+            <div className="term-bonding-card__head">
+              <span className="term-bonding-card__badge term-bonding-card__badge--bonded">🔗 BONDED</span>
+              <p className="term-bonding-card__desc">
+                Bonding curve completed
+                {token.graduatedAt ? ` on ${new Date(token.graduatedAt).toLocaleDateString()}` : ""} — graduated
+                to an AMM pool.
+              </p>
             </div>
-            <span className="text-[12px] font-bold tabular-nums text-emerald-600">100%</span>
-          </div>
+            <div className="term-bonding-card__progress">
+              <div className="term-bonding-card__bar">
+                <div className="term-bonding-card__fill term-bonding-card__fill--bonded" style={{ width: "100%" }} />
+              </div>
+              <span className="term-bonding-card__pct term-bonding-card__pct--bonded">100%</span>
+            </div>
+          </>
         ) : (
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="rounded-full bg-amber-500 px-3 py-1 text-[10px] font-black tracking-widest text-white">
-              ⏳ BONDING
-            </span>
-            <span className="min-w-0 flex-1 text-[13px]" style={{ color: "var(--term-text-muted)" }}>
-              Bonding Curve:{" "}
-              <strong className="tabular-nums" style={{ color: "var(--term-text)" }}>
+          <>
+            <div className="term-bonding-card__head">
+              <span className="term-bonding-card__badge term-bonding-card__badge--bonding">⏳ BONDING</span>
+              <p className="term-bonding-card__desc">
+                Live bonding curve via Jupiter — graduates to Bonded at 100%.
+              </p>
+            </div>
+            <div className="term-bonding-card__progress">
+              <div className="term-bonding-card__bar">
+                <div
+                  className="term-bonding-card__fill term-bonding-card__fill--bonding"
+                  style={{ width: `${Math.min(token.bondingCurve ?? 0, 100)}%` }}
+                />
+              </div>
+              <span className="term-bonding-card__pct term-bonding-card__pct--bonding">
                 {typeof token.bondingCurve === "number"
                   ? `${Math.min(token.bondingCurve, 100).toFixed(1)}%`
                   : "—"}
-              </strong>{" "}
-              · live via Jupiter — graduates to Bonded at 100%.
-            </span>
-            <div className="ml-auto h-2 w-full max-w-[10rem] overflow-hidden rounded-full" style={{ background: "var(--term-surface-3)" }}>
-              <div
-                className="h-full rounded-full bg-emerald-500"
-                style={{ width: `${Math.min(token.bondingCurve ?? 0, 100)}%` }}
-              />
+              </span>
             </div>
-            <span className="text-[12px] font-bold tabular-nums text-amber-600">
-              {typeof token.bondingCurve === "number"
-                ? `${Math.min(token.bondingCurve, 100).toFixed(1)}%`
-                : "—"}
-            </span>
-          </div>
+          </>
         )}
       </div>
 

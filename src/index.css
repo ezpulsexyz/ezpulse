@@ -519,6 +519,99 @@ input, textarea, select, button { color-scheme: light; }
   background: var(--term-surface);
 }
 
+.term-bonding-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.term-bonding-card__head {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .term-bonding-card__head {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+  }
+}
+
+.term-bonding-card__badge {
+  flex-shrink: 0;
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  color: #fff;
+}
+
+.term-bonding-card__badge--bonded {
+  background: #059669;
+}
+
+.term-bonding-card__badge--bonding {
+  background: #f59e0b;
+}
+
+.term-bonding-card__desc {
+  margin: 0;
+  min-width: 0;
+  flex: 1;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--term-text-muted);
+}
+
+.term-bonding-card__progress {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.term-bonding-card__bar {
+  flex: 1;
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: var(--term-surface-3);
+}
+
+.term-bonding-card__fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: #10b981;
+}
+
+.term-bonding-card__pct {
+  flex-shrink: 0;
+  min-width: 2.75rem;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.term-bonding-card__pct--bonded {
+  color: #059669;
+}
+
+.term-bonding-card__pct--bonding {
+  color: #d97706;
+}
+
+.term-app[data-theme="dark"] .term-bonding-card__pct--bonded {
+  color: #34d399;
+}
+
+.term-app[data-theme="dark"] .term-bonding-card__pct--bonding {
+  color: #fbbf24;
+}
+
 .term-app[data-theme="dark"] .term-surface-panel {
   box-shadow: var(--term-card-shadow);
 }
