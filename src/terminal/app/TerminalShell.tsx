@@ -14,7 +14,7 @@ function TerminalBody() {
 
   if (!booted) {
     return (
-      <div className="term-app flex min-h-screen" data-theme={resolved} style={{ colorScheme: resolved }}>
+      <div className="term-app min-h-screen" data-theme={resolved} style={{ colorScheme: resolved }}>
         <BootScreen slow={bootSlow} onSkip={() => setBooted(true)} />
       </div>
     );
@@ -22,7 +22,7 @@ function TerminalBody() {
 
   return (
     <div
-      className="term-app boot-fade flex min-h-screen min-w-0 font-sans antialiased"
+      className="term-app boot-fade min-h-screen font-sans antialiased"
       data-theme={resolved}
       style={{ colorScheme: resolved }}
     >

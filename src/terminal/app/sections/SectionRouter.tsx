@@ -25,7 +25,7 @@ export function SectionRouter() {
   const { section } = useTerminalContext();
   const Section = SECTIONS[section];
   return (
-    <main key={section} className="term-safe-x px-2 py-3 sm:px-3 sm:py-4 lg:px-5">
+    <main key={section} className="term-safe-x min-w-0 max-w-full overflow-x-clip px-2 py-3 sm:px-3 sm:py-4 lg:px-5">
       <Section />
     </main>
   );

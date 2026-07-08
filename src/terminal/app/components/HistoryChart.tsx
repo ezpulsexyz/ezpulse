@@ -93,7 +93,7 @@ export function HistoryChart({ ca }: { ca: string }) {
           </div>
         </div>
 
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-full overflow-visible" role="img" aria-label="Price history chart">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full max-w-full" role="img" aria-label="Price history chart">
           <defs>
             <linearGradient id={gradId} x1="0%" y1="0%" x2="0%" y2="100%">
               <stop offset="0%" stopColor={lineColor} stopOpacity="0.25" />

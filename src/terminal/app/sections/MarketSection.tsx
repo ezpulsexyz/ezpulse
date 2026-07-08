@@ -89,7 +89,7 @@ export function MarketSection() {
               </div>
 
               {/* Mobile-friendly filter tabs */}
-              <div className="-mx-1 mt-3 flex gap-1 overflow-x-auto px-1 pb-1.5 lg:hidden">
+              <div className="term-scroll-x mt-3 flex gap-1 overflow-x-auto pb-1.5 lg:hidden">
                 {MARKET_TABS.map(([id, label]) => (
                   <button
                     key={id}

@@ -19,13 +19,19 @@
   --fx-scan-gap: 3px;
 }
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  overflow-x: clip;
+  max-width: 100%;
+}
 
 body {
   background: #fbfbfd;
   color: #18181b;
   font-family: var(--font-sans);
   min-height: 100vh;
+  overflow-x: clip;
+  max-width: 100%;
 }
 
 #root {
@@ -33,6 +39,8 @@ body {
   z-index: 1;
   min-height: 100vh;
   isolation: isolate;
+  overflow-x: clip;
+  max-width: 100%;
 }
 
 /* ─── Global ambient glow (soft-light tint over the full UI) ─── */
@@ -147,6 +155,11 @@ input, textarea, select, button { color-scheme: light; }
 
 /* ─── Terminal theme tokens ─── */
 .term-app {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
   --term-sidebar: 14.5rem;
   --term-accent: #2743f0;
   --term-accent-hover: #1f36c4;
@@ -215,6 +228,23 @@ input, textarea, select, button { color-scheme: light; }
   background: var(--term-surface);
   border-color: var(--term-border);
   box-shadow: 1px 0 0 var(--term-shadow), 4px 0 24px -8px var(--term-shadow);
+  /* fixed rail must not widen the page flex/min-content box */
+  width: var(--term-sidebar);
+  max-width: min(var(--term-sidebar), 100vw);
+}
+
+.term-main {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+  overscroll-behavior-x: contain;
+}
+
+@media (max-width: 1024px) {
+  .term-app {
+    touch-action: pan-y pinch-zoom;
+  }
 }
 
 .term-header {
@@ -524,8 +554,6 @@ input, textarea, select, button { color-scheme: light; }
 }
 
 .term-proj-tabs {
-  margin-left: -0.125rem;
-  margin-right: -0.125rem;
   padding-right: max(0.25rem, env(safe-area-inset-right));
 }
 
