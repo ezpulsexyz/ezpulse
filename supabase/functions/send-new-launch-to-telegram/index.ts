@@ -1,5 +1,5 @@
-// ezpulse · push signal_events to Telegram (skips new launches)
-// Deploy: supabase functions deploy send-signal-to-telegram --no-verify-jwt
+// ezpulse · push new launch signal_events to Telegram
+// Deploy: supabase functions deploy send-new-launch-to-telegram --no-verify-jwt
 // Secrets: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
@@ -22,7 +22,6 @@ type SignalRecord = {
   kind?: string;
   strength?: string;
   change_24h?: number | null;
-  conviction_score?: number | null;
 };
 
 serve(async (req) => {
@@ -30,8 +29,8 @@ serve(async (req) => {
     const payload = await req.json();
     const signal = (payload.record ?? payload) as SignalRecord;
 
-    if (NEW_LAUNCH_KINDS.includes(signal.kind ?? "")) {
-      return new Response("Skipped - new launch handled separately", { status: 200 });
+    if (!NEW_LAUNCH_KINDS.includes(signal.kind ?? "")) {
+      return new Response("Not a new launch", { status: 200 });
     }
 
     const tokenCa = signal.token_ca ?? signal.ca;
@@ -42,13 +41,13 @@ serve(async (req) => {
     const tokenSymbol = signal.token_symbol ?? signal.symbol;
 
     const message = `
-🔔 *New Signal Detected*
+🎉 *New Token Launched!*
 
 *Token:* ${tokenSymbol || tokenCa.slice(0, 6) + "..."}
 *Type:* ${signal.kind ?? "—"}
-*Strength:* ${signal.strength ?? "—"}
-*24h Change:* ${signal.change_24h ?? 0}%
-*Conviction:* ${signal.conviction_score ?? "N/A"}
+*Initial Change:* ${signal.change_24h ?? 0}%
+
+A new project has just launched on the platform.
     `.trim();
 
     const keyboard = {
@@ -59,15 +58,11 @@ serve(async (req) => {
             url: `https://ezpulse.xyz/token/${tokenCa}`,
           },
           {
-            text: "🔍 DexScreener",
+            text: "🔍 View on DexScreener",
             url: `https://dexscreener.com/solana/${tokenCa}`,
           },
         ],
         [
-          {
-            text: "📈 View Chart",
-            url: `https://dexscreener.com/solana/${tokenCa}`,
-          },
           {
             text: "👤 Founder Terminal",
             url: `https://ezpulse.xyz/token/${tokenCa}`,
@@ -89,13 +84,13 @@ serve(async (req) => {
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error("Telegram error:", errText);
+      console.error("New launch notification error:", errText);
       return new Response(errText, { status: 502 });
     }
 
-    return new Response("Notification sent", { status: 200 });
+    return new Response("New launch notification sent", { status: 200 });
   } catch (error) {
-    console.error("Telegram error:", error);
+    console.error("New launch notification error:", error);
     return new Response("Error", { status: 500 });
   }
 });
