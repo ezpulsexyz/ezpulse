@@ -1,11 +1,12 @@
 // ezpulse · push signal_events to Telegram (skips new launches)
 // Deploy: supabase functions deploy send-signal-to-telegram --no-verify-jwt
-// Secrets: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
+// Secrets: TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, TELEGRAM_CHANNEL_ID (optional)
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 
 const TELEGRAM_BOT_TOKEN = Deno.env.get("TELEGRAM_BOT_TOKEN")!;
 const TELEGRAM_CHAT_ID = Deno.env.get("TELEGRAM_CHAT_ID")!;
+const TELEGRAM_CHANNEL_ID = Deno.env.get("TELEGRAM_CHANNEL_ID");
 
 const NEW_LAUNCH_KINDS = [
   "NEW_LAUNCH",
@@ -76,21 +77,32 @@ serve(async (req) => {
       ],
     };
 
-    const res = await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: TELEGRAM_CHAT_ID,
-        text: message,
-        parse_mode: "Markdown",
-        reply_markup: keyboard,
-      }),
-    });
+    const sendToChat = (chatId: string) =>
+      fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message,
+          parse_mode: "Markdown",
+          reply_markup: keyboard,
+        }),
+      });
 
+    const res = await sendToChat(TELEGRAM_CHAT_ID);
     if (!res.ok) {
       const errText = await res.text();
       console.error("Telegram error:", errText);
       return new Response(errText, { status: 502 });
+    }
+
+    if (TELEGRAM_CHANNEL_ID) {
+      const channelRes = await sendToChat(TELEGRAM_CHANNEL_ID);
+      if (!channelRes.ok) {
+        const errText = await channelRes.text();
+        console.error("Telegram channel error:", errText);
+        return new Response(errText, { status: 502 });
+      }
     }
 
     return new Response("Notification sent", { status: 200 });
