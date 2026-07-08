@@ -1,8 +1,37 @@
 import { useThemeContext } from "../ThemeContext";
 
-export function ThemeToggle() {
+export function ThemeToggle({ variant = "icon" }: { variant?: "icon" | "row" }) {
   const { resolved, toggle } = useThemeContext();
   const dark = resolved === "dark";
+
+  if (variant === "row") {
+    return (
+      <button
+        type="button"
+        onClick={toggle}
+        className="term-theme-row flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left transition"
+        aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
+      >
+        <span className="flex items-center gap-2">
+          <span className="term-icon-btn pointer-events-none h-7 w-7 border-0 bg-transparent">
+            {dark ? <SunIcon /> : <MoonIcon />}
+          </span>
+          <span className="text-[12px] font-medium" style={{ color: "var(--term-text-secondary)" }}>
+            {dark ? "Light mode" : "Dark mode"}
+          </span>
+        </span>
+        <span
+          className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${dark ? "bg-[var(--term-accent)]" : ""}`}
+          style={dark ? undefined : { background: "var(--term-surface-3)" }}
+          aria-hidden
+        >
+          <span
+            className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${dark ? "translate-x-4" : "translate-x-0.5"}`}
+          />
+        </span>
+      </button>
+    );
+  }
 
   return (
     <button

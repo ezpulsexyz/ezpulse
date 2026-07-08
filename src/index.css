@@ -174,24 +174,26 @@ input, textarea, select, button { color-scheme: light; }
 }
 
 .term-app[data-theme="dark"] {
-  --term-accent: #4d6bff;
-  --term-accent-hover: #3b5cff;
-  --term-accent-glow: rgba(77, 107, 255, 0.35);
+  --term-accent: #5b7cff;
+  --term-accent-hover: #4a6bff;
+  --term-accent-glow: rgba(91, 124, 255, 0.32);
   --term-bg: #09090b;
-  --term-surface: #111113;
-  --term-surface-2: #18181b;
-  --term-surface-3: #1f1f23;
-  --term-border: #27272a;
-  --term-border-subtle: #1f1f23;
-  --term-text: #fafafa;
-  --term-text-secondary: #e4e4e7;
+  --term-surface: #161618;
+  --term-surface-2: #1c1c1f;
+  --term-surface-3: #242428;
+  --term-border: #323238;
+  --term-border-subtle: #26262c;
+  --term-text: #f4f4f5;
+  --term-text-secondary: #d4d4d8;
   --term-text-muted: #a1a1aa;
   --term-text-subtle: #71717a;
-  --term-hover: rgba(255, 255, 255, 0.05);
-  --term-row-hover: rgba(77, 107, 255, 0.08);
-  --term-shadow: rgba(0, 0, 0, 0.35);
-  --term-shimmer-a: #1f1f23;
-  --term-shimmer-b: #27272a;
+  --term-hover: rgba(255, 255, 255, 0.06);
+  --term-row-hover: rgba(91, 124, 255, 0.1);
+  --term-shadow: rgba(0, 0, 0, 0.45);
+  --term-card-highlight: rgba(255, 255, 255, 0.04);
+  --term-card-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04) inset, 0 8px 24px -8px rgba(0, 0, 0, 0.55);
+  --term-shimmer-a: #1c1c1f;
+  --term-shimmer-b: #2a2a30;
 }
 
 .term-app input,
@@ -374,6 +376,15 @@ input, textarea, select, button { color-scheme: light; }
   background: var(--term-surface);
 }
 
+.term-app[data-theme="dark"] .term-card {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--term-surface) 92%, white) 0%,
+    var(--term-surface) 100%
+  );
+  box-shadow: var(--term-card-shadow);
+}
+
 .term-card__head {
   display: flex;
   flex-wrap: wrap;
@@ -382,6 +393,11 @@ input, textarea, select, button { color-scheme: light; }
   gap: 0.5rem;
   border-bottom: 1px solid var(--term-border-subtle);
   padding: 0.5rem 0.875rem;
+}
+
+.term-app[data-theme="dark"] .term-card__head {
+  background: color-mix(in srgb, var(--term-surface-2) 55%, transparent);
+  border-bottom-color: var(--term-border);
 }
 
 .term-card__title {
@@ -488,6 +504,19 @@ input, textarea, select, button { color-scheme: light; }
   padding: 1rem 1.125rem;
   text-align: left;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.term-app[data-theme="dark"] .term-market-stat {
+  background: linear-gradient(180deg, var(--term-surface-2) 0%, var(--term-surface) 100%);
+  box-shadow: var(--term-card-shadow);
+}
+
+.term-app[data-theme="dark"] .term-market-stat--hero {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--term-surface-2) 80%, var(--term-accent) 8%) 0%,
+    var(--term-surface) 100%
+  );
 }
 
 button.term-market-stat:hover {
@@ -603,6 +632,11 @@ button.term-market-stat:hover {
   transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
+.term-app[data-theme="dark"] .term-signal-row {
+  background: linear-gradient(180deg, var(--term-surface-2) 0%, var(--term-surface) 100%);
+  box-shadow: var(--term-card-shadow);
+}
+
 @media (hover: hover) and (pointer: fine) {
   .term-signal-row:hover {
     transform: translateY(-2px);
@@ -677,6 +711,33 @@ button.term-market-stat:hover {
 .term-hit-chip {
   border: 1px solid var(--term-border);
   background: var(--term-surface-2);
+}
+
+.term-app[data-theme="dark"] .term-hit-chip {
+  background: var(--term-surface-3);
+}
+
+.term-theme-row:hover {
+  background: var(--term-hover);
+}
+
+.term-app[data-theme="dark"] .term-tab-rail {
+  background: var(--term-surface-2);
+  border-color: var(--term-border);
+}
+
+.term-app[data-theme="dark"] .term-status-card {
+  background: var(--term-surface-3);
+  border: 1px solid var(--term-border-subtle);
+}
+
+.term-app[data-theme="dark"] .term-panel {
+  box-shadow: var(--term-card-shadow), 0 16px 40px -12px rgba(0, 0, 0, 0.6);
+}
+
+.term-app[data-theme="dark"] .term-header {
+  background: color-mix(in srgb, var(--term-surface) 88%, var(--term-bg));
+  border-bottom-color: var(--term-border);
 }
 
 .term-filter-pill {

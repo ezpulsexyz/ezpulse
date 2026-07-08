@@ -9,7 +9,7 @@ import { TerminalProvider, useTerminalContext } from "./TerminalContext";
 import type { TerminalTarget } from "./types";
 
 function TerminalBody() {
-  const { booted, bootSlow, setBooted } = useTerminalContext();
+  const { booted, bootSlow, setBooted, sidebarHidden } = useTerminalContext();
   const { resolved } = useThemeContext();
 
   if (!booted) {
@@ -27,7 +27,7 @@ function TerminalBody() {
       style={{ colorScheme: resolved }}
     >
       <Sidebar />
-      <div className="min-w-0 flex-1 lg:ml-[var(--term-sidebar)]">
+      <div className={`term-main min-w-0 flex-1 ${sidebarHidden ? "" : "lg:ml-[var(--term-sidebar)]"}`}>
         <Header />
         <CommandPalette />
         <Toasts />

@@ -21,6 +21,13 @@ export function useTerminal(target?: TerminalTarget) {
   const [selected, setSelected] = useState<LiveLaunch | null>(null);
   const [query, setQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [sidebarHidden, setSidebarHidden] = useState(() => {
+    try {
+      return localStorage.getItem("ezpulse-sidebar-hidden") === "1";
+    } catch {
+      return false;
+    }
+  });
   const [liveFeed, setLiveFeed] = useState<LiveLaunch[] | null | "loading">("loading");
   const [copiedCa, setCopiedCa] = useState<string | null>(null);
   const [watchlist, setWatchlist] = useState<string[]>(() => loadWatchlist());
@@ -37,6 +44,30 @@ export function useTerminal(target?: TerminalTarget) {
 
   const [signinNudge, setSigninNudge] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+
+  const persistSidebarHidden = (hidden: boolean) => {
+    try {
+      localStorage.setItem("ezpulse-sidebar-hidden", hidden ? "1" : "0");
+    } catch {
+      /* noop */
+    }
+  };
+
+  const openSidebar = useCallback(() => {
+    setSidebarHidden(false);
+    setMenuOpen(true);
+    persistSidebarHidden(false);
+  }, []);
+
+  const hideSidebar = useCallback(() => {
+    setSidebarHidden(true);
+    setMenuOpen(false);
+    persistSidebarHidden(true);
+  }, []);
+
+  const closeSidebar = useCallback(() => {
+    setMenuOpen(false);
+  }, []);
 
   const toggleWatch = (ca: string) => {
     setWatchlist((wl) => {
@@ -409,6 +440,10 @@ export function useTerminal(target?: TerminalTarget) {
     setQuery,
     menuOpen,
     setMenuOpen,
+    sidebarHidden,
+    openSidebar,
+    hideSidebar,
+    closeSidebar,
     liveFeed,
     setLiveFeed,
     copiedCa,

@@ -12,7 +12,7 @@ function readPreference(): ThemePreference {
   } catch {
     /* noop */
   }
-  return "system";
+  return "light";
 }
 
 function resolveTheme(preference: ThemePreference): ResolvedTheme {

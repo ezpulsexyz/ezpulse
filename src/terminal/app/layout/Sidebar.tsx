@@ -1,30 +1,55 @@
 import { landingHref, terminalHref } from "../../../routes";
 import { Logo } from "../../brand";
 import { NavIcon } from "../components/NavIcon";
+import { ThemeToggle } from "../components/ThemeToggle";
 import { NAV_GROUPS } from "../types";
 import { useTerminalContext } from "../TerminalContext";
 
 export function Sidebar() {
-  const { section, menuOpen, setMenuOpen, goto, feed, loading, watchlist } = useTerminalContext();
+  const {
+    section,
+    menuOpen,
+    sidebarHidden,
+    hideSidebar,
+    closeSidebar,
+    goto,
+    feed,
+    loading,
+    watchlist,
+  } = useTerminalContext();
+
+  const sidebarTranslate =
+    menuOpen ? "translate-x-0" : "-translate-x-full";
 
   return (
     <>
       <aside
-        className={`term-sidebar fixed inset-y-0 left-0 z-50 flex w-[var(--term-sidebar)] flex-col border-r transition-transform duration-200 lg:translate-x-0 ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}
+        className={`term-sidebar fixed inset-y-0 left-0 z-50 flex w-[var(--term-sidebar)] flex-col border-r transition-transform duration-200 ${sidebarTranslate} ${sidebarHidden ? "lg:-translate-x-full" : "lg:translate-x-0"}`}
         style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="flex items-center justify-between px-4 py-4">
-          <a href={landingHref()} title="Back to ezpulse.xyz" onClick={() => setMenuOpen(false)} className="min-w-0">
+        <div className="flex items-center justify-between gap-2 px-4 py-4">
+          <a href={landingHref()} title="Back to ezpulse.xyz" onClick={closeSidebar} className="min-w-0">
             <Logo size={26} textClass="text-[13px]" />
           </a>
-          <button
-            type="button"
-            onClick={() => setMenuOpen(false)}
-            aria-label="Close menu"
-            className="term-icon-btn lg:hidden"
-          >
-            ×
-          </button>
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              onClick={hideSidebar}
+              aria-label="Hide sidebar"
+              title="Hide sidebar"
+              className="term-icon-btn hidden lg:flex"
+            >
+              <SidebarCollapseIcon />
+            </button>
+            <button
+              type="button"
+              onClick={closeSidebar}
+              aria-label="Close menu"
+              className="term-icon-btn lg:hidden"
+            >
+              ×
+            </button>
+          </div>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 pb-32 scrollbar-thin">
@@ -74,8 +99,9 @@ export function Sidebar() {
           ))}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 border-t px-4 py-3" style={{ borderColor: "var(--term-border-subtle)", background: "var(--term-surface)" }}>
-          <div className="term-status-card flex items-center gap-2 px-3 py-2">
+        <div className="absolute bottom-0 left-0 right-0 border-t px-3 py-3" style={{ borderColor: "var(--term-border-subtle)", background: "var(--term-surface)" }}>
+          <ThemeToggle variant="row" />
+          <div className="term-status-card mt-2 flex items-center gap-2 px-3 py-2">
             <div className={`h-2 w-2 shrink-0 rounded-full ${feed.length ? "bg-emerald-500" : "bg-amber-400"}`} />
             <div className="min-w-0">
               <div className="truncate text-[11px] font-medium" style={{ color: "var(--term-text-secondary)" }}>
@@ -90,10 +116,19 @@ export function Sidebar() {
       {menuOpen && (
         <div
           className="fixed inset-0 z-40 bg-black/50 transition-opacity lg:hidden"
-          onClick={() => setMenuOpen(false)}
+          onClick={closeSidebar}
           aria-hidden
         />
       )}
     </>
+  );
+}
+
+function SidebarCollapseIcon() {
+  return (
+    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden>
+      <path d="M2.5 3.5h11M2.5 8h7M2.5 12.5h11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M12.5 6.5v5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
   );
 }
