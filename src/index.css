@@ -1779,6 +1779,81 @@ button.term-market-stat:hover {
   white-space: nowrap;
 }
 
+/* Price history chart — card header range toggle + plot area */
+.term-chart-range {
+  display: flex;
+  flex-shrink: 0;
+  gap: 0.125rem;
+  border-radius: 0.375rem;
+  border: 1px solid var(--term-border);
+  background: var(--term-surface-2);
+  padding: 0.125rem;
+}
+
+.term-history-chart {
+  padding: 0.5rem 1rem 1rem;
+}
+
+.term-history-chart__loading {
+  display: flex;
+  height: 240px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  margin: 0 1rem 1rem;
+  background: var(--term-surface-2);
+}
+
+.term-history-chart__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.term-history-chart__label {
+  font-size: 12px;
+  color: var(--term-text-muted);
+}
+
+.term-history-chart__price {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--term-text);
+}
+
+@media (min-width: 640px) {
+  .term-history-chart__price {
+    font-size: 1.5rem;
+  }
+}
+
+.term-history-chart__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 200px;
+}
+
+@media (min-width: 1024px) {
+  .term-history-chart__svg {
+    min-height: 260px;
+  }
+}
+
+.term-history-chart__axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--term-text-subtle);
+}
+
 /* DexScreener embed — tall enough to read on phones/tablets */
 .dex-chart-embed {
   height: 420px;
