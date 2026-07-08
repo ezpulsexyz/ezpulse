@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { formatRelativeTime } from "../../../lib/utils";
 import { BLUE, Card, Stat } from "../../components";
 import { KIND_ICON } from "../../kickstart";
 import { backendReady } from "../../backend";
@@ -104,6 +105,12 @@ export function TrackRecord({ onOpen }: { onOpen: (ca: string) => void }) {
                     <KindBadge kind={p.kind} />
                     <StrengthBadge strength={p.strength} />
                     <TermNum className="!text-amber-600">{formatResolvesIn(left)}</TermNum>
+                    <span
+                      className="cursor-help font-mono text-[10px] text-zinc-400"
+                      title={new Date(p.ts).toLocaleString()}
+                    >
+                      {formatRelativeTime(p.ts)}
+                    </span>
                     <span className="font-mono text-[10px] text-zinc-400">${p.symbol}</span>
                   </TermRow>
                 );
@@ -150,7 +157,12 @@ export function TrackRecord({ onOpen }: { onOpen: (ca: string) => void }) {
                       <span className="block truncate font-mono text-[12px] font-semibold text-zinc-900">{r.title}</span>
                       <KindBadge kind={r.kind} />
                     </span>
-                    <span className="font-mono text-[10px] text-zinc-400">${r.symbol} · {new Date(r.ts).toLocaleDateString()} · {r.strength.toLowerCase()}</span>
+                    <span
+                      className="cursor-help font-mono text-[10px] text-zinc-400"
+                      title={new Date(r.ts).toLocaleString()}
+                    >
+                      ${r.symbol} · {formatRelativeTime(r.ts)} · {r.strength.toLowerCase()}
+                    </span>
                   </span>
                   <TermNum className={`shrink-0 ${r.change_24h >= 0 ? "text-emerald-600" : "text-red-500"}`} bold>
                     {r.change_24h >= 0 ? "+" : ""}{r.change_24h.toFixed(1)}%

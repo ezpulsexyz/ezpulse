@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { formatRelativeTime } from "../../lib/utils";
 import Toast, { type ToastState } from "./Toast";
 import {
   backendReady,
@@ -56,7 +57,9 @@ export default function ThesesList({
         const data = backendReady
           ? await getThesesForToken(tokenCa)
           : loadInvestorTheses(tokenCa).map(localPostToSaved);
-        const normalized = data.map(normalizeThesis);
+        const normalized = data
+          .map(normalizeThesis)
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         setTheses(normalized);
         onCountChange?.(normalized.length);
       } catch (error) {
@@ -181,8 +184,13 @@ export default function ThesesList({
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs text-zinc-400">
-                      <span>{new Date(thesis.created_at).toLocaleDateString()}</span>
+                    <div className="flex items-center gap-3">
+                      <span
+                        className="text-xs text-zinc-400"
+                        title={new Date(thesis.created_at).toLocaleString()}
+                      >
+                        {formatRelativeTime(thesis.created_at)}
+                      </span>
                       <button
                         type="button"
                         onClick={() => void handleUpvote(thesis.id)}

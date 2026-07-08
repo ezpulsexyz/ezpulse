@@ -163,6 +163,7 @@ function SignalEventRow({ e, byKind, onOpen }: {
         <div className="mt-1.5 flex items-center gap-2 text-[11px] text-zinc-400">
           {e.token.icon && <img src={e.token.icon} alt="" className="h-4 w-4 rounded-full" onError={(ev) => { (ev.target as HTMLImageElement).style.display = "none"; }} />}
           <span className="font-semibold text-zinc-600">{e.token.name}</span> ${e.token.symbol}
+          <span className="rounded bg-zinc-100 px-2 py-0.5 font-mono text-[10px] text-zinc-500">Live</span>
           <span className="ml-auto font-semibold text-indigo-500">Open terminal →</span>
         </div>
       </div>
