@@ -27,8 +27,8 @@ export default function FounderTerminal({
 
   if (founder.loading) {
     return (
-      <div className="mx-auto max-w-6xl space-y-8 px-4">
-        <div className="rounded-2xl border border-zinc-200 bg-zinc-50 px-6 py-12 text-center text-sm text-zinc-500">
+      <div className="min-w-0 space-y-6 sm:space-y-8 lg:mx-auto lg:max-w-6xl">
+        <div className="term-surface-panel px-4 py-12 text-center text-sm sm:px-6" style={{ color: "var(--term-text-muted)" }}>
           Loading founder profile…
         </div>
         <Card><LoadingRows /></Card>
@@ -37,7 +37,7 @@ export default function FounderTerminal({
   }
 
   return (
-    <div className="mx-auto max-w-6xl animate-fade-up space-y-8 px-4">
+    <div className="min-w-0 animate-fade-up space-y-6 sm:space-y-8 lg:mx-auto lg:max-w-6xl">
       <FounderHeader founder={founder} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
