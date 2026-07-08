@@ -16,9 +16,9 @@ export function Header() {
       <div className="term-safe-x flex flex-wrap items-center gap-1.5 px-2 py-1.5 sm:gap-2 sm:px-3 sm:py-2 lg:px-5">
         <button
           onClick={openSidebar}
-          aria-label={sidebarHidden ? "Show sidebar" : "Open menu"}
-          title={sidebarHidden ? "Show sidebar" : "Open menu"}
-          className={`term-icon-btn shrink-0 font-mono text-[10px] ${sidebarHidden ? "" : "lg:hidden"}`}
+          aria-label={sidebarHidden ? "Expand sidebar" : "Open menu"}
+          title={sidebarHidden ? "Expand sidebar" : "Open menu"}
+          className="term-icon-btn shrink-0 font-mono text-[10px] lg:hidden"
         >
           ≡
         </button>

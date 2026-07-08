@@ -35,7 +35,18 @@ export function Wordmark({ className = "", dark = false }: { className?: string;
   );
 }
 
-export function Logo({ size = 32, textClass = "text-[15px]", dark = false }: { size?: number; textClass?: string; dark?: boolean }) {
+export function Logo({
+  size = 32,
+  textClass = "text-[15px]",
+  dark = false,
+  compact = false,
+}: {
+  size?: number;
+  textClass?: string;
+  dark?: boolean;
+  compact?: boolean;
+}) {
+  if (compact) return <PulseMark size={size} />;
   return (
     <span className="flex items-center gap-2">
       <PulseMark size={size} />

@@ -161,6 +161,7 @@ input, textarea, select, button { color-scheme: light; }
   overflow-x: clip;
   overscroll-behavior-x: none;
   --term-sidebar: 14.5rem;
+  --term-sidebar-collapsed: 3.5rem;
   --term-accent: #2743f0;
   --term-accent-hover: #1f36c4;
   --term-accent-glow: rgba(39, 67, 240, 0.28);
@@ -231,6 +232,7 @@ input, textarea, select, button { color-scheme: light; }
   /* fixed rail must not widen the page flex/min-content box */
   width: var(--term-sidebar);
   max-width: min(var(--term-sidebar), 100vw);
+  transition: transform 200ms ease, width 200ms ease, max-width 200ms ease;
 }
 
 .term-main {
@@ -242,10 +244,32 @@ input, textarea, select, button { color-scheme: light; }
 }
 
 @media (min-width: 1024px) {
+  .term-sidebar--collapsed {
+    width: var(--term-sidebar-collapsed);
+    max-width: var(--term-sidebar-collapsed);
+  }
+
+  .term-sidebar__body--collapsed {
+    display: none;
+  }
+
+  .term-sidebar__head--collapsed {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 0.5rem;
+  }
+
   .term-main--with-sidebar {
     margin-left: var(--term-sidebar);
     width: calc(100% - var(--term-sidebar));
     max-width: calc(100% - var(--term-sidebar));
+  }
+
+  .term-main--with-sidebar-collapsed {
+    margin-left: var(--term-sidebar-collapsed);
+    width: calc(100% - var(--term-sidebar-collapsed));
+    max-width: calc(100% - var(--term-sidebar-collapsed));
   }
 }
 
