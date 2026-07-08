@@ -6,6 +6,7 @@ import {
   isGraduated,
   kickstartUrl,
   tokenNote,
+  tokenSignalBias,
   tokenSignals,
   type LiveLaunch,
 } from "../../../kickstart";
@@ -175,9 +176,7 @@ export function OverviewTab({
           >
             {(() => {
               const sigs = tokenSignals(token, feed);
-              const bulls = sigs.filter((s) => s.strength === "BULLISH").length;
-              const bears = sigs.filter((s) => s.strength === "BEARISH").length;
-              const bias = bulls > bears ? "BULLISH" : bears > bulls ? "BEARISH" : "MIXED";
+              const bias = tokenSignalBias(token, feed);
               const top = sigs.filter((s) => s.strength !== "NEUTRAL").slice(0, 3);
               const turnover = token.mcap > 0 ? token.volume24h / token.mcap : 0;
               return (
@@ -185,17 +184,17 @@ export function OverviewTab({
                   <div className="flex flex-wrap items-center gap-3 border-b border-zinc-100 px-5 py-3.5">
                     <span
                       className={`rounded-full px-3 py-1 text-[10px] font-black tracking-widest text-white ${
-                        bias === "BULLISH"
+                        bias.label === "BULLISH"
                           ? "bg-emerald-600"
-                          : bias === "BEARISH"
+                          : bias.label === "BEARISH"
                             ? "bg-red-500"
                             : "bg-zinc-500"
                       }`}
                     >
-                      {bias}
+                      {bias.label}
                     </span>
                     <span className="text-[12px] text-zinc-500">
-                      {bulls} bullish · {bears} bearish · {sigs.length - bulls - bears} neutral signals
+                      {bias.bulls} bullish · {bias.bears} bearish · {bias.neutrals} neutral · score {bias.score}/100
                     </span>
                     <button
                       type="button"

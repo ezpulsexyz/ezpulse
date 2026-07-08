@@ -114,7 +114,19 @@ export function archivableSignals(
   }
 
   if (turnover >= Math.max(avgTurnover * 1.5, 0.3)) {
-    push("VOLUME", "BULLISH", `Turnover ${(turnover * 100).toFixed(0)}% of cap on $${m.symbol}`);
+    const trades = m.buys24h + m.sells24h;
+    const buyPressure = trades > 0 ? m.buys24h / trades : 0.5;
+    const volStrength: SignalStrength =
+      buyPressure >= 0.58 ? "BULLISH" : buyPressure <= 0.42 ? "BEARISH" : "NEUTRAL";
+    if (volStrength !== "NEUTRAL") {
+      push(
+        "VOLUME",
+        volStrength,
+        volStrength === "BULLISH"
+          ? `Turnover ${(turnover * 100).toFixed(0)}% of cap on $${m.symbol} · buyers leading`
+          : `Turnover ${(turnover * 100).toFixed(0)}% of cap on $${m.symbol} · sellers leading`,
+      );
+    }
   } else if (turnover < 0.05 && m.mcap > 0) {
     push("VOLUME", "BEARISH", `Volume drying up on $${m.symbol}`);
   }
@@ -134,6 +146,88 @@ export function archivableSignals(
   }
 
   return out;
+}
+
+export interface SignalBiasInput {
+  kind: SignalKind;
+  strength: SignalStrength;
+  weight?: number;
+}
+
+export interface SignalBias {
+  label: "BULLISH" | "BEARISH" | "MIXED";
+  bulls: number;
+  bears: number;
+  neutrals: number;
+  bullScore: number;
+  bearScore: number;
+  /** 0–100 conviction toward bulls; 50 = balanced */
+  score: number;
+}
+
+const KIND_BIAS_MULTIPLIER: Partial<Record<SignalKind, number>> = {
+  WHALE: 1.45,
+  MOMENTUM: 1.25,
+  VOLUME: 1.0,
+  LIQUIDITY: 0.85,
+  RANK: 0.75,
+  LAUNCH: 1.1,
+  VERIFY: 0.45,
+  RISK: 1.0,
+};
+
+/** Weighted contribution of a directional signal to aggregate bias. */
+export function signalBiasWeight(
+  kind: SignalKind,
+  strength: SignalStrength,
+  baseWeight = 20,
+): number {
+  if (strength === "NEUTRAL") return 0;
+  return baseWeight * (KIND_BIAS_MULTIPLIER[kind] ?? 1);
+}
+
+/** Aggregate directional signals into a weighted bias (not a naive count). */
+export function computeSignalBias(signals: SignalBiasInput[]): SignalBias {
+  let bulls = 0;
+  let bears = 0;
+  let neutrals = 0;
+  let bullScore = 0;
+  let bearScore = 0;
+
+  for (const s of signals) {
+    if (s.strength === "NEUTRAL") {
+      neutrals++;
+      continue;
+    }
+    const w = signalBiasWeight(s.kind, s.strength, s.weight);
+    if (s.strength === "BULLISH") {
+      bulls++;
+      bullScore += w;
+    } else {
+      bears++;
+      bearScore += w;
+    }
+  }
+
+  const total = bullScore + bearScore;
+  const score = total > 0 ? Math.round((bullScore / total) * 100) : 50;
+
+  const margin = 0.12;
+  let label: SignalBias["label"] = "MIXED";
+  if (total > 0) {
+    if (bullScore > bearScore * (1 + margin)) label = "BULLISH";
+    else if (bearScore > bullScore * (1 + margin)) label = "BEARISH";
+  }
+
+  return {
+    label,
+    bulls,
+    bears,
+    neutrals,
+    bullScore: Math.round(bullScore),
+    bearScore: Math.round(bearScore),
+    score,
+  };
 }
 
 /** Ecosystem-wide weight for feed ordering (higher = more significant). */

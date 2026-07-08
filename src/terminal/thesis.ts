@@ -11,6 +11,7 @@ import type { PricePoint } from "./backend";
 import {
   isVerified,
   isGraduated,
+  tokenSignalBias,
   tokenSignals,
   tokenNote,
   type LiveLaunch,
@@ -63,14 +64,14 @@ export function generateThesis(
   const metrics = computeFounderMetrics([perf], signalHits, founderLaunchesList.length ? founderLaunchesList : [c]);
   const forensics = computeForensics(founder, [c], null);
 
-  const bulls = sigs.filter((s) => s.strength === "BULLISH").length;
-  const bears = sigs.filter((s) => s.strength === "BEARISH").length;
+  const signalBias = tokenSignalBias(c, feed);
   const whale = sigs.find((s) => s.kind === "WHALE" && s.strength !== "NEUTRAL");
   const momentum = sigs.find((s) => s.kind === "MOMENTUM");
 
   let score = sentiment.score;
-  score += bulls * 4;
-  score -= bears * 5;
+  score += (signalBias.score - 50) * 0.35;
+  score += signalBias.bullScore * 0.08;
+  score -= signalBias.bearScore * 0.1;
   if (isVerified(c)) score += 8;
   if (isGraduated(c)) score += 6;
   if (c.change24h >= 15) score += 5;
@@ -115,7 +116,7 @@ export function generateThesis(
       ? `Mcap ≤ $${(mcapTarget / 1000).toFixed(0)}K or 24h drawdown ≥ 25% within ${horizon}`
       : `Price holds within ±15% of current level through ${horizon}`;
 
-  const signalSummary = `${bulls} bullish · ${bears} bearish signals firing · ecosystem sentiment ${sentiment.label} (${sentiment.score}/100).`;
+  const signalSummary = `${signalBias.bulls} bullish · ${signalBias.bears} bearish signals · weighted bias ${signalBias.label} (${signalBias.score}/100) · sentiment ${sentiment.label} (${sentiment.score}/100).`;
 
   const founderInsight = founder.bio
     ? `${founder.displayName}: ${founder.bio}${metrics.signalHitRate !== null ? ` Historical signal hit rate on founder tokens: ${metrics.signalHitRate}%.` : ""}`

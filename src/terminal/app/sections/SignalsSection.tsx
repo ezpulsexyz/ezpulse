@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { ecosystemSignals, type EcoEvent } from "../../kickstart";
+import { ecosystemBias, ecosystemSignals, type EcoEvent } from "../../kickstart";
 import { BLUE, Card, Stat } from "../../components";
 import { PageHead, EmptyState, LaunchCta, LoadingRows } from "../components/PageLayout";
 import { LiveBadge } from "../components/LiveBadge";
@@ -25,8 +25,7 @@ export function SignalsSection() {
     return true;
   }), [events, kindFilter, strengthFilter]);
 
-  const bulls = events.filter((e) => e.strength === "BULLISH").length;
-  const bears = events.filter((e) => e.strength === "BEARISH").length;
+  const bias = useMemo(() => ecosystemBias(events), [events]);
   const pendingCount = record.pending?.length ?? 0;
 
   const kindCounts = useMemo(() => {
@@ -91,10 +90,10 @@ export function SignalsSection() {
       {!loading && feed.length > 0 && (
         <>
           <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <div className={`rounded-2xl px-5 py-4 text-white shadow-lg ${bulls > bears ? "bg-emerald-600" : bears > bulls ? "bg-red-500" : "bg-zinc-700"}`}>
+            <div className={`rounded-2xl px-5 py-4 text-white shadow-lg ${bias.label === "BULLISH" ? "bg-emerald-600" : bias.label === "BEARISH" ? "bg-red-500" : "bg-zinc-700"}`}>
               <div className="text-[11px] font-semibold uppercase tracking-widest text-white/60">Ecosystem bias</div>
-              <div className="mt-1 font-display text-2xl font-semibold">{bulls > bears ? "BULLISH" : bears > bulls ? "BEARISH" : "MIXED"}</div>
-              <div className="mt-0.5 text-[11px] text-white/70">{bulls} bullish · {bears} bearish</div>
+              <div className="mt-1 font-display text-2xl font-semibold">{bias.label}</div>
+              <div className="mt-0.5 text-[11px] text-white/70">{bias.bulls} bullish · {bias.bears} bearish · score {bias.score}/100</div>
             </div>
             <Stat label="Signals firing" value={String(events.length)} sub={`${filtered.length} shown · ${feed.length} tokens`} />
             <Stat label="Top mover" value={topMover ? `${topMover.change24h >= 0 ? "+" : ""}${topMover.change24h.toFixed(1)}%` : "—"} sub={topMover ? `$${topMover.symbol}` : ""} />

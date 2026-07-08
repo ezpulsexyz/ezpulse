@@ -4,7 +4,9 @@ import { resolveProjectCategories } from "./projectCategories";
 import { getSupabaseUrl } from "../utils/supabase/config";
 import {
   whaleSignal as coreWhaleSignal,
+  computeSignalBias,
   signalWeight,
+  type SignalBias,
   type SignalKind,
   type SignalStrength,
 } from "../../shared/signals-core";
@@ -763,8 +765,29 @@ export function tokenSignals(c: LiveLaunch, feed: LiveLaunch[]): Signal[] {
   else if (c.change24h <= -15) out.push({ kind: "MOMENTUM", strength: "BEARISH", title: `${c.change24h.toFixed(1)}% drawdown`, detail: "Sharp 24h decline. Wait for stabilization before averaging — falling knives on micro-caps cut deep." });
   else out.push({ kind: "MOMENTUM", strength: "NEUTRAL", title: "Price consolidating", detail: `${c.change24h >= 0 ? "+" : ""}${c.change24h.toFixed(1)}% over 24h — no directional edge from momentum alone.` });
 
-  if (turnover >= Math.max(avgTurnover * 1.5, 0.3)) out.push({ kind: "VOLUME", strength: "BULLISH", title: `Turnover ${(turnover * 100).toFixed(0)}% of cap`, detail: `Trading ${avgTurnover > 0 ? (turnover / avgTurnover).toFixed(1) + "× the board average" : "heavily"}. Sustained elevated volume for 48h historically precedes re-ratings.` });
-  else if (turnover < 0.05) out.push({ kind: "VOLUME", strength: "BEARISH", title: "Volume drying up", detail: `Only ${(turnover * 100).toFixed(1)}% daily turnover — exits get expensive when attention leaves.` });
+  if (turnover >= Math.max(avgTurnover * 1.5, 0.3)) {
+    const trades = c.buys24h + c.sells24h;
+    const buyPressure = trades > 0 ? c.buys24h / trades : 0.5;
+    const volStrength: Signal["strength"] =
+      buyPressure >= 0.58 ? "BULLISH" : buyPressure <= 0.42 ? "BEARISH" : "NEUTRAL";
+    if (volStrength !== "NEUTRAL") {
+      out.push({
+        kind: "VOLUME",
+        strength: volStrength,
+        title: `Turnover ${(turnover * 100).toFixed(0)}% of cap`,
+        detail: volStrength === "BULLISH"
+          ? `Trading ${avgTurnover > 0 ? (turnover / avgTurnover).toFixed(1) + "× the board average" : "heavily"} with buyers leading (${c.buys24h} buys / ${c.sells24h} sells).`
+          : `Heavy turnover ${avgTurnover > 0 ? (turnover / avgTurnover).toFixed(1) + "× the board average" : ""} but sellers dominate (${c.sells24h} sells / ${c.buys24h} buys) — distribution risk.`,
+      });
+    } else {
+      out.push({
+        kind: "VOLUME",
+        strength: "NEUTRAL",
+        title: `${(turnover * 100).toFixed(0)}% turnover · balanced flow`,
+        detail: `Elevated volume without a clear buyer/seller edge (${c.buys24h} buys / ${c.sells24h} sells).`,
+      });
+    }
+  } else if (turnover < 0.05) out.push({ kind: "VOLUME", strength: "BEARISH", title: "Volume drying up", detail: `Only ${(turnover * 100).toFixed(1)}% daily turnover — exits get expensive when attention leaves.` });
   else out.push({ kind: "VOLUME", strength: "NEUTRAL", title: `${(turnover * 100).toFixed(0)}% daily turnover`, detail: "In line with the board — neither accumulation nor distribution dominates." });
 
   if (liqRatio >= 0.4) out.push({ kind: "LIQUIDITY", strength: "BULLISH", title: "Deep liquidity", detail: `Pool holds ${(liqRatio * 100).toFixed(0)}% of market cap — slippage stays sane even on size.` });
@@ -781,6 +804,18 @@ export function tokenSignals(c: LiveLaunch, feed: LiveLaunch[]): Signal[] {
   if (whale) out.push(whale);
 
   return out;
+}
+
+export function tokenSignalBias(c: LiveLaunch, feed: LiveLaunch[]): SignalBias {
+  const rank = [...feed].sort((a, b) => b.mcap - a.mcap).findIndex((x) => x.ca === c.ca) + 1;
+  const m = toMetrics(c, rank);
+  return computeSignalBias(
+    tokenSignals(c, feed).map((s) => ({
+      kind: s.kind,
+      strength: s.strength,
+      weight: signalWeight(s.kind, s.strength, m),
+    })),
+  );
 }
 
 /* ─── Ecosystem Signals: everything happening, in real time ─── */
@@ -818,6 +853,16 @@ export function ecosystemSignals(feed: LiveLaunch[]): EcoEvent[] {
     }
   }
   return events.sort((a, b) => b.weight - a.weight);
+}
+
+export function ecosystemBias(events: EcoEvent[]): SignalBias {
+  return computeSignalBias(
+    events.map((e) => ({
+      kind: e.kind as import("../../shared/signals-core").SignalKind,
+      strength: e.strength,
+      weight: e.weight,
+    })),
+  );
 }
 
 /* ─── EasyA Indexes: live baskets over the feed ─── */

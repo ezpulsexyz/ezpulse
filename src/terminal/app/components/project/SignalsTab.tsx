@@ -1,5 +1,5 @@
 import { Stat } from "../../../components";
-import { tokenSignals, type LiveLaunch } from "../../../kickstart";
+import { tokenSignalBias, tokenSignals, type LiveLaunch } from "../../../kickstart";
 
 function signalEmoji(kind: string): string {
   if (kind === "WHALE") return "🐋";
@@ -12,20 +12,18 @@ function signalEmoji(kind: string): string {
 
 export function SignalsTab({ token, feed }: { token: LiveLaunch; feed: LiveLaunch[] }) {
   const signals = tokenSignals(token, feed);
-  const bulls = signals.filter((s) => s.strength === "BULLISH").length;
-  const bears = signals.filter((s) => s.strength === "BEARISH").length;
-  const bias = bulls > bears ? "BULLISH" : bears > bulls ? "BEARISH" : "MIXED";
+  const bias = tokenSignalBias(token, feed);
   const biasBg =
-    bias === "BULLISH" ? "bg-emerald-600" : bias === "BEARISH" ? "bg-red-500" : "bg-zinc-800";
+    bias.label === "BULLISH" ? "bg-emerald-600" : bias.label === "BEARISH" ? "bg-red-500" : "bg-zinc-800";
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className={`rounded-2xl p-6 text-white ${biasBg}`}>
           <div className="text-sm opacity-75">Signal Bias</div>
-          <div className="mt-2 text-4xl font-semibold">{bias}</div>
+          <div className="mt-2 text-4xl font-semibold">{bias.label}</div>
           <div className="mt-1 text-xs opacity-75">
-            {bulls} bullish · {bears} bearish
+            {bias.bulls} bullish · {bias.bears} bearish · score {bias.score}/100
           </div>
         </div>
         <Stat label="Active Signals" value={signals.length.toString()} />
