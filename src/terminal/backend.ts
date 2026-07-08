@@ -9,26 +9,15 @@
  * Schema: supabase/ezpulse-schema.sql
  */
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { getSupabaseKey, getSupabaseUrl, isSupabaseConfigured } from "../utils/supabase/config";
 
-const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim() ?? "";
-const supabaseKey = (
-  (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim()
-  || (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined)?.trim()
-  || ""
-);
+const supabaseUrl = getSupabaseUrl();
+const supabaseKey = getSupabaseKey();
 
 export const supabase: SupabaseClient | null =
-  supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+  isSupabaseConfigured() ? createClient(supabaseUrl, supabaseKey) : null;
 
 export const backendReady = !!supabase;
-
-function getSupabaseUrl(): string {
-  return supabaseUrl;
-}
-
-function getSupabaseKey(): string {
-  return supabaseKey;
-}
 
 /** Anonymous device id — lets watchlists sync without accounts. */
 function deviceId(): string {

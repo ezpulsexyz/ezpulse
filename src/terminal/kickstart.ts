@@ -1,4 +1,5 @@
 import { Connection, PublicKey } from "@solana/web3.js";
+import { getSupabaseUrl } from "../utils/supabase/config";
 import {
   whaleSignal as coreWhaleSignal,
   signalWeight,
@@ -141,7 +142,7 @@ const supplyFrom = (...values: unknown[]) => {
 };
 
 const CIRCULATING_SUPPLY_URL = (import.meta.env?.VITE_CIRCULATING_SUPPLY_URL as string | undefined)?.trim();
-const SUPABASE_URL = (import.meta.env?.VITE_SUPABASE_URL as string | undefined)?.trim();
+const SUPABASE_URL = getSupabaseUrl();
 
 type SupplyOverride = {
   circulatingSupply?: number;
