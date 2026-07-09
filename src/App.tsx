@@ -12,6 +12,7 @@ import {
   terminalHref,
   terminalRoot,
 } from "./routes";
+import { hasWalletCallbackInUrl } from "./terminal/mobileWalletConnect";
 
 function getLocationKey() {
   return `${window.location.pathname}${window.location.search}`;
@@ -33,6 +34,9 @@ export default function App() {
 
   useEffect(() => {
     if (!onTerminal) return;
+    // Wallet redirect lands with encrypted query params — do not rewrite the URL yet.
+    if (hasWalletCallbackInUrl()) return;
+
     const normalized = pathname.replace(/\/$/, "") || "/";
     if (normalized === terminalRoot()) {
       navigate(terminalHref({ section: "market" }), true);

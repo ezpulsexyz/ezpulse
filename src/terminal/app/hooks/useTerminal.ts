@@ -8,9 +8,8 @@ import {
   type LiveLaunch, type AlertPrefs, type PortfolioResult,
 } from "../../kickstart";
 import { useWallet } from "../../hooks/useWallet";
-import { parseMobileWalletCallback } from "../../mobileWalletConnect";
+import { consumePendingWalletSignIn, processMobileWalletCallback } from "../../mobileWalletConnect";
 import {
-  applyWalletSession,
   getWalletOption,
   isMobileDevice,
   isWalletDetected,
@@ -151,16 +150,24 @@ export function useTerminal(target?: TerminalTarget) {
   }, [connect, completeWalletSignIn]);
 
   useEffect(() => {
-    const result = parseMobileWalletCallback();
-    if (!result) return;
-    if ("error" in result) {
-      setWalletErr(result.error);
+    const finishSignIn = (addr: string) => {
+      setWalletPickerOpen(false);
+      setWalletErr(null);
+      void completeWalletSignIn(addr);
+    };
+
+    const result = processMobileWalletCallback();
+    if (result) {
+      if ("error" in result) {
+        setWalletErr(result.error);
+        return;
+      }
+      finishSignIn(result.address);
       return;
     }
-    applyWalletSession(result.address, result.provider);
-    setWalletPickerOpen(false);
-    setWalletErr(null);
-    void completeWalletSignIn(result.address);
+
+    const pendingAddr = consumePendingWalletSignIn();
+    if (pendingAddr) finishSignIn(pendingAddr);
   }, [completeWalletSignIn]);
 
   const openWalletPicker = useCallback(() => {
