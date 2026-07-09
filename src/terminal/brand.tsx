@@ -3,6 +3,7 @@ export const DOMAIN = "ezpulse.xyz";
 export const CONTACT = "contact@ezpulse.xyz";
 export const X_URL = "https://x.com/ezpulsexyz";
 export const X_HANDLE = "@ezpulsexyz";
+export const TELEGRAM_URL = "https://t.me/+FEKfKRWaCrYxZmM1";
 
 /** ezpulse mark: a heartbeat/pulse line in a rounded square. */
 export function PulseMark({ size = 32, className = "" }: { size?: number; className?: string }) {

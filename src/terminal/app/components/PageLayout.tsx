@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { BLUE } from "../../components";
+import { TELEGRAM_URL } from "../../brand";
 import { COIN_GRID, TermRow } from "./TermTable";
 
 export function PageHead({ title, sub, right }: { title: string; sub: string; right?: React.ReactNode }) {
@@ -55,7 +56,7 @@ export const LaunchCta = () => (
       className="rounded px-4 py-1.5 font-mono text-[10px] font-medium text-white transition hover:opacity-90" style={{ background: BLUE }}>
       Launch on Kickstart
     </a>
-    <a href="https://t.me/+PYEPxw-L9n81NDA0" target="_blank" rel="noopener noreferrer"
+    <a href={TELEGRAM_URL} target="_blank" rel="noopener noreferrer"
       className="rounded border border-zinc-200 bg-white px-4 py-1.5 font-mono text-[10px] text-zinc-600 transition hover:border-zinc-300 hover:text-zinc-800">
       Join Telegram
     </a>
