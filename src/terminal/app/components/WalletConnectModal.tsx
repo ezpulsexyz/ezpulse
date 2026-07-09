@@ -1,10 +1,12 @@
 import { useEffect, useRef } from "react";
 import { BLUE } from "../../components";
+import { supportsMobileConnect } from "../../mobileWalletConnect";
 import {
   WALLET_OPTIONS,
   getWalletOption,
   isMobileDevice,
   isWalletDetected,
+  shouldUseMobileWalletAppConnect,
   type WalletId,
 } from "../../wallets";
 
@@ -73,13 +75,16 @@ export function WalletConnectModal({
           {WALLET_OPTIONS.map((wallet) => {
             const detected = isWalletDetected(wallet.id);
             const busy = connecting && connectingId === wallet.id;
+            const useAppConnect = shouldUseMobileWalletAppConnect(wallet.id);
             const actionLabel = busy
               ? "Connecting…"
               : detected
                 ? "Connect"
-                : mobile
-                  ? "Open in app"
-                  : "Install";
+                : useAppConnect
+                  ? "Connect"
+                  : mobile && !supportsMobileConnect(wallet.id)
+                    ? "Open app"
+                    : "Install";
             return (
               <button
                 key={wallet.id}
@@ -96,16 +101,18 @@ export function WalletConnectModal({
                   <span className="block text-[11px] text-zinc-500">
                     {detected
                       ? "Detected in this browser"
-                      : mobile
-                        ? "Opens ezpulse inside the wallet app"
-                        : `Get ${wallet.name}`}
+                      : useAppConnect
+                        ? "Opens wallet app · approve · returns to browser"
+                        : mobile
+                          ? "Opens in the wallet app"
+                          : `Get ${wallet.name}`}
                   </span>
                 </span>
                 <span
                   className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide ${
-                    detected || mobile ? "text-white" : "border border-zinc-200 bg-white text-zinc-600"
+                    detected || useAppConnect || mobile ? "text-white" : "border border-zinc-200 bg-white text-zinc-600"
                   }`}
-                  style={detected || mobile ? { background: BLUE } : undefined}
+                  style={detected || useAppConnect || mobile ? { background: BLUE } : undefined}
                 >
                   {actionLabel}
                 </span>
@@ -116,7 +123,7 @@ export function WalletConnectModal({
 
         <p className="border-t border-zinc-100 px-5 py-3 text-[10px] leading-relaxed text-zinc-400">
           {mobile
-            ? "On mobile, choose a wallet to open ezpulse in its in-app browser, then tap Connect again."
+            ? "On mobile, pick a wallet to open its app, approve connect, and you’ll land back here in your browser — signed in."
             : `No wallet installed? ${getWalletOption("phantom").name}, ${getWalletOption("solflare").name}, ${getWalletOption("backpack").name}, and ${getWalletOption("jupiter").name} all work.`}
         </p>
       </div>

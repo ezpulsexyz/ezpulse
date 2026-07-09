@@ -1,4 +1,5 @@
 import { appBase } from "../routes";
+import { startMobileWalletConnect, supportsMobileConnect } from "./mobileWalletConnect";
 
 export type WalletId = "phantom" | "solflare" | "backpack" | "jupiter";
 
@@ -7,8 +8,25 @@ export interface WalletOption {
   name: string;
   icon: string;
   installUrl: string;
-  /** Opens the current page inside the wallet app's in-app browser (mobile). */
-  mobileBrowseUrl: (pageUrl: string, refUrl: string) => string;
+  /** Jupiter mobile — opens in-app browser (no connect deeplink yet). */
+  mobileBrowseUrl?: (pageUrl: string, refUrl: string) => string;
+}
+
+type SessionListener = (session: { address: string | null; provider: WalletId | null }) => void;
+const sessionListeners = new Set<SessionListener>();
+
+export function subscribeWalletSession(listener: SessionListener): () => void {
+  sessionListeners.add(listener);
+  return () => sessionListeners.delete(listener);
+}
+
+function notifyWalletSession(session: { address: string | null; provider: WalletId | null }) {
+  sessionListeners.forEach((fn) => fn(session));
+}
+
+export function applyWalletSession(address: string, provider: WalletId): void {
+  saveWalletSession(address, provider);
+  notifyWalletSession({ address, provider });
 }
 
 interface SolanaInjected {
@@ -30,24 +48,18 @@ export const WALLET_OPTIONS: WalletOption[] = [
     name: "Phantom",
     icon: "👻",
     installUrl: "https://phantom.com/download",
-    mobileBrowseUrl: (pageUrl, refUrl) =>
-      `https://phantom.app/ul/browse/${encodeURIComponent(pageUrl)}?ref=${encodeURIComponent(refUrl)}`,
   },
   {
     id: "solflare",
     name: "Solflare",
     icon: "🔥",
     installUrl: "https://solflare.com/download",
-    mobileBrowseUrl: (pageUrl, refUrl) =>
-      `https://solflare.com/ul/v1/browse/${encodeURIComponent(pageUrl)}?ref=${encodeURIComponent(refUrl)}`,
   },
   {
     id: "backpack",
     name: "Backpack",
     icon: "🎒",
     installUrl: "https://backpack.app/download",
-    mobileBrowseUrl: (pageUrl, refUrl) =>
-      `https://backpack.app/ul/v1/browse/${encodeURIComponent(pageUrl)}?ref=${encodeURIComponent(refUrl)}`,
   },
   {
     id: "jupiter",
@@ -144,6 +156,7 @@ export function clearWalletSession(): void {
   } catch {
     /* noop */
   }
+  notifyWalletSession({ address: null, provider: null });
 }
 
 export function currentAppUrl(): string {
@@ -157,15 +170,34 @@ export function appRefUrl(): string {
 
 export function openMobileWalletBrowse(id: WalletId): void {
   const option = getWalletOption(id);
+  if (!option.mobileBrowseUrl) return;
   const url = option.mobileBrowseUrl(currentAppUrl(), appRefUrl());
   window.location.assign(url);
 }
 
+/** Mobile Safari/Chrome: open native wallet app to connect, then redirect back here. */
+export function openMobileWalletConnect(id: WalletId): void {
+  if (supportsMobileConnect(id)) {
+    startMobileWalletConnect(id);
+    return;
+  }
+  openMobileWalletBrowse(id);
+}
+
+export function shouldUseMobileWalletAppConnect(id: WalletId): boolean {
+  return isMobileDevice() && !isWalletDetected(id);
+}
+
 /** Connect a wallet in read-only mode (public key only; no signing requested). */
 export async function connectWalletReadOnly(id: WalletId): Promise<string | null> {
+  if (shouldUseMobileWalletAppConnect(id)) {
+    openMobileWalletConnect(id);
+    return null;
+  }
+
   const provider = getWalletProvider(id);
   if (!provider) {
-    if (isMobileDevice()) openMobileWalletBrowse(id);
+    if (isMobileDevice()) openMobileWalletConnect(id);
     return null;
   }
   try {

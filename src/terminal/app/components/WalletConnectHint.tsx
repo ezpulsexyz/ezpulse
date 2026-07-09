@@ -13,7 +13,7 @@ export function WalletConnectHint({ compact = false }: { compact?: boolean }) {
         </p>
         <p className={`text-amber-700/80 ${compact ? "text-[10.5px]" : "text-[11.5px]"}`}>
           {mobile
-            ? "Use Connect wallet to open ezpulse in Phantom, Solflare, Backpack, or Jupiter, then approve read-only access."
+            ? "Tap Connect wallet, choose your wallet app, approve the connection, and you’ll return here signed in."
             : `Install ${WALLET_OPTIONS.map((w) => w.name).join(", ")} or reload after enabling the extension.`}
         </p>
       </div>

@@ -1,22 +1,17 @@
 import { useState, useEffect, useCallback } from "react";
 import {
+  applyWalletSession,
   clearWalletSession,
   connectWalletReadOnly,
   getWalletOption,
   isMobileDevice,
   isWalletDetected,
-  openMobileWalletBrowse,
+  openMobileWalletConnect,
   readWalletSession,
-  saveWalletSession,
+  shouldUseMobileWalletAppConnect,
+  subscribeWalletSession,
   type WalletId,
 } from "../wallets";
-
-type WalletListener = (session: { address: string | null; provider: WalletId | null }) => void;
-const listeners = new Set<WalletListener>();
-
-function emit(session: { address: string | null; provider: WalletId | null }) {
-  listeners.forEach((fn) => fn(session));
-}
 
 export function useWallet() {
   const [session, setSession] = useState(readWalletSession);
@@ -24,20 +19,22 @@ export function useWallet() {
   const [connectingId, setConnectingId] = useState<WalletId | null>(null);
 
   useEffect(() => {
-    const saved = readWalletSession();
-    setSession(saved);
-    const onChange = (next: { address: string | null; provider: WalletId | null }) => setSession(next);
-    listeners.add(onChange);
-    return () => { listeners.delete(onChange); };
+    setSession(readWalletSession());
+    return subscribeWalletSession(setSession);
   }, []);
 
   const connect = useCallback(async (providerId: WalletId): Promise<string | null> => {
     setConnecting(true);
     setConnectingId(providerId);
     try {
+      if (shouldUseMobileWalletAppConnect(providerId)) {
+        openMobileWalletConnect(providerId);
+        return null;
+      }
+
       if (!isWalletDetected(providerId)) {
         if (isMobileDevice()) {
-          openMobileWalletBrowse(providerId);
+          openMobileWalletConnect(providerId);
           return null;
         }
         window.open(getWalletOption(providerId).installUrl, "_blank", "noopener,noreferrer");
@@ -46,10 +43,7 @@ export function useWallet() {
 
       const address = await connectWalletReadOnly(providerId);
       if (address) {
-        saveWalletSession(address, providerId);
-        const next = { address, provider: providerId };
-        setSession(next);
-        emit(next);
+        applyWalletSession(address, providerId);
         return address;
       }
       return null;
@@ -64,9 +58,7 @@ export function useWallet() {
 
   const disconnect = useCallback(() => {
     clearWalletSession();
-    const next = { address: null, provider: null };
-    setSession(next);
-    emit(next);
+    setSession({ address: null, provider: null });
   }, []);
 
   return {

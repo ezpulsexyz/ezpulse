@@ -8,7 +8,15 @@ import {
   type LiveLaunch, type AlertPrefs, type PortfolioResult,
 } from "../../kickstart";
 import { useWallet } from "../../hooks/useWallet";
-import { getWalletOption, isMobileDevice, isWalletDetected, type WalletId } from "../../wallets";
+import { parseMobileWalletCallback } from "../../mobileWalletConnect";
+import {
+  applyWalletSession,
+  getWalletOption,
+  isMobileDevice,
+  isWalletDetected,
+  shouldUseMobileWalletAppConnect,
+  type WalletId,
+} from "../../wallets";
 import { loadSeenNotifs, saveSeenNotifs } from "../notifs";
 import { PROJECT_CATEGORIES, type Notif, type ProjectCategory, type Section, type MarketTab, type TerminalTarget } from "../types";
 
@@ -119,13 +127,14 @@ export function useTerminal(target?: TerminalTarget) {
 
   const signInWallet = useCallback(async (providerId: WalletId) => {
     const option = getWalletOption(providerId);
+    if (shouldUseMobileWalletAppConnect(providerId)) {
+      setWalletPickerOpen(false);
+      setWalletErr(`Opening ${option.name}… approve connect, then you’ll return here in your browser.`);
+      await connect(providerId);
+      return;
+    }
+
     if (!isWalletDetected(providerId)) {
-      if (isMobileDevice()) {
-        setWalletPickerOpen(false);
-        setWalletErr(`Opening ${option.name}… approve connect when the page reloads in the wallet app.`);
-        await connect(providerId);
-        return;
-      }
       setWalletMissing(true);
       setTimeout(() => setWalletMissing(false), 6000);
       await connect(providerId);
@@ -140,6 +149,19 @@ export function useTerminal(target?: TerminalTarget) {
     setWalletPickerOpen(false);
     await completeWalletSignIn(addr);
   }, [connect, completeWalletSignIn]);
+
+  useEffect(() => {
+    const result = parseMobileWalletCallback();
+    if (!result) return;
+    if ("error" in result) {
+      setWalletErr(result.error);
+      return;
+    }
+    applyWalletSession(result.address, result.provider);
+    setWalletPickerOpen(false);
+    setWalletErr(null);
+    void completeWalletSignIn(result.address);
+  }, [completeWalletSignIn]);
 
   const openWalletPicker = useCallback(() => {
     setWalletPickerOpen(true);
