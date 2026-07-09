@@ -3,13 +3,24 @@ import { CommandPalette } from "./components/CommandPalette";
 import { Header } from "./layout/Header";
 import { Sidebar } from "./layout/Sidebar";
 import { Toasts } from "./layout/Toasts";
+import { WalletConnectModal } from "./components/WalletConnectModal";
 import { SectionRouter } from "./sections/SectionRouter";
 import { ThemeProvider, useThemeContext } from "./ThemeContext";
 import { TerminalProvider, useTerminalContext } from "./TerminalContext";
 import type { TerminalTarget } from "./types";
 
 function TerminalBody() {
-  const { booted, bootSlow, setBooted, sidebarHidden } = useTerminalContext();
+  const {
+    booted,
+    bootSlow,
+    setBooted,
+    sidebarHidden,
+    walletPickerOpen,
+    setWalletPickerOpen,
+    walletConnecting,
+    walletConnectingId,
+    signInWallet,
+  } = useTerminalContext();
   const { resolved } = useThemeContext();
 
   if (!booted) {
@@ -33,6 +44,13 @@ function TerminalBody() {
         <Header />
         <CommandPalette />
         <Toasts />
+        <WalletConnectModal
+          open={walletPickerOpen}
+          connecting={walletConnecting}
+          connectingId={walletConnectingId}
+          onClose={() => setWalletPickerOpen(false)}
+          onSelect={(id) => void signInWallet(id)}
+        />
         <SectionRouter />
       </div>
     </div>

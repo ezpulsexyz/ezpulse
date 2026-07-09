@@ -8,7 +8,7 @@ export function Header() {
   const {
     openSidebar, query, setQuery, searchRef, results, feed, loading, lastUpdated,
     notifOpen, setNotifOpen, notifs, unseenCount, openNotifs, phantom, watchlist,
-    signInPhantom, signOutPhantom, goto, openToken, setPaletteOpen,
+    openWalletPicker, signOutPhantom, goto, openToken, setPaletteOpen,
   } = useTerminalContext();
 
   return (
@@ -112,7 +112,7 @@ export function Header() {
                 <div className="max-h-[min(18rem,45vh)] overflow-y-auto scrollbar-thin">
                   {!phantom && (
                     <div className="px-3 py-5 text-center text-[11px]" style={{ color: "var(--term-text-muted)" }}>
-                      <button onClick={() => { setNotifOpen(false); signInPhantom(); }} className="font-medium" style={{ color: "var(--term-text-secondary)" }}>Connect wallet</button> to star tokens and get alerts.
+                      <button onClick={() => { setNotifOpen(false); openWalletPicker(); }} className="font-medium" style={{ color: "var(--term-text-secondary)" }}>Connect wallet</button> to star tokens and get alerts.
                     </div>
                   )}
                   {phantom && watchlist.length === 0 && (
@@ -155,7 +155,7 @@ export function Header() {
               <button onClick={signOutPhantom} title="Sign out" aria-label="Sign out" className="term-icon-btn h-5 w-5 border-0 bg-transparent text-[9px]">×</button>
             </div>
           ) : (
-            <button onClick={signInPhantom} className="term-connect-btn shrink-0 px-2.5 py-1 font-mono text-[10px] sm:px-3">
+            <button onClick={openWalletPicker} className="term-connect-btn shrink-0 px-2.5 py-1 font-mono text-[10px] sm:px-3">
               Connect
             </button>
           )}

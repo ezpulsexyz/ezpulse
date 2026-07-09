@@ -1,17 +1,17 @@
 import { BLUE } from "../../components";
 import { useTerminalContext } from "../TerminalContext";
-import { PhantomHint } from "../components/PhantomHint";
+import { WalletConnectHint } from "../components/WalletConnectHint";
 import { ShareModal } from "../components/ShareModal";
 
 export function Toasts() {
   const {
-    phantomMissing, shareToken, setShareToken, signinNudge, setSigninNudge, signInPhantom, feed,
+    walletMissing, shareToken, setShareToken, signinNudge, setSigninNudge, openWalletPicker, feed,
   } = useTerminalContext();
   return (
     <>
-      {phantomMissing && (
+      {walletMissing && (
         <div className="fixed bottom-5 left-1/2 z-50 w-[calc(100%-2rem)] max-w-sm -translate-x-1/2 animate-fade-up">
-          <PhantomHint />
+          <WalletConnectHint />
         </div>
       )}
       {shareToken && (
@@ -19,10 +19,10 @@ export function Toasts() {
       )}
       {signinNudge && (
         <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 animate-fade-up">
-          <button onClick={() => { setSigninNudge(false); signInPhantom(); }}
+          <button onClick={() => { setSigninNudge(false); openWalletPicker(); }}
             className="flex items-center gap-2.5 rounded-full border border-indigo-200 bg-white px-5 py-3 text-[13px] font-semibold text-zinc-800 shadow-xl">
-            👻 <span>Sign in with Phantom to sync your watchlist across devices</span>
-            <span className="rounded-full px-3 py-1 text-[11px] font-bold text-white" style={{ background: BLUE }}>Sign in</span>
+            💼 <span>Connect a wallet to sync your watchlist across devices</span>
+            <span className="rounded-full px-3 py-1 text-[11px] font-bold text-white" style={{ background: BLUE }}>Connect</span>
           </button>
         </div>
       )}

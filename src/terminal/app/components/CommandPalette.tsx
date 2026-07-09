@@ -54,7 +54,7 @@ function filterCommands(commands: Cmd[], raw: string, limit: number): Cmd[] {
 export function CommandPalette() {
   const ctx = useTerminalContext();
   const {
-    paletteOpen, setPaletteOpen, feed, goto, openToken, signInPhantom, signOutPhantom,
+    paletteOpen, setPaletteOpen, feed, goto, openToken, openWalletPicker, signOutPhantom,
     section, setMarketTab, searchRef, refreshFeed, topMover, trending, selected,
     toggleWatch, watchlist, copyCa, openNotifs, unseenCount, phantom, loading,
     setShareToken,
@@ -128,30 +128,30 @@ export function CommandPalette() {
       {
         id: "qa-portfolio",
         label: "Open portfolio",
-        hint: "Connect Phantom · your holdings",
+        hint: "Connect wallet · your holdings",
         icon: "💼",
         group: "Quick actions",
         run: () => { goto("portfolio"); close(); },
-        keywords: "portfolio wallet holdings phantom balance connect",
+        keywords: "portfolio wallet holdings phantom solflare backpack jupiter balance connect",
       },
       phantom
         ? {
             id: "qa-signout",
-            label: "Sign out of Phantom",
+            label: "Disconnect wallet",
             hint: `${phantom.slice(0, 4)}…${phantom.slice(-4)}`,
-            icon: "👻",
+            icon: "🔌",
             group: "Quick actions",
             run: () => { signOutPhantom(); close(); },
-            keywords: "phantom sign out disconnect wallet logout",
+            keywords: "wallet sign out disconnect logout phantom solflare backpack jupiter",
           }
         : {
-            id: "qa-phantom",
-            label: "Sign in with Phantom",
-            hint: "Read-only · sync watchlist",
-            icon: "👻",
+            id: "qa-wallet",
+            label: "Connect wallet",
+            hint: "Phantom · Solflare · Backpack · Jupiter",
+            icon: "💼",
             group: "Quick actions",
-            run: () => { signInPhantom(); close(); },
-            keywords: "phantom wallet sign connect login",
+            run: () => { openWalletPicker(); close(); },
+            keywords: "wallet sign connect login phantom solflare backpack jupiter",
           },
       {
         id: "qa-kickstart",
@@ -257,7 +257,7 @@ export function CommandPalette() {
 
     return [...quick, ...tokenCtx, ...nav, ...tabs, ...tokens];
   }, [
-    feed, goto, openToken, setMarketTab, setPaletteOpen, signInPhantom, signOutPhantom,
+    feed, goto, openToken, setMarketTab, setPaletteOpen, openWalletPicker, signOutPhantom,
     searchRef, refreshFeed, topMover, trending, selected, toggleWatch, watchlist,
     copyCa, openNotifs, unseenCount, phantom, loading, setShareToken,
   ]);

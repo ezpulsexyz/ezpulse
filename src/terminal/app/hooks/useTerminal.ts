@@ -4,15 +4,23 @@ import { syncWatchlist, pullWalletWatchlist } from "../../backend";
 import {
   fetchLiveFeed, isGraduated, verifiedOf, bondedOf, trendingOf, tokenNote, tokenSignals,
   loadWatchlist, saveWatchlist, loadAlertPrefs, saveAlertPrefs,
-  fetchConnectedWalletPortfolio, revaluePortfolioFromFeed, fetchSolPrice, isPhantomAvailable,
+  fetchConnectedWalletPortfolio, revaluePortfolioFromFeed, fetchSolPrice,
   type LiveLaunch, type AlertPrefs, type PortfolioResult,
 } from "../../kickstart";
 import { useWallet } from "../../hooks/useWallet";
+import { getWalletOption, isMobileDevice, isWalletDetected, type WalletId } from "../../wallets";
 import { loadSeenNotifs, saveSeenNotifs } from "../notifs";
 import { PROJECT_CATEGORIES, type Notif, type ProjectCategory, type Section, type MarketTab, type TerminalTarget } from "../types";
 
 export function useTerminal(target?: TerminalTarget) {
-  const { wallet: connectedWallet, connecting, connect, disconnect } = useWallet();
+  const {
+    wallet: connectedWallet,
+    walletProvider,
+    connecting,
+    connectingId,
+    connect,
+    disconnect,
+  } = useWallet();
   const phantom = connectedWallet;
 
   const [section, setSection] = useState<Section>(target?.section ?? "market");
@@ -78,7 +86,8 @@ export function useTerminal(target?: TerminalTarget) {
     });
   };
 
-  const [phantomMissing, setPhantomMissing] = useState(false);
+  const [walletPickerOpen, setWalletPickerOpen] = useState(false);
+  const [walletMissing, setWalletMissing] = useState(false);
 
   const loadPortfolio = useCallback(async (addr: string, feedOverride?: LiveLaunch[]) => {
     setWalletErr(null);
@@ -94,17 +103,7 @@ export function useTerminal(target?: TerminalTarget) {
     if (p === null) setWalletErr("Couldn't read balances — try again in a moment.");
   }, [liveFeed]);
 
-  const signInPhantom = async () => {
-    if (!isPhantomAvailable()) {
-      setPhantomMissing(true);
-      setTimeout(() => setPhantomMissing(false), 6000);
-      return;
-    }
-    const addr = await connect();
-    if (!addr) {
-      setWalletErr("Connection declined in Phantom — try again.");
-      return;
-    }
+  const completeWalletSignIn = useCallback(async (addr: string) => {
     setWalletErr(null);
     const remote = await pullWalletWatchlist(addr);
     if (remote?.length) {
@@ -116,13 +115,45 @@ export function useTerminal(target?: TerminalTarget) {
       syncWatchlist(watchlist, addr);
     }
     await loadPortfolio(addr);
-  };
+  }, [watchlist, loadPortfolio]);
+
+  const signInWallet = useCallback(async (providerId: WalletId) => {
+    const option = getWalletOption(providerId);
+    if (!isWalletDetected(providerId)) {
+      if (isMobileDevice()) {
+        setWalletPickerOpen(false);
+        setWalletErr(`Opening ${option.name}… approve connect when the page reloads in the wallet app.`);
+        await connect(providerId);
+        return;
+      }
+      setWalletMissing(true);
+      setTimeout(() => setWalletMissing(false), 6000);
+      await connect(providerId);
+      return;
+    }
+
+    const addr = await connect(providerId);
+    if (!addr) {
+      setWalletErr(`Connection declined in ${option.name} — try again.`);
+      return;
+    }
+    setWalletPickerOpen(false);
+    await completeWalletSignIn(addr);
+  }, [connect, completeWalletSignIn]);
+
+  const openWalletPicker = useCallback(() => {
+    setWalletPickerOpen(true);
+    setWalletErr(null);
+  }, []);
+
+  const signInPhantom = openWalletPicker;
 
   const signOutPhantom = () => {
     disconnect();
     setPortfolio(null);
     setWalletErr(null);
     setNotifOpen(false);
+    setWalletPickerOpen(false);
   };
 
   const setAlert = (k: keyof AlertPrefs) => {
@@ -450,7 +481,11 @@ export function useTerminal(target?: TerminalTarget) {
     watchlist,
     alerts,
     wallet: connectedWallet,
+    walletProvider,
     walletConnecting: connecting,
+    walletConnectingId: connectingId,
+    walletPickerOpen,
+    setWalletPickerOpen,
     walletErr,
     portfolio,
     setPortfolio,
@@ -463,7 +498,8 @@ export function useTerminal(target?: TerminalTarget) {
     searchRef,
     signinNudge,
     setSigninNudge,
-    phantomMissing,
+    walletMissing,
+    phantomMissing: walletMissing,
     paletteOpen,
     setPaletteOpen,
     lastUpdated,
@@ -471,6 +507,8 @@ export function useTerminal(target?: TerminalTarget) {
     setBooted,
     bootSlow,
     toggleWatch,
+    openWalletPicker,
+    signInWallet,
     signInPhantom,
     signOutPhantom,
     setAlert,

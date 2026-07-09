@@ -1,9 +1,10 @@
-import { fetchLiveFeed, fmtPrice, isVerified, isPhantomAvailable } from "../../kickstart";
+import { fetchLiveFeed, fmtPrice, isVerified } from "../../kickstart";
+import { anyWalletDetected } from "../../wallets";
 import { TokenAvatar } from "../components/TokenAvatar";
 import { BLUE, Card, Delta, Stat } from "../../components";
 import { LaunchSimulator } from "../components/LaunchSimulator";
 import { PageHead, EmptyState } from "../components/PageLayout";
-import { PhantomHint } from "../components/PhantomHint";
+import { WalletConnectHint } from "../components/WalletConnectHint";
 import { PORTFOLIO_COLS, PORTFOLIO_GRID, TermActions, TermHead, TermHeadCell, TermNum, TermRow } from "../components/TermTable";
 import { useTerminalContext } from "../TerminalContext";
 
@@ -16,7 +17,7 @@ export function PortfolioSection() {
     portfolio,
     setLiveFeed,
     loadPortfolio,
-    signInPhantom,
+    openWalletPicker,
     signOutPhantom,
     goto,
     openToken,
@@ -41,21 +42,21 @@ export function PortfolioSection() {
               <div className="mb-3 text-4xl">💼</div>
               <h2 className="font-display text-xl font-semibold text-zinc-900">Connect your wallet</h2>
               <p className="mt-2 text-[13px] leading-relaxed text-zinc-500">
-                Sign in with Phantom to load your Kickstart positions. We only read public token balances;{" "}
+                Connect a wallet to load your Kickstart positions. We only read public token balances;{" "}
                 <strong className="text-zinc-700">no signature is ever requested</strong>, nothing can be moved.
               </p>
               <button
                 type="button"
-                onClick={() => void signInPhantom()}
+                onClick={openWalletPicker}
                 disabled={walletConnecting}
                 className="mt-6 rounded-full px-7 py-2.5 text-[12px] font-bold uppercase tracking-wide text-white transition hover:-translate-y-px disabled:opacity-70"
                 style={{ background: BLUE }}
               >
-                {walletConnecting ? "Connecting…" : "👻 Connect Phantom"}
+                {walletConnecting ? "Connecting…" : "Connect wallet"}
               </button>
-              {!isPhantomAvailable() && (
+              {!anyWalletDetected() && (
                 <div className="mx-auto mt-3 max-w-sm">
-                  <PhantomHint compact />
+                  <WalletConnectHint compact />
                 </div>
               )}
               {walletErr && (

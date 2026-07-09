@@ -4,6 +4,8 @@ import { useWallet } from "../../hooks/useWallet";
 import { fetchTokenBalance, type LiveLaunch } from "../../kickstart";
 import { formatTokenAmount } from "../../investorThesis";
 import type { Section } from "../types";
+import { WalletConnectModal } from "./WalletConnectModal";
+import type { WalletId } from "../../wallets";
 
 export function YourPositionCard({
   token,
@@ -12,9 +14,10 @@ export function YourPositionCard({
   token: LiveLaunch;
   goto: (s: Section) => void;
 }) {
-  const { wallet, connecting, connect } = useWallet();
+  const { wallet, connecting, connectingId, connect } = useWallet();
   const [balance, setBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   useEffect(() => {
     if (!wallet) {
@@ -61,7 +64,7 @@ export function YourPositionCard({
           </p>
           <button
             type="button"
-            onClick={() => void connect()}
+            onClick={() => setPickerOpen(true)}
             disabled={connecting}
             className="rounded-full px-5 py-2 text-[11px] font-bold uppercase tracking-wide text-white disabled:opacity-70"
             style={{ background: BLUE }}
@@ -70,6 +73,15 @@ export function YourPositionCard({
           </button>
         </div>
       )}
+      <WalletConnectModal
+        open={pickerOpen}
+        connecting={connecting}
+        connectingId={connectingId}
+        onClose={() => setPickerOpen(false)}
+        onSelect={(id: WalletId) => {
+          void connect(id).then((addr) => { if (addr) setPickerOpen(false); });
+        }}
+      />
       {wallet && loading && (
         <div className="flex items-center gap-3 px-5 py-4 text-[13px] text-zinc-500">
           <span className="term-blink h-2 w-2 rounded-full bg-indigo-500" /> Reading balance…

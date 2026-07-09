@@ -379,6 +379,26 @@ input, textarea, select, button { color-scheme: light; }
   background: var(--term-accent-hover);
 }
 
+.term-wallet-modal {
+  color: var(--term-text, #18181b);
+}
+
+.term-app[data-theme="dark"] .term-wallet-modal {
+  border-color: var(--term-border);
+  background: var(--term-surface-2);
+  color: var(--term-text);
+}
+
+.term-app[data-theme="dark"] .term-wallet-option {
+  border-color: var(--term-border-subtle);
+  background: var(--term-surface-3);
+}
+
+.term-app[data-theme="dark"] .term-wallet-option:hover {
+  border-color: color-mix(in srgb, var(--term-accent) 30%, var(--term-border));
+  background: color-mix(in srgb, var(--term-accent) 10%, var(--term-surface-3));
+}
+
 .term-panel {
   border: 1px solid var(--term-border);
   background: var(--term-surface);

@@ -97,7 +97,7 @@ export function ThesisSection() {
             )}
             {!hasHolding && (
               <p className="text-[13px] text-zinc-500">
-                Connect Phantom to post. Hold any amount of ${token.symbol} to earn the verified holder badge.
+                Connect a wallet to post. Hold any amount of ${token.symbol} to earn the verified holder badge.
               </p>
             )}
           </div>

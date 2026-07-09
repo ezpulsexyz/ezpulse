@@ -1608,23 +1608,7 @@ export async function fetchPortfolio(owner: string, feed: LiveLaunch[]): Promise
   });
 }
 
-/** True when the Phantom extension is injected into this browser. */
-export function isPhantomAvailable(): boolean {
-  const w = window as unknown as { solana?: { isPhantom?: boolean } };
-  return !!w.solana?.isPhantom;
-}
-
-/** Connect Phantom in read-only mode (connect() shares the public key; no transaction signing requested). */
-export async function connectPhantomReadOnly(): Promise<string | null> {
-  try {
-    const w = window as unknown as { solana?: { isPhantom?: boolean; connect: (o?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: { toString(): string } }> } };
-    if (!w.solana?.isPhantom) return null;
-    const res = await w.solana.connect();
-    return res.publicKey.toString();
-  } catch {
-    return null; // user rejected
-  }
-}
+export { isPhantomAvailable, connectPhantomReadOnly } from "./wallets";
 
 /** Simple AI note for a token's terminal page, computed from live data. */
 export function tokenNote(c: LiveLaunch, feed: LiveLaunch[]): { rating: string; cls: string; note: string } {

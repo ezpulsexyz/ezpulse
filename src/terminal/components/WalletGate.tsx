@@ -1,6 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useWallet } from "../hooks/useWallet";
 import { fetchTokenBalance } from "../kickstart";
+import { WalletConnectModal } from "../app/components/WalletConnectModal";
+import type { WalletId } from "../wallets";
 
 interface WalletGateProps {
   tokenCa: string;
@@ -15,13 +17,19 @@ export default function WalletGate({
   showPostButton = false,
   onPostThesis,
 }: WalletGateProps) {
-  const { wallet, connecting, connect, disconnect } = useWallet();
+  const { wallet, connecting, connectingId, connect, disconnect } = useWallet();
   const [balance, setBalance] = useState(0);
   const [checking, setChecking] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const hasHolding = balance > 0;
   const onVerifiedRef = useRef(onHoldingVerified);
   onVerifiedRef.current = onHoldingVerified;
+
+  const handleSelect = async (id: WalletId) => {
+    const addr = await connect(id);
+    if (addr) setPickerOpen(false);
+  };
 
   useEffect(() => {
     if (!wallet) {
@@ -50,14 +58,23 @@ export default function WalletGate({
 
   if (!wallet) {
     return (
-      <button
-        type="button"
-        onClick={() => void connect()}
-        disabled={connecting}
-        className="rounded-2xl bg-blue-600 px-8 py-3.5 font-medium text-white transition hover:bg-blue-700 disabled:opacity-70"
-      >
-        {connecting ? "Connecting..." : "👻 Connect Wallet to Participate"}
-      </button>
+      <>
+        <button
+          type="button"
+          onClick={() => setPickerOpen(true)}
+          disabled={connecting}
+          className="rounded-2xl bg-blue-600 px-8 py-3.5 font-medium text-white transition hover:bg-blue-700 disabled:opacity-70"
+        >
+          {connecting ? "Connecting..." : "Connect wallet to participate"}
+        </button>
+        <WalletConnectModal
+          open={pickerOpen}
+          connecting={connecting}
+          connectingId={connectingId}
+          onClose={() => setPickerOpen(false)}
+          onSelect={(id) => void handleSelect(id)}
+        />
+      </>
     );
   }
 
