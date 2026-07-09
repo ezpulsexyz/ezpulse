@@ -5,7 +5,7 @@ import { ShareModal } from "../components/ShareModal";
 
 export function Toasts() {
   const {
-    phantomMissing, shareToken, setShareToken, signinNudge, setSigninNudge, signInPhantom,
+    phantomMissing, shareToken, setShareToken, signinNudge, setSigninNudge, signInPhantom, feed,
   } = useTerminalContext();
   return (
     <>
@@ -14,7 +14,9 @@ export function Toasts() {
           <PhantomHint />
         </div>
       )}
-      {shareToken && <ShareModal c={shareToken} onClose={() => setShareToken(null)} />}
+      {shareToken && (
+        <ShareModal c={shareToken} feed={feed} onClose={() => setShareToken(null)} />
+      )}
       {signinNudge && (
         <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2 animate-fade-up">
           <button onClick={() => { setSigninNudge(false); signInPhantom(); }}
