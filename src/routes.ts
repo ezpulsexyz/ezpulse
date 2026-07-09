@@ -21,8 +21,23 @@ const PATH_TO_MARKET_TAB = Object.fromEntries(
     .map(([tab, path]) => [path!, tab as MarketTab]),
 ) as Record<string, MarketTab>;
 
+/** Detect GitHub project-pages prefix from the current URL (e.g. `/ezpulse`). */
+function runtimePagesBase(): string {
+  if (typeof window === "undefined") return "";
+  const { pathname } = window.location;
+  // Custom domain: /terminal/... — no repo prefix.
+  if (pathname === "/terminal" || pathname.startsWith("/terminal/")) return "";
+  // Project pages: /ezpulse/terminal/... or /ezpulse/
+  const m = pathname.match(/^\/([^/]+)\/(terminal(?:\/|$)|$)/);
+  if (m && m[1] !== "terminal") return `/${m[1]}`;
+  return "";
+}
+
 /** App base path (`` at ezpulse.xyz root, `/ezpulse` on project Pages without custom domain). */
 export function appBase(): string {
+  const runtime = runtimePagesBase();
+  if (runtime) return runtime;
+
   let base = (import.meta.env.BASE_URL || "/").replace(/\/$/, "");
   // vite-plugin-singlefile sets BASE_URL to "./" — treat as site root, not a path prefix.
   if (base === "." || base === "./") base = "";
