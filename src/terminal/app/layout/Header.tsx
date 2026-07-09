@@ -2,13 +2,14 @@ import { fmtUsd } from "../../data";
 import { Delta } from "../../components";
 import { LiveBadge } from "../components/LiveBadge";
 import { ThemeToggle } from "../components/ThemeToggle";
+import { WalletLogo } from "../components/WalletLogo";
 import { useTerminalContext } from "../TerminalContext";
 
 export function Header() {
   const {
     openSidebar, query, setQuery, searchRef, results, feed, loading, lastUpdated,
     notifOpen, setNotifOpen, notifs, unseenCount, openNotifs, phantom, watchlist,
-    openWalletPicker, signOutPhantom, goto, openToken, setPaletteOpen,
+    openWalletPicker, signOutPhantom, walletProvider, goto, openToken, setPaletteOpen,
   } = useTerminalContext();
 
   return (
@@ -150,6 +151,11 @@ export function Header() {
 
           {phantom ? (
             <div className="term-chip-btn flex items-center gap-1 py-0.5 pl-2 pr-0.5 sm:pl-2.5">
+              {walletProvider && (
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center overflow-hidden rounded-full">
+                  <WalletLogo id={walletProvider} className="h-full w-full" size={16} />
+                </span>
+              )}
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               <span className="hidden font-mono text-[10px] tabular-nums sm:inline" style={{ color: "var(--term-text-muted)" }}>{phantom.slice(0, 4)}…{phantom.slice(-4)}</span>
               <button onClick={signOutPhantom} title="Sign out" aria-label="Sign out" className="term-icon-btn h-5 w-5 border-0 bg-transparent text-[9px]">×</button>

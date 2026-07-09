@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { BLUE } from "../../components";
 import { supportsMobileConnect } from "../../mobileWalletConnect";
+import { WalletLogo } from "./WalletLogo";
 import {
   WALLET_OPTIONS,
   getWalletOption,
@@ -93,8 +94,8 @@ export function WalletConnectModal({
                 onClick={() => onSelect(wallet.id)}
                 className="term-wallet-option flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50/70 px-4 py-3 text-left transition hover:border-indigo-300 hover:bg-indigo-50/40 disabled:opacity-60"
               >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-lg">
-                  {wallet.icon}
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-white p-1.5">
+                  <WalletLogo id={wallet.id} className="h-full w-full" size={28} />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block font-semibold text-[13px] text-zinc-900">{wallet.name}</span>

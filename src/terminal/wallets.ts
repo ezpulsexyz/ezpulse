@@ -6,7 +6,8 @@ export type WalletId = "phantom" | "solflare" | "backpack" | "jupiter";
 export interface WalletOption {
   id: WalletId;
   name: string;
-  icon: string;
+  /** Filename under `/wallets/` (resolved via `walletLogoUrl`). */
+  logo: string;
   installUrl: string;
   /** Jupiter mobile — opens in-app browser (no connect deeplink yet). */
   mobileBrowseUrl?: (pageUrl: string, refUrl: string) => string;
@@ -46,25 +47,25 @@ export const WALLET_OPTIONS: WalletOption[] = [
   {
     id: "phantom",
     name: "Phantom",
-    icon: "👻",
+    logo: "phantom.svg",
     installUrl: "https://phantom.com/download",
   },
   {
     id: "solflare",
     name: "Solflare",
-    icon: "🔥",
+    logo: "solflare.svg",
     installUrl: "https://solflare.com/download",
   },
   {
     id: "backpack",
     name: "Backpack",
-    icon: "🎒",
+    logo: "backpack.png",
     installUrl: "https://backpack.app/download",
   },
   {
     id: "jupiter",
     name: "Jupiter",
-    icon: "🪐",
+    logo: "jupiter.svg",
     installUrl: "https://chromewebstore.google.com/detail/jupiter-wallet/iledlaeogohbilgbfhmbgkgmpplbfboh",
     mobileBrowseUrl: (pageUrl, refUrl) =>
       `https://jup.ag/wallet?browse=${encodeURIComponent(pageUrl)}&ref=${encodeURIComponent(refUrl)}`,
@@ -89,6 +90,11 @@ export function isMobileDevice(): boolean {
 
 export function getWalletOption(id: WalletId): WalletOption {
   return WALLET_OPTIONS.find((w) => w.id === id) ?? WALLET_OPTIONS[0];
+}
+
+export function walletLogoUrl(filename: string): string {
+  const base = appBase();
+  return `${base}/wallets/${filename}`;
 }
 
 export function getWalletProvider(id: WalletId): SolanaInjected | null {
