@@ -226,16 +226,16 @@ export function LaunchSimulator({
 
   return (
     <Card
-      className="mt-4"
+      className="term-sim mt-4 min-w-0"
       title="⏳ Portfolio simulator"
       right={
-        <span className="text-[10px] text-zinc-400">
+        <span className="hidden text-[10px] text-zinc-400 sm:inline">
           what-if buys · ezpulse snapshots
         </span>
       }
     >
-      <div className="space-y-4 px-5 py-4">
-        <div className="flex flex-wrap gap-2">
+      <div className="space-y-4 px-4 py-4 text-left sm:px-5">
+        <div className="flex flex-wrap items-center gap-2">
           {(["launch", "days_ago"] as const).map((m) => (
             <button
               key={m}
@@ -249,7 +249,7 @@ export function LaunchSimulator({
           {coins.length > 1 && (
             <button
               onClick={() => setCompareOpen((v) => !v)}
-              className={`ml-auto rounded-full px-3.5 py-1.5 text-[11px] font-bold transition ${compareOpen ? "text-white" : "border border-zinc-200 text-zinc-500 hover:border-indigo-300 hover:text-indigo-700"}`}
+              className={`w-full rounded-full px-3.5 py-1.5 text-[11px] font-bold transition sm:ml-auto sm:w-auto ${compareOpen ? "text-white" : "border border-zinc-200 text-zinc-500 hover:border-indigo-300 hover:text-indigo-700"}`}
               style={compareOpen ? { background: BLUE } : undefined}
             >
               Compare all
@@ -257,11 +257,11 @@ export function LaunchSimulator({
           )}
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
           <select
             value={selectedCa}
             onChange={(e) => setSelectedCa(e.target.value)}
-            className="min-w-0 flex-1 rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-[12px] font-semibold outline-none focus:border-indigo-300"
+            className="min-w-0 w-full rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-[12px] font-semibold outline-none focus:border-indigo-300 sm:flex-1"
           >
             {coins.map((c) => (
               <option key={c.ca} value={c.ca}>{c.name} (${c.symbol})</option>
@@ -270,7 +270,7 @@ export function LaunchSimulator({
           {hint && hint.valueUsd >= 0.01 && (
             <button
               onClick={() => setInvestUsd(Math.min(MAX_INVEST, Math.round(hint.valueUsd)))}
-              className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-2 text-[11px] font-bold text-indigo-700 transition hover:bg-indigo-100"
+              className="w-full shrink-0 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-2 text-[11px] font-bold text-indigo-700 transition hover:bg-indigo-100 sm:w-auto"
               title="Match your current holding value"
             >
               Match position · {fmtUsd(hint.valueUsd)}
@@ -279,7 +279,7 @@ export function LaunchSimulator({
         </div>
 
         <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
             <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Invest</span>
             <div className="flex flex-wrap gap-1">
               {PRESETS.map((p) => (
@@ -337,7 +337,9 @@ export function LaunchSimulator({
         {compareOpen && (
           <div className="rounded-xl border border-zinc-200 bg-white">
             <div className="border-b border-zinc-100 px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-              Leaderboard · same ${investUsd} buy · {entryMode === "launch" ? "$5K start + dev buy" : `${daysAgo}d ago`}
+              <span className="block sm:inline">Leaderboard</span>
+              <span className="hidden sm:inline"> · </span>
+              <span className="block text-zinc-500 sm:inline">${investUsd} buy · {entryMode === "launch" ? "$5K start + dev buy" : `${daysAgo}d ago`}</span>
             </div>
             {compare === "loading" && (
               <div className="space-y-2 px-4 py-4">
@@ -354,10 +356,10 @@ export function LaunchSimulator({
                   >
                     <span className="w-5 font-mono text-[11px] font-bold text-zinc-400">#{i + 1}</span>
                     <span className="min-w-0 flex-1 truncate font-semibold text-[12px] text-zinc-800">${row.coin.symbol}</span>
-                    <Num className={row.result.roiPct >= 0 ? "text-emerald-600" : "text-red-500"} bold>
+                    <Num className={`shrink-0 ${row.result.roiPct >= 0 ? "text-emerald-600" : "text-red-500"}`} bold>
                       {row.result.roiPct >= 0 ? "+" : ""}{row.result.roiPct}%
                     </Num>
-                    <Num className="text-zinc-500">{row.result.multiple}x</Num>
+                    <Num className="hidden shrink-0 text-zinc-500 sm:block">{row.result.multiple}x</Num>
                   </button>
                 ))}
               </div>
@@ -406,41 +408,41 @@ export function LaunchSimulator({
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-              <div className="rounded-xl border border-zinc-200 bg-white px-3 py-3 sm:px-4">
+            <div className="term-sim-stats grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
+              <div className="term-sim-stat rounded-xl border border-zinc-200 bg-white px-3 py-3 sm:px-4">
                 <div className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Entry</div>
-                <Num size="lg" bold className="mt-0.5 block text-zinc-900">{fmtUsd(result.entryMcap)}</Num>
+                <Num size="lg" bold className="mt-0.5 block truncate text-zinc-900">{fmtUsd(result.entryMcap)}</Num>
                 <div className="text-[10px] text-zinc-400">{result.entryLabel} · {result.ageDays}d hold</div>
               </div>
-              <div className="rounded-xl px-3 py-3 text-white sm:px-4" style={{ background: `linear-gradient(135deg, ${BLUE}, #4f2ff0)` }}>
+              <div className="term-sim-stat term-sim-stat--hero col-span-2 rounded-xl px-3 py-3 text-white sm:col-span-1 sm:px-4" style={{ background: `linear-gradient(135deg, ${BLUE}, #4f2ff0)` }}>
                 <div className="text-[10px] font-semibold uppercase tracking-widest text-white/60">Value today</div>
-                <Num size="lg" bold className="mt-0.5 block">{fmtUsd(result.currentValue)}</Num>
+                <Num size="lg" bold className="mt-0.5 block truncate">{fmtUsd(result.currentValue)}</Num>
                 <div className="text-[10px] text-white/70">{result.multiple}x · {fmtUsd(result.currentMcap)} mcap</div>
               </div>
-              <div className="rounded-xl border border-zinc-200 bg-white px-3 py-3 sm:px-4">
+              <div className="term-sim-stat rounded-xl border border-zinc-200 bg-white px-3 py-3 sm:px-4">
                 <div className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">P&amp;L</div>
-                <Num size="lg" bold className={`mt-0.5 block ${result.pnlUsd >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                <Num size="lg" bold className={`mt-0.5 block truncate ${result.pnlUsd >= 0 ? "text-emerald-600" : "text-red-500"}`}>
                   {result.pnlUsd >= 0 ? "+" : ""}{fmtUsd(Math.abs(result.pnlUsd))}
                 </Num>
                 <div className="flex items-center gap-1 text-[10px]">
                   <Delta v={result.roiPct} suffix="%" />
                 </div>
               </div>
-              <div className="rounded-xl border border-zinc-200 bg-white px-3 py-3 sm:px-4">
+              <div className="term-sim-stat rounded-xl border border-zinc-200 bg-white px-3 py-3 sm:px-4">
                 <div className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Peak</div>
-                <Num size="lg" bold className="mt-0.5 block text-emerald-600">{fmtUsd(result.peakValue)}</Num>
+                <Num size="lg" bold className="mt-0.5 block truncate text-emerald-600">{fmtUsd(result.peakValue)}</Num>
                 <div className="text-[10px] text-zinc-400">
                   {result.peakMultiple}x{result.daysToPeak != null ? ` · day ${result.daysToPeak}` : ""}
                 </div>
               </div>
-              <div className="rounded-xl border border-zinc-200 bg-white px-3 py-3 sm:px-4">
+              <div className="term-sim-stat rounded-xl border border-zinc-200 bg-white px-3 py-3 sm:px-4">
                 <div className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Trough</div>
-                <Num size="lg" bold className="mt-0.5 block text-red-500">{fmtUsd(result.troughValue)}</Num>
+                <Num size="lg" bold className="mt-0.5 block truncate text-red-500">{fmtUsd(result.troughValue)}</Num>
                 <div className="text-[10px] text-zinc-400">{result.troughMultiple}x · +{result.drawdownFromTroughPct}% since</div>
               </div>
-              <div className="rounded-xl border border-zinc-200 bg-white px-3 py-3 sm:px-4">
+              <div className="term-sim-stat rounded-xl border border-zinc-200 bg-white px-3 py-3 sm:px-4">
                 <div className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">From peak</div>
-                <Num size="lg" bold className={`mt-0.5 block ${result.drawdownFromPeakPct > 30 ? "text-red-500" : "text-zinc-700"}`}>
+                <Num size="lg" bold className={`mt-0.5 block truncate ${result.drawdownFromPeakPct > 30 ? "text-red-500" : "text-zinc-700"}`}>
                   -{result.drawdownFromPeakPct}%
                 </Num>
                 <div className="text-[10px] text-zinc-400">

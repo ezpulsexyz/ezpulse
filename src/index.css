@@ -1920,12 +1920,45 @@ button.term-market-stat:hover {
   background: color-mix(in srgb, var(--term-accent) 12%, var(--term-surface-3));
 }
 
-/* Portfolio simulator chart */
+/* Portfolio simulator */
+.term-sim {
+  min-width: 0;
+}
+
+.term-sim-stats {
+  min-width: 0;
+}
+
+.term-sim-stat {
+  min-width: 0;
+}
+
+.term-app[data-theme="dark"] .term-sim-stat {
+  border-color: var(--term-border-subtle);
+  background: var(--term-surface-3);
+}
+
 .term-sim-chart {
+  min-width: 0;
+  overflow: hidden;
   border-radius: 0.75rem;
   border: 1px solid var(--term-border-subtle);
   background: var(--term-surface-2);
   padding: 0.75rem;
+}
+
+.term-sim-chart__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-height: 160px;
+  max-width: 100%;
+}
+
+@media (min-width: 640px) {
+  .term-sim-chart__svg {
+    min-height: 200px;
+  }
 }
 
 .term-sim-chart__head {
@@ -1952,6 +1985,13 @@ button.term-market-stat:hover {
 .term-sim-chart__legend-divider {
   border-left: 1px solid var(--term-border-subtle);
   padding-left: 0.75rem;
+}
+
+@media (max-width: 380px) {
+  .term-sim-chart__legend-divider {
+    border-left: none;
+    padding-left: 0;
+  }
 }
 
 .term-sim-chart__grid {

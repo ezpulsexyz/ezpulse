@@ -35,37 +35,39 @@ export function PortfolioSection() {
       />
 
       {!wallet ? (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-10 shadow-sm">
-          <div className="mx-auto max-w-md text-center">
-            <div className="mb-3 text-4xl">💼</div>
-            <h2 className="font-display text-xl font-semibold text-zinc-900">Connect your wallet</h2>
-            <p className="mt-2 text-[13px] leading-relaxed text-zinc-500">
-              Sign in with Phantom to load your Kickstart positions. We only read public token balances;{" "}
-              <strong className="text-zinc-700">no signature is ever requested</strong>, nothing can be moved.
-            </p>
-            <button
-              type="button"
-              onClick={() => void signInPhantom()}
-              disabled={walletConnecting}
-              className="mt-6 rounded-full px-7 py-2.5 text-[12px] font-bold uppercase tracking-wide text-white transition hover:-translate-y-px disabled:opacity-70"
-              style={{ background: BLUE }}
-            >
-              {walletConnecting ? "Connecting…" : "👻 Connect Phantom"}
-            </button>
-            {!isPhantomAvailable() && (
-              <div className="mx-auto mt-3 max-w-sm">
-                <PhantomHint compact />
-              </div>
-            )}
-            {walletErr && (
-              <p className="mt-4 rounded-xl bg-red-50 px-4 py-2.5 text-[12px] text-red-600">{walletErr}</p>
-            )}
-            <p className="mt-4 text-[11px] text-zinc-400">
-              Balances are read per token via Solana RPC — the same path used for thesis posting.
-            </p>
-            <LaunchSimulator coins={feed} defaultCa={feed[0]?.ca} />
+        <>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-10 shadow-sm">
+            <div className="mx-auto max-w-md text-center">
+              <div className="mb-3 text-4xl">💼</div>
+              <h2 className="font-display text-xl font-semibold text-zinc-900">Connect your wallet</h2>
+              <p className="mt-2 text-[13px] leading-relaxed text-zinc-500">
+                Sign in with Phantom to load your Kickstart positions. We only read public token balances;{" "}
+                <strong className="text-zinc-700">no signature is ever requested</strong>, nothing can be moved.
+              </p>
+              <button
+                type="button"
+                onClick={() => void signInPhantom()}
+                disabled={walletConnecting}
+                className="mt-6 rounded-full px-7 py-2.5 text-[12px] font-bold uppercase tracking-wide text-white transition hover:-translate-y-px disabled:opacity-70"
+                style={{ background: BLUE }}
+              >
+                {walletConnecting ? "Connecting…" : "👻 Connect Phantom"}
+              </button>
+              {!isPhantomAvailable() && (
+                <div className="mx-auto mt-3 max-w-sm">
+                  <PhantomHint compact />
+                </div>
+              )}
+              {walletErr && (
+                <p className="mt-4 rounded-xl bg-red-50 px-4 py-2.5 text-[12px] text-red-600">{walletErr}</p>
+              )}
+              <p className="mt-4 text-[11px] text-zinc-400">
+                Balances are read per token via Solana RPC — the same path used for thesis posting.
+              </p>
+            </div>
           </div>
-        </div>
+          <LaunchSimulator coins={feed} defaultCa={feed[0]?.ca} />
+        </>
       ) : (
         <>
           <div className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-5 py-3.5 shadow-sm">
