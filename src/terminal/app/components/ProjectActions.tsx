@@ -48,7 +48,7 @@ export function ProjectActions({
         className="term-action term-action--outline"
       >
         <AlertIcon />
-        Set Price Alert
+        Set Alert
       </button>
 
       {verified && onFounder && (

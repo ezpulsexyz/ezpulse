@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useTerminalContext } from "../TerminalContext";
+import { fmtUsd } from "../../data";
+import type { AlertMetric } from "../hooks/useTerminal";
 import type { LiveLaunch } from "../../kickstart";
 
 interface PriceAlertModalProps {
@@ -9,24 +11,29 @@ interface PriceAlertModalProps {
 
 export function PriceAlertModal({ token, onClose }: PriceAlertModalProps) {
   const { addPriceAlert } = useTerminalContext();
+  const [metric, setMetric] = useState<AlertMetric>("price");
   const [direction, setDirection] = useState<"above" | "below">("above");
   const [targetPrice, setTargetPrice] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const currentPrice = token.priceUsd;
+  const currentValue = metric === "mcap" ? token.mcap : token.priceUsd;
+  const currentLabel =
+    metric === "mcap"
+      ? currentValue ? fmtUsd(currentValue) : "—"
+      : currentValue ? `$${currentValue.toFixed(6)}` : "—";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const price = parseFloat(targetPrice);
+    const value = parseFloat(targetPrice);
 
-    if (!price || price <= 0) {
-      alert("Please enter a valid price");
+    if (!value || value <= 0) {
+      alert(`Please enter a valid ${metric === "mcap" ? "market cap" : "price"}`);
       return;
     }
 
     setLoading(true);
 
-    addPriceAlert(token.ca, token.symbol, price, direction);
+    addPriceAlert(token.ca, token.symbol, value, direction, metric);
 
     setLoading(false);
     onClose();
@@ -37,8 +44,10 @@ export function PriceAlertModal({ token, onClose }: PriceAlertModalProps) {
       <div className="w-full max-w-md rounded-2xl border border-zinc-200 bg-white shadow-xl">
         <div className="flex items-center justify-between border-b px-5 py-4">
           <div>
-            <div className="font-semibold">Set Price Alert</div>
-            <div className="text-sm text-zinc-500">${token.symbol} · Current: ${currentPrice ? `$${currentPrice.toFixed(6)}` : "—"}</div>
+            <div className="font-semibold">Set Alert</div>
+            <div className="text-sm text-zinc-500">
+              ${token.symbol} · Current {metric === "mcap" ? "mcap" : "price"}: {currentLabel}
+            </div>
           </div>
           <button onClick={onClose} className="text-2xl leading-none text-zinc-400 hover:text-zinc-600">
             ×
@@ -46,6 +55,26 @@ export function PriceAlertModal({ token, onClose }: PriceAlertModalProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-5 space-y-5">
+          <div>
+            <label className="block text-xs font-medium text-zinc-500 mb-1.5">Target</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setMetric("price")}
+                className={`flex-1 rounded-xl border py-2 text-sm font-medium transition ${metric === "price" ? "border-indigo-500 bg-indigo-50 text-indigo-700" : "border-zinc-200 hover:bg-zinc-50"}`}
+              >
+                Price
+              </button>
+              <button
+                type="button"
+                onClick={() => setMetric("mcap")}
+                className={`flex-1 rounded-xl border py-2 text-sm font-medium transition ${metric === "mcap" ? "border-indigo-500 bg-indigo-50 text-indigo-700" : "border-zinc-200 hover:bg-zinc-50"}`}
+              >
+                Mcap
+              </button>
+            </div>
+          </div>
+
           <div>
             <label className="block text-xs font-medium text-zinc-500 mb-1.5">Direction</label>
             <div className="flex gap-2">
@@ -67,7 +96,9 @@ export function PriceAlertModal({ token, onClose }: PriceAlertModalProps) {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-zinc-500 mb-1.5">Target Price (USD)</label>
+            <label className="block text-xs font-medium text-zinc-500 mb-1.5">
+              {metric === "mcap" ? "Target Mcap (USD)" : "Target Price (USD)"}
+            </label>
             <div className="relative">
               <span className="absolute left-3 top-2.5 text-zinc-400">$</span>
               <input
@@ -75,12 +106,14 @@ export function PriceAlertModal({ token, onClose }: PriceAlertModalProps) {
                 step="any"
                 value={targetPrice}
                 onChange={(e) => setTargetPrice(e.target.value)}
-                placeholder="0.01234"
+                placeholder={metric === "mcap" ? "1000000" : "0.01234"}
                 className="w-full rounded-xl border border-zinc-200 pl-7 py-2.5 text-sm focus:outline-none focus:border-indigo-400"
                 required
               />
             </div>
-            <p className="mt-1.5 text-[10px] text-zinc-400">You'll be notified when price goes {direction} this value.</p>
+            <p className="mt-1.5 text-[10px] text-zinc-400">
+              You'll be notified when {metric === "mcap" ? "market cap" : "price"} goes {direction} this value.
+            </p>
           </div>
 
           <div className="flex gap-3 pt-2">

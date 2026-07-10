@@ -26,6 +26,9 @@ import {
   type PriceSocketStatus,
   type PriceUpdate,
 } from "../../dexScreenerSocket";
+import { fmtUsd } from "../../data";
+
+export type AlertMetric = "price" | "mcap";
 
 // === Price Threshold Alerts ===
 export interface PriceAlert {
@@ -33,6 +36,7 @@ export interface PriceAlert {
   ca: string;
   symbol: string;
   targetPrice: number;
+  metric: AlertMetric;
   direction: "above" | "below";
   enabled: boolean;
   createdAt: number;
@@ -43,7 +47,19 @@ const PRICE_ALERTS_KEY = "ezpulse:price-alerts";
 function loadPriceAlerts(): PriceAlert[] {
   try {
     const raw = localStorage.getItem(PRICE_ALERTS_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Partial<PriceAlert>[];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((a) => ({
+      id: a.id ?? "",
+      ca: a.ca ?? "",
+      symbol: a.symbol ?? "",
+      targetPrice: a.targetPrice ?? 0,
+      metric: a.metric === "mcap" ? "mcap" : "price",
+      direction: a.direction === "below" ? "below" : "above",
+      enabled: a.enabled !== false,
+      createdAt: a.createdAt ?? 0,
+    })).filter((a) => a.id && a.ca);
   } catch {
     return [];
   }
@@ -258,12 +274,19 @@ export function useTerminal(target?: TerminalTarget) {
   };
 
   // === Price Alert Functions ===
-  const addPriceAlert = useCallback((ca: string, symbol: string, targetPrice: number, direction: "above" | "below") => {
+  const addPriceAlert = useCallback((
+    ca: string,
+    symbol: string,
+    targetPrice: number,
+    direction: "above" | "below",
+    metric: AlertMetric = "price",
+  ) => {
     const newAlert: PriceAlert = {
-      id: `${ca}-${direction}-${targetPrice}-${Date.now()}`,
+      id: `${ca}-${metric}-${direction}-${targetPrice}-${Date.now()}`,
       ca,
       symbol,
       targetPrice,
+      metric,
       direction,
       enabled: true,
       createdAt: Date.now(),
@@ -311,20 +334,27 @@ export function useTerminal(target?: TerminalTarget) {
       );
 
       relevantAlerts.forEach((alert) => {
-        const currentPrice = token.priceUsd;
+        const isMcap = alert.metric === "mcap";
+        const currentValue = isMcap ? token.mcap : token.priceUsd;
+        if (!currentValue || currentValue <= 0) return;
+
         const crossed =
-          (alert.direction === "above" && currentPrice >= alert.targetPrice) ||
-          (alert.direction === "below" && currentPrice <= alert.targetPrice);
+          (alert.direction === "above" && currentValue >= alert.targetPrice) ||
+          (alert.direction === "below" && currentValue <= alert.targetPrice);
 
         if (crossed && !triggeredAlerts.current.has(alert.id)) {
           triggeredAlerts.current.add(alert.id);
+
+          const targetLabel = isMcap ? fmtUsd(alert.targetPrice) : `$${alert.targetPrice}`;
+          const nowLabel = isMcap ? fmtUsd(currentValue) : `$${currentValue.toFixed(6)}`;
+          const metricLabel = isMcap ? "Mcap" : "Price";
 
           newNotifs.push({
             key: `price-alert-${alert.id}-${Date.now()}`,
             icon: alert.direction === "above" ? "📈" : "📉",
             strength: alert.direction === "above" ? "BULLISH" : "BEARISH",
-            title: `${token.symbol} hit $${alert.targetPrice}`,
-            detail: `Price ${alert.direction} $${alert.targetPrice} (now $${currentPrice.toFixed(6)})`,
+            title: `${token.symbol} hit ${targetLabel}`,
+            detail: `${metricLabel} ${alert.direction} ${targetLabel} (now ${nowLabel})`,
             token,
           });
         }
@@ -339,7 +369,13 @@ export function useTerminal(target?: TerminalTarget) {
 
   const buildTokenForAlert = useCallback((ca: string, priceUsd: number): LiveLaunch | null => {
     const fromFeed = feedRef.current.find((c) => c.ca.toLowerCase() === ca.toLowerCase());
-    if (fromFeed) return { ...fromFeed, priceUsd };
+    if (fromFeed) {
+      const mcap =
+        fromFeed.priceUsd > 0 && fromFeed.mcap > 0
+          ? fromFeed.mcap * (priceUsd / fromFeed.priceUsd)
+          : fromFeed.mcap;
+      return { ...fromFeed, priceUsd, mcap };
+    }
 
     const alert = priceAlerts.find((a) => a.ca.toLowerCase() === ca.toLowerCase());
     if (!alert) return null;
@@ -375,9 +411,15 @@ export function useTerminal(target?: TerminalTarget) {
     if (inFeed) {
       const updated = current.map((coin) => {
         if (coin.ca.toLowerCase() !== caLower) return coin;
+        const nextPrice = update.priceUsd ?? coin.priceUsd;
+        const nextMcap =
+          update.priceUsd && coin.priceUsd > 0 && coin.mcap > 0
+            ? coin.mcap * (update.priceUsd / coin.priceUsd)
+            : coin.mcap;
         return {
           ...coin,
-          priceUsd: update.priceUsd ?? coin.priceUsd,
+          priceUsd: nextPrice,
+          mcap: nextMcap,
           change24h: update.change24h ?? coin.change24h,
           change1h: update.change1h ?? coin.change1h,
           volume24h: update.volume24h ?? coin.volume24h,
