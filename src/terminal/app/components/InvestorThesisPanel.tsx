@@ -196,8 +196,15 @@ export function InvestorThesisPanel({ token }: { token: LiveLaunch }) {
   };
 
   // Quote handler - opens modal with pre-filled quoted content
-  const handleQuote = (post: InvestorThesisPost) => {
-    const quoted = `> ${post.body.slice(0, 180)}${post.body.length > 180 ? "..." : ""}\n\n`;
+  const handleQuote = (postOrThesis: any) => {
+    let quoted = "";
+    if (postOrThesis.body) {
+      // Local post
+      quoted = `> ${postOrThesis.body.slice(0, 180)}${postOrThesis.body.length > 180 ? "..." : ""}\n\n`;
+    } else if (postOrThesis.content) {
+      // Backend thesis
+      quoted = `> ${postOrThesis.content.slice(0, 180)}${postOrThesis.content.length > 180 ? "..." : ""}\n\n`;
+    }
     setQuoteInitialContent(quoted);
     setShowThesisModal(true);
   };
@@ -290,6 +297,7 @@ export function InvestorThesisPanel({ token }: { token: LiveLaunch }) {
                 currentWallet={wallet}
                 refreshKey={thesesRefresh}
                 onCountChange={setThesisCount}
+                onQuote={handleQuote}
               />
             ) : localPosts.length > 0 ? (
               <div className="space-y-3">
@@ -319,7 +327,6 @@ export function InvestorThesisPanel({ token }: { token: LiveLaunch }) {
                     <button
                       key={idx}
                       onClick={() => {
-                        // Open modal with example pre-filled (simplified)
                         setQuoteInitialContent("");
                         setShowThesisModal(true);
                       }}
