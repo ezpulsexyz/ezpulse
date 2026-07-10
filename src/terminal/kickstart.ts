@@ -1170,15 +1170,157 @@ export function saveAlertPrefs(p: AlertPrefs) {
 }
 
 /* ─── Read-only portfolio: watch any wallet, no signing ───
- * Balances prefer Solscan when a VITE_SOLSCAN_API_KEY is present, then fall back to
- * Solana JSON-RPC getTokenAccountsByOwner (public, read-only).
- * Holdings are intersected with the live Kickstart feed and valued at live prices.
+ * Full SPL scan via Solscan (keyed) or Solana RPC getTokenAccountsByOwner.
+ * Kickstart feed tokens are preferred; other holdings enriched via Dex/Jupiter.
  */
 
 export interface Holding {
   coin: LiveLaunch;
-  amount: number;    // UI amount (decimals applied)
+  amount: number;
   valueUsd: number;
+  /** Estimated USD change vs ~24h ago from live price change %. */
+  pnl24hUsd: number;
+  /** User-set average entry price per token (optional). */
+  costBasisUsd: number | null;
+  unrealizedPnlUsd: number | null;
+  unrealizedPnlPct: number | null;
+  /** True when this mint is in the live Kickstart feed. */
+  inFeed: boolean;
+}
+
+export interface CostBasisEntry {
+  avgPriceUsd: number;
+  updatedAt: number;
+}
+
+const COST_BASIS_KEY = "ezpulse:cost-basis";
+
+export function loadCostBasis(): Record<string, CostBasisEntry> {
+  try {
+    const raw = localStorage.getItem(COST_BASIS_KEY);
+    return raw ? (JSON.parse(raw) as Record<string, CostBasisEntry>) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveCostBasisEntry(ca: string, avgPriceUsd: number) {
+  try {
+    const all = loadCostBasis();
+    all[ca] = { avgPriceUsd, updatedAt: Date.now() };
+    localStorage.setItem(COST_BASIS_KEY, JSON.stringify(all));
+  } catch {
+    /* noop */
+  }
+}
+
+export function clearCostBasisEntry(ca: string) {
+  try {
+    const all = loadCostBasis();
+    delete all[ca];
+    delete all[ca.toLowerCase()];
+    localStorage.setItem(COST_BASIS_KEY, JSON.stringify(all));
+  } catch {
+    /* noop */
+  }
+}
+
+export function pnl24hFromValue(valueUsd: number, change24h: number): number {
+  if (!valueUsd || !Number.isFinite(change24h)) return 0;
+  const denom = 1 + change24h / 100;
+  if (denom <= 0) return 0;
+  return valueUsd - valueUsd / denom;
+}
+
+export function applyCostBasisToHolding(
+  holding: Holding,
+  costBasis: Record<string, CostBasisEntry>,
+): Holding {
+  const entry = costBasis[holding.coin.ca] ?? costBasis[holding.coin.ca.toLowerCase()];
+  if (!entry?.avgPriceUsd || !holding.coin.priceUsd) {
+    return { ...holding, costBasisUsd: null, unrealizedPnlUsd: null, unrealizedPnlPct: null };
+  }
+  const costValue = entry.avgPriceUsd * holding.amount;
+  const unrealizedPnlUsd = holding.valueUsd - costValue;
+  const unrealizedPnlPct = costValue > 0 ? (unrealizedPnlUsd / costValue) * 100 : null;
+  return {
+    ...holding,
+    costBasisUsd: entry.avgPriceUsd,
+    unrealizedPnlUsd,
+    unrealizedPnlPct,
+  };
+}
+
+function makeHolding(coin: LiveLaunch, amount: number, inFeed: boolean, costBasis: Record<string, CostBasisEntry>): Holding {
+  const valueUsd = amount * (coin.priceUsd || 0);
+  return applyCostBasisToHolding(
+    {
+      coin,
+      amount,
+      valueUsd,
+      pnl24hUsd: pnl24hFromValue(valueUsd, coin.change24h),
+      costBasisUsd: null,
+      unrealizedPnlUsd: null,
+      unrealizedPnlPct: null,
+      inFeed,
+    },
+    costBasis,
+  );
+}
+
+async function enrichMintsViaDex(mints: string[]): Promise<Map<string, LiveLaunch>> {
+  const out = new Map<string, LiveLaunch>();
+  if (!mints.length) return out;
+
+  const batchSize = 30;
+  for (let i = 0; i < mints.length; i += batchSize) {
+    const batch = mints.slice(i, i + batchSize);
+    try {
+      const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${batch.join(",")}`, {
+        headers: { accept: "application/json" },
+      });
+      if (!res.ok) continue;
+      const data = (await res.json()) as Rec;
+      const pairs: Rec[] = Array.isArray(data.pairs) ? (data.pairs as Rec[]) : [];
+      for (const [, pair] of bestPairPerToken(pairs)) {
+        const launch = pairToLaunch(pair);
+        if (!launch) continue;
+        out.set(launch.ca.toLowerCase(), launch);
+      }
+    } catch {
+      /* continue */
+    }
+  }
+
+  const missing = mints.filter((m) => !out.has(m.toLowerCase()));
+  if (missing.length) {
+    const prices = await fetchJupiterPrices(missing);
+    for (const mint of missing) {
+      const price = prices.get(mint.toLowerCase());
+      if (!price) continue;
+      out.set(mint.toLowerCase(), {
+        name: `${mint.slice(0, 4)}…${mint.slice(-4)}`,
+        symbol: "SPL",
+        ca: mint,
+        description: "",
+        priceUsd: price,
+        mcap: 0,
+        change24h: 0,
+        change1h: 0,
+        volume24h: 0,
+        volume1h: 0,
+        liquidity: 0,
+        buys24h: 0,
+        sells24h: 0,
+        buys1h: 0,
+        sells1h: 0,
+        source: "DEXSCREENER",
+        links: { dexscreener: `https://dexscreener.com/solana/${mint}` },
+      });
+    }
+  }
+
+  return out;
 }
 
 /* CORS-friendly public RPCs first — api.mainnet-beta often 403s browser origins. */
@@ -1542,11 +1684,16 @@ async function fetchTokenBalances(owner: string): Promise<Map<string, number> | 
 export interface PortfolioResult {
   holdings: Holding[];
   totalUsd: number;
+  /** Token holdings + SOL (when priced). */
+  totalWithSolUsd: number;
+  pnl24hUsd: number;
+  unrealizedPnlUsd: number | null;
+  hasCostBasis: boolean;
   scanned: number;
+  kickstartMatched: number;
   sol: { amount: number; priceUsd: number | null; valueUsd: number | null } | null;
   rpc: string | null;
   source: "solscan" | "rpc" | null;
-  /** Raw on-chain balances — used to re-value holdings when the live feed refreshes. */
   balanceSnapshot: Record<string, number>;
   fetchedAt: number;
 }
@@ -1567,34 +1714,102 @@ function snapshotBalances(balances: Map<string, number>): Record<string, number>
   return out;
 }
 
-/** Build portfolio holdings from cached balances + current live feed prices. */
-export function buildPortfolioFromBalances(
+function finalizePortfolio(
+  holdings: Holding[],
   balances: Map<string, number>,
-  feed: LiveLaunch[],
   meta: Pick<PortfolioResult, "sol" | "rpc" | "source" | "fetchedAt">,
 ): PortfolioResult {
-  const holdings: Holding[] = [];
-  for (const coin of feed) {
-    const amount = lookupBalance(balances, coin.ca);
-    if (amount && amount > 0) {
-      holdings.push({ coin, amount, valueUsd: amount * (coin.priceUsd || 0) });
-    }
-  }
   holdings.sort((a, b) => b.valueUsd - a.valueUsd);
+  const totalUsd = holdings.reduce((s, h) => s + h.valueUsd, 0);
+  const solVal = meta.sol?.valueUsd ?? 0;
+  const unrealized = holdings
+    .map((h) => h.unrealizedPnlUsd)
+    .filter((v): v is number => v !== null);
   return {
     holdings,
-    totalUsd: holdings.reduce((s, h) => s + h.valueUsd, 0),
+    totalUsd,
+    totalWithSolUsd: totalUsd + solVal,
+    pnl24hUsd: holdings.reduce((s, h) => s + h.pnl24hUsd, 0),
+    unrealizedPnlUsd: unrealized.length ? unrealized.reduce((s, v) => s + v, 0) : null,
+    hasCostBasis: unrealized.length > 0,
     scanned: balances.size,
+    kickstartMatched: holdings.filter((h) => h.inFeed).length,
     balanceSnapshot: snapshotBalances(balances),
     ...meta,
   };
 }
 
+/** Build portfolio holdings from wallet balances + feed prices + Dex/Jupiter enrichment. */
+export async function buildPortfolioFromBalances(
+  balances: Map<string, number>,
+  feed: LiveLaunch[],
+  meta: Pick<PortfolioResult, "sol" | "rpc" | "source" | "fetchedAt">,
+): Promise<PortfolioResult> {
+  const feedByCa = new Map(feed.map((c) => [c.ca.toLowerCase(), c]));
+  const costBasis = loadCostBasis();
+  const unknownMints: string[] = [];
+
+  for (const [mint, amount] of balances) {
+    if (amount <= 0) continue;
+    if (!feedByCa.has(mint.toLowerCase())) unknownMints.push(mint);
+  }
+
+  const enriched = await enrichMintsViaDex(unknownMints);
+  const holdings: Holding[] = [];
+
+  for (const [mint, amount] of balances) {
+    if (amount <= 0) continue;
+    const inFeed = feedByCa.has(mint.toLowerCase());
+    const coin = feedByCa.get(mint.toLowerCase()) ?? enriched.get(mint.toLowerCase());
+    if (!coin) continue;
+
+    const holding = makeHolding(coin, amount, inFeed, costBasis);
+    if (!inFeed && holding.valueUsd < 0.01) continue;
+    holdings.push(holding);
+  }
+
+  return finalizePortfolio(holdings, balances, meta);
+}
+
 /** Re-value an existing portfolio against a fresh live feed (no new RPC calls). */
 export function revaluePortfolioFromFeed(portfolio: PortfolioResult, feed: LiveLaunch[]): PortfolioResult {
   if (!portfolio.balanceSnapshot || Object.keys(portfolio.balanceSnapshot).length === 0) return portfolio;
+
+  const feedByCa = new Map(feed.map((c) => [c.ca.toLowerCase(), c]));
+  const costBasis = loadCostBasis();
   const balances = new Map(Object.entries(portfolio.balanceSnapshot));
-  return buildPortfolioFromBalances(balances, feed, {
+
+  const holdings = portfolio.holdings.map((h) => {
+    const updatedCoin = feedByCa.get(h.coin.ca.toLowerCase());
+    const coin = updatedCoin ? { ...h.coin, ...updatedCoin, ca: h.coin.ca } : h.coin;
+    const amount = lookupBalance(balances, h.coin.ca) ?? h.amount;
+    const valueUsd = amount * (coin.priceUsd || 0);
+    return applyCostBasisToHolding(
+      {
+        ...h,
+        coin,
+        amount,
+        valueUsd,
+        pnl24hUsd: pnl24hFromValue(valueUsd, coin.change24h),
+      },
+      costBasis,
+    );
+  });
+
+  return finalizePortfolio(holdings, balances, {
+    sol: portfolio.sol,
+    rpc: portfolio.rpc,
+    source: portfolio.source,
+    fetchedAt: portfolio.fetchedAt,
+  });
+}
+
+/** Re-apply stored cost basis without re-fetching balances or prices. */
+export function reapplyCostBasis(portfolio: PortfolioResult): PortfolioResult {
+  const costBasis = loadCostBasis();
+  const balances = new Map(Object.entries(portfolio.balanceSnapshot ?? {}));
+  const holdings = portfolio.holdings.map((h) => applyCostBasisToHolding(h, costBasis));
+  return finalizePortfolio(holdings, balances, {
     sol: portfolio.sol,
     rpc: portfolio.rpc,
     source: portfolio.source,
@@ -1641,36 +1856,15 @@ export async function fetchTokenBalance(
   }
 }
 
-/** Connected-wallet portfolio: per-token RPC balance checks (same path as thesis / WalletGate). */
+/** Connected-wallet portfolio: full SPL scan + live prices (read-only, no signing). */
 export async function fetchConnectedWalletPortfolio(
   owner: string,
   feed: LiveLaunch[],
 ): Promise<PortfolioResult | null> {
-  try {
-    const pairs = await Promise.all(
-      feed.map(async (coin) => [coin.ca, await fetchTokenBalance(owner, coin.ca)] as const),
-    );
-    const balances = new Map<string, number>();
-    for (const [ca, amount] of pairs) {
-      if (amount > 0) balances.set(ca, amount);
-    }
-    const [solAmount, solPrice] = await Promise.all([fetchSolBalance(owner), fetchSolPrice()]);
-    const portfolio = buildPortfolioFromBalances(balances, feed, {
-      sol:
-        solAmount !== null
-          ? { amount: solAmount, priceUsd: solPrice, valueUsd: solPrice !== null ? solAmount * solPrice : null }
-          : null,
-      rpc: lastRpcUsed,
-      source: "rpc",
-      fetchedAt: Date.now(),
-    });
-    return { ...portfolio, scanned: feed.length };
-  } catch {
-    return null;
-  }
+  return fetchPortfolio(owner, feed);
 }
 
-/** Full SPL scan portfolio — used for founder wallet forensics, not user watch flows. */
+/** Full SPL scan portfolio — all wallet tokens valued at live prices. */
 export async function fetchPortfolio(owner: string, feed: LiveLaunch[]): Promise<PortfolioResult | null> {
   const [balances, solAmount, solPrice] = await Promise.all([
     fetchTokenBalances(owner),

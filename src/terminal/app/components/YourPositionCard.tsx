@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { BLUE, Card } from "../../components";
 import { useWallet } from "../../hooks/useWallet";
-import { fetchTokenBalance, type LiveLaunch } from "../../kickstart";
+import {
+  fetchTokenBalance, loadCostBasis, pnl24hFromValue, type LiveLaunch,
+} from "../../kickstart";
 import { formatTokenAmount } from "../../investorThesis";
 import type { Section } from "../types";
 import { WalletConnectModal } from "./WalletConnectModal";
@@ -40,6 +42,12 @@ export function YourPositionCard({
 
   const valueUsd = balance !== null ? balance * (token.priceUsd || 0) : null;
   const hasHolding = balance !== null && balance > 0;
+  const costBasis = loadCostBasis()[token.ca] ?? loadCostBasis()[token.ca.toLowerCase()];
+  const pnl24hUsd = valueUsd !== null ? pnl24hFromValue(valueUsd, token.change24h) : null;
+  const unrealizedPnlUsd =
+    costBasis && valueUsd !== null && balance !== null
+      ? valueUsd - costBasis.avgPriceUsd * balance
+      : null;
 
   return (
     <Card
@@ -98,23 +106,37 @@ export function YourPositionCard({
             ["Balance", formatTokenAmount(balance!), `$${token.symbol}`],
             ["Value", valueUsd >= 0.01 ? `$${valueUsd.toFixed(2)}` : "<$0.01", "at live price"],
             [
-              "24h move",
-              `${token.change24h >= 0 ? "+" : ""}${token.change24h.toFixed(1)}%`,
-              token.change24h >= 0 ? "▲ position up" : "▼ position down",
+              "24h P&L",
+              pnl24hUsd !== null && pnl24hUsd !== 0
+                ? `${pnl24hUsd >= 0 ? "+" : "−"}$${Math.abs(pnl24hUsd).toFixed(2)}`
+                : "—",
+              `${token.change24h >= 0 ? "+" : ""}${token.change24h.toFixed(1)}% price move`,
             ],
-            ["Status", "✓ Holder", "on-chain balance verified"],
+            [
+              unrealizedPnlUsd !== null ? "Unreal. P&L" : "Status",
+              unrealizedPnlUsd !== null
+                ? `${unrealizedPnlUsd >= 0 ? "+" : "−"}$${Math.abs(unrealizedPnlUsd).toFixed(2)}`
+                : "✓ Holder",
+              unrealizedPnlUsd !== null
+                ? `entry $${costBasis!.avgPriceUsd.toFixed(6)}`
+                : "set entry in portfolio",
+            ],
           ].map(([l, v, s]) => (
             <div key={l as string} className="bg-white px-5 py-4">
               <div className="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">{l}</div>
               <div
                 className={`mt-0.5 font-display text-lg font-semibold tabular-nums ${
-                  l === "24h move"
-                    ? token.change24h >= 0
+                  l === "24h P&L"
+                    ? (pnl24hUsd ?? 0) >= 0
                       ? "text-emerald-600"
                       : "text-red-500"
-                    : l === "Status"
-                      ? "text-emerald-600"
-                      : "text-zinc-900"
+                    : l === "Unreal. P&L"
+                      ? (unrealizedPnlUsd ?? 0) >= 0
+                        ? "text-emerald-600"
+                        : "text-red-500"
+                      : l === "Status"
+                        ? "text-emerald-600"
+                        : "text-zinc-900"
                 }`}
               >
                 {v}

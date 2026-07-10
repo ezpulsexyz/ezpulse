@@ -4,7 +4,8 @@ import { syncWatchlist, pullWalletWatchlist } from "../../backend";
 import {
   fetchLiveFeed, isGraduated, verifiedOf, bondedOf, trendingOf, tokenNote, tokenSignals,
   loadWatchlist, saveWatchlist, loadAlertPrefs, saveAlertPrefs,
-  fetchConnectedWalletPortfolio, revaluePortfolioFromFeed, fetchSolPrice, fetchJupiterPrices,
+  fetchConnectedWalletPortfolio, revaluePortfolioFromFeed, reapplyCostBasis,
+  saveCostBasisEntry, clearCostBasisEntry, fetchSolPrice, fetchJupiterPrices,
   type LiveLaunch, type AlertPrefs, type PortfolioResult,
 } from "../../kickstart";
 import { useWallet } from "../../hooks/useWallet";
@@ -160,6 +161,18 @@ export function useTerminal(target?: TerminalTarget) {
     setPortfolio(p);
     if (p === null) setWalletErr("Couldn't read balances — try again in a moment.");
   }, [liveFeed]);
+
+  const setCostBasis = useCallback((ca: string, avgPriceUsd: number | null) => {
+    if (avgPriceUsd === null || !Number.isFinite(avgPriceUsd) || avgPriceUsd <= 0) {
+      clearCostBasisEntry(ca);
+    } else {
+      saveCostBasisEntry(ca, avgPriceUsd);
+    }
+    setPortfolio((current) => {
+      if (!current || current === "loading") return current;
+      return reapplyCostBasis(current);
+    });
+  }, []);
 
   const completeWalletSignIn = useCallback(async (addr: string) => {
     setWalletErr(null);
@@ -917,6 +930,7 @@ export function useTerminal(target?: TerminalTarget) {
     signOutPhantom,
     setAlert,
     loadPortfolio,
+    setCostBasis,
     copyCa,
     openNotifs,
     feed,

@@ -5,7 +5,7 @@ const GRID_BASE = "items-center gap-x-3";
 export const COIN_COLS = "lg:grid-cols-[2rem_minmax(0,1fr)_5.5rem_4.5rem_5.5rem_5.5rem_8.75rem]";
 export const COIN_GRID = `lg:grid ${COIN_COLS} ${GRID_BASE}`;
 
-export const PORTFOLIO_COLS = "lg:grid-cols-[minmax(0,1fr)_6rem_5.5rem_4.5rem_5.5rem_8.75rem]";
+export const PORTFOLIO_COLS = "lg:grid-cols-[minmax(0,1fr)_5.5rem_5rem_4rem_5rem_5rem_5.5rem_8.75rem]";
 export const PORTFOLIO_GRID = `lg:grid ${PORTFOLIO_COLS} ${GRID_BASE}`;
 
 export const STATS_COLS = "sm:grid-cols-[minmax(0,1fr)_5rem_5rem_6rem_8rem]";

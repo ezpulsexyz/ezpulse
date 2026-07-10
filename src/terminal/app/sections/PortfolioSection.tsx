@@ -1,12 +1,22 @@
 import { fetchLiveFeed, fmtPrice, isVerified } from "../../kickstart";
+import { fmtUsd } from "../../data";
 import { anyWalletDetected } from "../../wallets";
 import { TokenAvatar } from "../components/TokenAvatar";
 import { BLUE, Card, Delta, Stat } from "../../components";
 import { LaunchSimulator } from "../components/LaunchSimulator";
 import { PageHead, EmptyState } from "../components/PageLayout";
 import { WalletConnectHint } from "../components/WalletConnectHint";
+import { PortfolioCostBasisCell } from "../components/PortfolioCostBasisCell";
 import { PORTFOLIO_COLS, PORTFOLIO_GRID, TermActions, TermHead, TermHeadCell, TermNum, TermRow } from "../components/TermTable";
 import { useTerminalContext } from "../TerminalContext";
+
+function fmtSignedUsd(n: number) {
+  const abs = Math.abs(n);
+  const str = abs >= 0.01 ? `$${abs.toFixed(2)}` : "<$0.01";
+  if (n > 0) return `+${str}`;
+  if (n < 0) return `−${str}`;
+  return str;
+}
 
 export function PortfolioSection() {
   const {
@@ -17,6 +27,7 @@ export function PortfolioSection() {
     portfolio,
     setLiveFeed,
     loadPortfolio,
+    setCostBasis,
     openWalletPicker,
     signOutPhantom,
     goto,
@@ -27,7 +38,7 @@ export function PortfolioSection() {
     <>
       <PageHead
         title="Portfolio"
-        sub="Connect your wallet to see Kickstart holdings — read-only, no signatures, valued at live prices."
+        sub="Full on-chain holdings — SPL scan via RPC, valued at live Jupiter/Dex prices. Set entry prices to track unrealized P&L."
         right={
           <span className="rounded-full bg-emerald-50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-emerald-700">
             👻 Your wallet
@@ -42,7 +53,7 @@ export function PortfolioSection() {
               <div className="mb-3 text-4xl">💼</div>
               <h2 className="font-display text-xl font-semibold text-zinc-900">Connect your wallet</h2>
               <p className="mt-2 text-[13px] leading-relaxed text-zinc-500">
-                Connect a wallet to load your Kickstart positions. We only read public token balances;{" "}
+                Connect a wallet to load your full SPL holdings. We only read public token balances;{" "}
                 <strong className="text-zinc-700">no signature is ever requested</strong>, nothing can be moved.
               </p>
               <button
@@ -63,7 +74,7 @@ export function PortfolioSection() {
                 <p className="mt-4 rounded-xl bg-red-50 px-4 py-2.5 text-[12px] text-red-600">{walletErr}</p>
               )}
               <p className="mt-4 text-[11px] text-zinc-400">
-                Balances are read per token via Solana RPC — the same path used for thesis posting.
+                Balances are read via a full SPL token-account scan — the same path used for thesis verification.
               </p>
             </div>
           </div>
@@ -116,7 +127,7 @@ export function PortfolioSection() {
           {portfolio === "loading" && (
             <Card pad>
               <div className="flex items-center gap-3 text-[13px] text-zinc-500">
-                <span className="term-blink h-2 w-2 rounded-full bg-indigo-500" /> Reading token balances…
+                <span className="term-blink h-2 w-2 rounded-full bg-indigo-500" /> Scanning SPL token accounts…
               </div>
             </Card>
           )}
@@ -129,23 +140,39 @@ export function PortfolioSection() {
 
           {portfolio && portfolio !== "loading" && (
             <>
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
                 <div
-                  className="rounded-2xl px-5 py-4 text-white shadow-lg shadow-indigo-600/20"
+                  className="col-span-2 rounded-2xl px-5 py-4 text-white shadow-lg shadow-indigo-600/20 lg:col-span-1"
                   style={{ background: `linear-gradient(135deg, ${BLUE}, #4f2ff0)` }}
                 >
-                  <div className="text-[11px] font-semibold uppercase tracking-widest text-white/60">Kickstart value</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-widest text-white/60">Total value</div>
                   <div className="mt-1 font-display text-3xl font-semibold tabular-nums">
-                    {portfolio.totalUsd >= 0.01
-                      ? `$${portfolio.totalUsd.toFixed(2)}`
-                      : portfolio.holdings.length
+                    {portfolio.totalWithSolUsd >= 0.01
+                      ? `$${portfolio.totalWithSolUsd.toFixed(2)}`
+                      : portfolio.holdings.length || portfolio.sol
                         ? "<$0.01"
                         : "$0"}
                   </div>
-                  <div className="mt-0.5 text-[11px] text-white/60">at live prices</div>
+                  <div className="mt-0.5 text-[11px] text-white/60">
+                    tokens + SOL · live
+                  </div>
                 </div>
                 <Stat
-                  label="◎ SOL balance"
+                  label="24h P&L"
+                  value={portfolio.pnl24hUsd !== 0 ? fmtSignedUsd(portfolio.pnl24hUsd) : "—"}
+                  sub="estimated from price change"
+                />
+                <Stat
+                  label="Unrealized P&L"
+                  value={
+                    portfolio.unrealizedPnlUsd !== null
+                      ? fmtSignedUsd(portfolio.unrealizedPnlUsd)
+                      : "—"
+                  }
+                  sub={portfolio.hasCostBasis ? "vs your entry prices" : "set entry on rows below"}
+                />
+                <Stat
+                  label="◎ SOL"
                   value={
                     portfolio.sol
                       ? `${portfolio.sol.amount < 0.001 && portfolio.sol.amount > 0 ? "<0.001" : portfolio.sol.amount.toFixed(portfolio.sol.amount >= 100 ? 1 : 3)} SOL`
@@ -153,24 +180,14 @@ export function PortfolioSection() {
                   }
                   sub={
                     portfolio.sol?.valueUsd != null
-                      ? `≈ $${portfolio.sol.valueUsd.toFixed(2)} · via RPC`
+                      ? `≈ $${portfolio.sol.valueUsd.toFixed(2)}`
                       : "native balance"
                   }
                 />
                 <Stat
                   label="Positions"
                   value={String(portfolio.holdings.length)}
-                  sub={`${portfolio.scanned} featured tokens checked`}
-                />
-                <Stat
-                  label="24h move"
-                  value={(() => {
-                    const t = portfolio.totalUsd;
-                    if (!t || !portfolio.holdings.length) return "—";
-                    const w = portfolio.holdings.reduce((s, h) => s + h.coin.change24h * h.valueUsd, 0) / t;
-                    return `${w >= 0 ? "+" : ""}${w.toFixed(1)}%`;
-                  })()}
-                  sub="value-weighted · Kickstart only"
+                  sub={`${portfolio.kickstartMatched} Kickstart · ${portfolio.scanned} mints scanned`}
                 />
               </div>
 
@@ -178,8 +195,8 @@ export function PortfolioSection() {
                 <div className="mt-4">
                   <EmptyState
                     icon="🪙"
-                    title="No featured Kickstart tokens in your wallet"
-                    body={`Checked ${portfolio.scanned} featured token${portfolio.scanned !== 1 ? "s" : ""}${portfolio.sol ? ` and found ${portfolio.sol.amount.toFixed(3)} SOL` : ""} — none match your current Kickstart holdings on ezpulse.`}
+                    title="No valued SPL positions found"
+                    body={`Scanned ${portfolio.scanned} token account${portfolio.scanned !== 1 ? "s" : ""}${portfolio.sol ? ` and found ${portfolio.sol.amount.toFixed(3)} SOL` : ""} — no holdings above the dust threshold.`}
                     cta={
                       <>
                         <button
@@ -205,10 +222,10 @@ export function PortfolioSection() {
               ) : (
                 <Card
                   className="mt-4"
-                  title="Holdings · featured Kickstart tokens"
+                  title="Holdings · on-chain balances"
                   right={
                     <span className="font-mono text-[11px] text-zinc-400">
-                      valued live · DexScreener
+                      live prices
                       {portfolio.fetchedAt
                         ? ` · synced ${Math.max(0, Math.round((Date.now() - portfolio.fetchedAt) / 1000))}s ago`
                         : ""}
@@ -220,7 +237,9 @@ export function PortfolioSection() {
                     <TermHeadCell align="right">Balance</TermHeadCell>
                     <TermHeadCell align="right">Price</TermHeadCell>
                     <TermHeadCell align="right">24h</TermHeadCell>
+                    <TermHeadCell align="right">24h P&L</TermHeadCell>
                     <TermHeadCell align="right">Value</TermHeadCell>
+                    <TermHeadCell align="right">Unreal. P&L</TermHeadCell>
                     <TermHeadCell align="right">Act</TermHeadCell>
                   </TermHead>
                   {portfolio.holdings.map((h) => (
@@ -233,11 +252,16 @@ export function PortfolioSection() {
                             fallbackClassName="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-zinc-100 bg-zinc-100 text-[10px] font-bold text-zinc-500"
                           />
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
                               <span className="truncate font-mono text-[13px] font-semibold text-zinc-900">
                                 {h.coin.name}
                               </span>
                               <span className="font-mono text-[11px] text-zinc-400">${h.coin.symbol}</span>
+                              {h.inFeed && (
+                                <span className="rounded-full bg-indigo-50 px-1.5 py-px text-[8px] font-bold uppercase tracking-wide text-indigo-600">
+                                  Kickstart
+                                </span>
+                              )}
                               {isVerified(h.coin) && (
                                 <span
                                   className="flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black text-white"
@@ -249,6 +273,9 @@ export function PortfolioSection() {
                             </div>
                             <div className="font-mono text-[10px] text-zinc-400">
                               {h.coin.ca.slice(0, 4)}…{h.coin.ca.slice(-4)}
+                              {h.coin.mcap > 0 && (
+                                <span className="ml-2 text-zinc-300">· {fmtUsd(h.coin.mcap)} mcap</span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -258,7 +285,7 @@ export function PortfolioSection() {
                           ? `${(h.amount / 1_000_000).toFixed(2)}M`
                           : h.amount >= 1000
                             ? `${(h.amount / 1000).toFixed(1)}K`
-                            : h.amount.toFixed(2)}
+                            : h.amount.toFixed(h.amount < 1 ? 4 : 2)}
                       </TermNum>
                       <TermNum className="hidden text-zinc-500 lg:block">
                         {h.coin.priceUsd ? fmtPrice(h.coin.priceUsd) : "—"}
@@ -266,7 +293,13 @@ export function PortfolioSection() {
                       <span className="hidden justify-end lg:flex">
                         <Delta v={h.coin.change24h} suffix="%" />
                       </span>
+                      <TermNum className={`hidden lg:block ${h.pnl24hUsd >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                        {h.pnl24hUsd !== 0 ? fmtSignedUsd(h.pnl24hUsd) : "—"}
+                      </TermNum>
                       <TermNum bold>{h.valueUsd >= 0.01 ? `$${h.valueUsd.toFixed(2)}` : "<$0.01"}</TermNum>
+                      <span className="hidden lg:block">
+                        <PortfolioCostBasisCell holding={h} onSave={setCostBasis} />
+                      </span>
                       <TermActions>
                         <a
                           href={`https://solscan.io/account/${wallet}#portfolio`}
@@ -296,8 +329,9 @@ export function PortfolioSection() {
               />
 
               <p className="mt-3 text-[11px] leading-relaxed text-zinc-400">
-                Read-only: per-token balances via Solana RPC (same as thesis verification) —{" "}
-                {portfolio.scanned} featured tokens checked. SOL priced via Jupiter. No signature was requested.
+                Read-only SPL scan via Solana RPC{portfolio.source ? ` (${portfolio.source})` : ""} —{" "}
+                {portfolio.scanned} mints found, {portfolio.holdings.length} valued above dust.
+                Kickstart tokens tagged; others priced via Dex/Jupiter. Click <strong>Unreal. P&L</strong> to set avg entry.
                 Cross-check on{" "}
                 <a
                   href={`https://solscan.io/account/${wallet}`}
