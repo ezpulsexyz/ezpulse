@@ -1458,6 +1458,32 @@ export async function fetchSolBalance(owner: string): Promise<number | null> {
   return lamports === null ? null : lamports / 1_000_000_000;
 }
 
+/** Batch token USD prices via Jupiter Price API v3. */
+export async function fetchJupiterPrices(cas: string[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  if (!cas.length) return out;
+
+  const batchSize = 50;
+  for (let i = 0; i < cas.length; i += batchSize) {
+    const batch = cas.slice(i, i + batchSize);
+    try {
+      const res = await fetch(`https://lite-api.jup.ag/price/v3?ids=${batch.join(",")}`, {
+        headers: { accept: "application/json" },
+      });
+      if (!res.ok) continue;
+      const data = (await res.json()) as Record<string, { usdPrice?: number; price?: number }>;
+      for (const ca of batch) {
+        const entry = data[ca];
+        const p = Number(entry?.usdPrice ?? entry?.price ?? NaN);
+        if (Number.isFinite(p) && p > 0) out.set(ca.toLowerCase(), p);
+      }
+    } catch {
+      /* continue */
+    }
+  }
+  return out;
+}
+
 /** Live SOL/USD price via Jupiter (wSOL mint). */
 export async function fetchSolPrice(): Promise<number | null> {
   try {

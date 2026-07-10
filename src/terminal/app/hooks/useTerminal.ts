@@ -4,7 +4,7 @@ import { syncWatchlist, pullWalletWatchlist } from "../../backend";
 import {
   fetchLiveFeed, isGraduated, verifiedOf, bondedOf, trendingOf, tokenNote, tokenSignals,
   loadWatchlist, saveWatchlist, loadAlertPrefs, saveAlertPrefs,
-  fetchConnectedWalletPortfolio, revaluePortfolioFromFeed, fetchSolPrice,
+  fetchConnectedWalletPortfolio, revaluePortfolioFromFeed, fetchSolPrice, fetchJupiterPrices,
   type LiveLaunch, type AlertPrefs, type PortfolioResult,
 } from "../../kickstart";
 import { useWallet } from "../../hooks/useWallet";
@@ -18,7 +18,13 @@ import {
 } from "../../wallets";
 import { loadSeenNotifs, saveSeenNotifs } from "../notifs";
 import { PROJECT_CATEGORIES, type Notif, type ProjectCategory, type Section, type MarketTab, type TerminalTarget } from "../types";
-import { initDexScreenerSocket, subscribeToPair, unsubscribeFromPair } from "../../dexScreenerSocket";
+import {
+  initDexScreenerSocket,
+  onPriceSocketStatus,
+  subscribeToPair,
+  type PriceSocketStatus,
+  type PriceUpdate,
+} from "../../dexScreenerSocket";
 
 // === Price Threshold Alerts ===
 export interface PriceAlert {
@@ -85,6 +91,8 @@ export function useTerminal(target?: TerminalTarget) {
   const [shareToken, setShareToken] = useState<LiveLaunch | null>(null);
   const [priceAlertToken, setPriceAlertToken] = useState<LiveLaunch | null>(null);
   const [priceTriggeredNotifs, setPriceTriggeredNotifs] = useState<Notif[]>([]);
+  const [priceAlertToast, setPriceAlertToast] = useState<Notif | null>(null);
+  const [priceSocketStatus, setPriceSocketStatus] = useState<PriceSocketStatus>("idle");
 
   // === Price Threshold Alerts State ===
   const [priceAlerts, setPriceAlerts] = useState<PriceAlert[]>(() => loadPriceAlerts());
@@ -101,6 +109,7 @@ export function useTerminal(target?: TerminalTarget) {
   const [lastPriceUpdate, setLastPriceUpdate] = useState<number | null>(null);
   const priceUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const wsUnsubscribers = useRef<(() => void)[]>([]);
+  const feedRef = useRef<LiveLaunch[]>([]);
 
   const persistSidebarHidden = (hidden: boolean) => {
     try {
@@ -311,8 +320,75 @@ export function useTerminal(target?: TerminalTarget) {
 
     if (newNotifs.length > 0) {
       setPriceTriggeredNotifs((prev) => [...prev, ...newNotifs]);
+      setPriceAlertToast(newNotifs[newNotifs.length - 1]);
     }
   }, [priceAlerts]);
+
+  const buildTokenForAlert = useCallback((ca: string, priceUsd: number): LiveLaunch | null => {
+    const fromFeed = feedRef.current.find((c) => c.ca.toLowerCase() === ca.toLowerCase());
+    if (fromFeed) return { ...fromFeed, priceUsd };
+
+    const alert = priceAlerts.find((a) => a.ca.toLowerCase() === ca.toLowerCase());
+    if (!alert) return null;
+
+    return {
+      name: alert.symbol,
+      symbol: alert.symbol,
+      ca: alert.ca,
+      description: "",
+      priceUsd,
+      mcap: 0,
+      change24h: 0,
+      change1h: 0,
+      volume24h: 0,
+      volume1h: 0,
+      liquidity: 0,
+      buys24h: 0,
+      sells24h: 0,
+      buys1h: 0,
+      sells1h: 0,
+      source: "DEXSCREENER",
+      links: { dexscreener: `https://dexscreener.com/solana/${alert.ca}` },
+    };
+  }, [priceAlerts]);
+
+  const applyLivePriceUpdate = useCallback((update: PriceUpdate) => {
+    if (!update.priceUsd) return;
+
+    const caLower = update.ca.toLowerCase();
+    const current = feedRef.current;
+    const inFeed = current.some((c) => c.ca.toLowerCase() === caLower);
+
+    if (inFeed) {
+      const updated = current.map((coin) => {
+        if (coin.ca.toLowerCase() !== caLower) return coin;
+        return {
+          ...coin,
+          priceUsd: update.priceUsd ?? coin.priceUsd,
+          change24h: update.change24h ?? coin.change24h,
+          change1h: update.change1h ?? coin.change1h,
+          volume24h: update.volume24h ?? coin.volume24h,
+          volume1h: update.volume1h ?? coin.volume1h,
+          liquidity: update.liquidity ?? coin.liquidity,
+        };
+      });
+      feedRef.current = updated;
+      setLiveFeed(updated);
+
+      if (connectedWallet) {
+        setPortfolio((currentPortfolio) => {
+          if (!currentPortfolio || currentPortfolio === "loading" || !currentPortfolio.balanceSnapshot) {
+            return currentPortfolio;
+          }
+          return revaluePortfolioFromFeed(currentPortfolio, updated);
+        });
+      }
+    }
+
+    const token = buildTokenForAlert(update.ca, update.priceUsd);
+    if (token) checkPriceAlerts([token]);
+    setLastPriceUpdate(Date.now());
+  }, [buildTokenForAlert, checkPriceAlerts, connectedWallet]);
 
   useEffect(() => {
     walletRef.current = connectedWallet;
@@ -421,73 +497,83 @@ export function useTerminal(target?: TerminalTarget) {
     };
   }, []);
 
+  const feed = useMemo(
+    () => (Array.isArray(liveFeed) ? liveFeed : []),
+    [liveFeed],
+  );
+
+  useEffect(() => {
+    feedRef.current = feed;
+  }, [feed]);
+
   // === Real-time Price Updates via DexScreener WebSocket ===
   const activeCas = useMemo(() => {
     const set = new Set<string>();
-    if (Array.isArray(liveFeed)) {
-      liveFeed.forEach(c => set.add(c.ca));
-    }
-    watchlist.forEach(ca => set.add(ca));
+    feed.forEach((c) => set.add(c.ca));
+    watchlist.forEach((ca) => set.add(ca));
+    priceAlerts.filter((a) => a.enabled).forEach((a) => set.add(a.ca));
     if (selected) set.add(selected.ca);
     if (portfolio && portfolio !== "loading") {
-      portfolio.holdings.forEach(h => set.add(h.coin.ca));
+      portfolio.holdings.forEach((h) => set.add(h.coin.ca));
     }
     return Array.from(set);
-  }, [liveFeed, watchlist, selected, portfolio]);
+  }, [feed, watchlist, selected, portfolio, priceAlerts]);
+
+  const alertCas = useMemo(
+    () => [...new Set(priceAlerts.filter((a) => a.enabled).map((a) => a.ca))],
+    [priceAlerts],
+  );
+
+  useEffect(() => {
+    return onPriceSocketStatus(setPriceSocketStatus);
+  }, []);
 
   // Initialize DexScreener WebSocket and subscribe to active tokens
   useEffect(() => {
     initDexScreenerSocket();
 
-    // Clean up previous subscriptions
-    wsUnsubscribers.current.forEach(unsub => unsub());
+    wsUnsubscribers.current.forEach((unsub) => unsub());
     wsUnsubscribers.current = [];
 
-    // Subscribe to each active token via WebSocket
     activeCas.forEach((ca) => {
-      const unsub = subscribeToPair(ca, (update) => {
-        if (!update.priceUsd) return;
-
-        setLiveFeed(currentFeed => {
-          if (!Array.isArray(currentFeed)) return currentFeed;
-
-          const updated = currentFeed.map(coin => {
-            if (coin.ca.toLowerCase() !== update.ca.toLowerCase()) return coin;
-            return {
-              ...coin,
-              priceUsd: update.priceUsd ?? coin.priceUsd,
-              change24h: update.change24h ?? coin.change24h,
-              change1h: update.change1h ?? coin.change1h,
-              volume24h: update.volume24h ?? coin.volume24h,
-              volume1h: update.volume1h ?? coin.volume1h,
-              liquidity: update.liquidity ?? coin.liquidity,
-            };
-          });
-
-          // Check price alerts on update
-          checkPriceAlerts(updated.filter(c => activeCas.includes(c.ca)));
-
-          // Revalue portfolio with new live prices
-          if (connectedWallet) {
-            setPortfolio(current => {
-              if (!current || current === "loading" || !current.balanceSnapshot) return current;
-              return revaluePortfolioFromFeed(current, updated);
-            });
-          }
-
-          setLastPriceUpdate(Date.now());
-          return updated;
-        });
-      });
-
+      const unsub = subscribeToPair(ca, (update) => applyLivePriceUpdate(update));
       wsUnsubscribers.current.push(unsub);
     });
 
     return () => {
-      wsUnsubscribers.current.forEach(unsub => unsub());
+      wsUnsubscribers.current.forEach((unsub) => unsub());
       wsUnsubscribers.current = [];
     };
-  }, [activeCas, connectedWallet, checkPriceAlerts]);
+  }, [activeCas, applyLivePriceUpdate]);
+
+  // Jupiter fallback for price-alert tokens (5s) — canonical Kickstart/Jupiter prices
+  useEffect(() => {
+    if (!alertCas.length) return;
+
+    const pollAlertPrices = async () => {
+      const prices = await fetchJupiterPrices(alertCas);
+      if (!prices.size) return;
+
+      const tokens = alertCas
+        .map((ca) => {
+          const price = prices.get(ca.toLowerCase());
+          return price ? buildTokenForAlert(ca, price) : null;
+        })
+        .filter((t): t is LiveLaunch => t !== null);
+
+      if (tokens.length) checkPriceAlerts(tokens);
+    };
+
+    void pollAlertPrices();
+    const timer = setInterval(() => void pollAlertPrices(), 5000);
+    return () => clearInterval(timer);
+  }, [alertCas, buildTokenForAlert, checkPriceAlerts]);
+
+  useEffect(() => {
+    if (!priceAlertToast) return;
+    const timer = setTimeout(() => setPriceAlertToast(null), 6000);
+    return () => clearTimeout(timer);
+  }, [priceAlertToast]);
 
   // Fallback polling every 30s (in case WebSocket misses updates)
   const refreshPrices = useCallback(async () => {
@@ -609,7 +695,6 @@ export function useTerminal(target?: TerminalTarget) {
     setTimeout(() => setCopiedCa(null), 1500);
   };
 
-  const feed = Array.isArray(liveFeed) ? liveFeed : [];
   const loading = liveFeed === "loading";
 
   useEffect(() => {
@@ -806,6 +891,9 @@ export function useTerminal(target?: TerminalTarget) {
     seenNotifs,
     setSeenNotifs,
     priceTriggeredNotifs,
+    priceAlertToast,
+    setPriceAlertToast,
+    priceSocketStatus,
     priceAlertToken,
     setPriceAlertToken,
     shareToken,

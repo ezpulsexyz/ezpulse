@@ -1,4 +1,5 @@
 import { useTerminalContext } from "../TerminalContext";
+import { saveSeenNotifs } from "../notifs";
 
 export function NotificationsPanel() {
   const {
@@ -19,12 +20,16 @@ export function NotificationsPanel() {
 
   const markAllAsRead = () => {
     const allKeys = allNotifs.map((n: any) => n.key);
-    setSeenNotifs([...new Set([...seenNotifs, ...allKeys])]);
+    const next = [...new Set([...seenNotifs, ...allKeys])];
+    setSeenNotifs(next);
+    saveSeenNotifs(next);
   };
 
   const markAsRead = (key: string) => {
     if (!seenNotifs.includes(key)) {
-      setSeenNotifs([...seenNotifs, key]);
+      const next = [...seenNotifs, key];
+      setSeenNotifs(next);
+      saveSeenNotifs(next);
     }
   };
 
