@@ -62,7 +62,7 @@ function snapFromPair(p: Rec): Snap | null {
     ca,
     symbol: String(base?.symbol ?? "?"),
     price: num(p.priceUsd),
-    mcap: num(p.marketCap) || num(p.fdv),
+    mcap: num(p.fdv) || num(p.marketCap),
     liquidity: num((p.liquidity as Rec)?.usd),
     volume24h: num(vol?.h24),
     volume1h: num(vol?.h1),
@@ -77,39 +77,6 @@ function snapFromPair(p: Rec): Snap | null {
     pairCreatedAt: typeof created === "number" ? created : null,
     hasX: false,
   };
-}
-
-async function enrichSnapsFromDex(found: Map<string, Snap>): Promise<void> {
-  const cas = [...found.keys()];
-  for (let i = 0; i < cas.length; i += 30) {
-    const batch = cas.slice(i, i + 30);
-    try {
-      const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${batch.join(",")}`);
-      if (!res.ok) continue;
-      const pairs = ((await res.json()) as Rec).pairs as Rec[] ?? [];
-      for (const [ca, p] of bestPairPerToken(pairs)) {
-        const existing = found.get(ca);
-        if (!existing) continue;
-        const dex = snapFromPair(p);
-        if (!dex) continue;
-        found.set(ca, {
-          ...existing,
-          price: dex.price > 0 ? dex.price : existing.price,
-          mcap: dex.mcap > 0 ? dex.mcap : existing.mcap,
-          liquidity: dex.liquidity > 0 ? dex.liquidity : existing.liquidity,
-          volume24h: dex.volume24h > 0 ? dex.volume24h : existing.volume24h,
-          volume1h: dex.volume1h > 0 ? dex.volume1h : existing.volume1h,
-          change24h: dex.change24h,
-          buys24h: dex.buys24h,
-          sells24h: dex.sells24h,
-          buys1h: dex.buys1h,
-          sells1h: dex.sells1h,
-        });
-      }
-    } catch {
-      /* batch failed */
-    }
-  }
 }
 
 const TRACKED_CAS = [
@@ -186,8 +153,6 @@ async function fetchFeed(): Promise<Snap[]> {
       /* next source */
     }
   }
-
-  await enrichSnapsFromDex(found);
 
   const missing = TRACKED_CAS.filter((ca) => !found.has(ca.toLowerCase()));
   if (missing.length) {

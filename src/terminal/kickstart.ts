@@ -21,7 +21,8 @@ export { KIND_ICON, signalHit, archivableSignals } from "../../shared/signals-co
  * fetchLiveFeed(): live Kickstart tokens only — Solana tokens whose contract
  * address ends in the "EASY" vanity suffix (Kickstart's on-chain fingerprint)
  * or whose website links to kickstart.easya.io. Market data via the
- * DexScreener public API (CORS-enabled), ranked by market cap.
+ * Jupiter datapi (same source as kickstart.easya.io) for mcap/price; DexScreener
+ * for discovery and pair links. Mcap uses FDV when circulating supply is unverified.
  */
 
 export interface Alumni {
@@ -361,7 +362,7 @@ function mergeDex(found: Map<string, LiveLaunch>, launch: LiveLaunch): void {
   const key = launch.ca.toLowerCase();
   const existing = found.get(key);
   if (!existing) { found.set(key, launch); return; }
-  if (existing.source === "KICKSTART") return; // Jupiter metadata kept — market stats overlaid later via enrichFromDexscreener
+  if (existing.source === "KICKSTART") return; // Jupiter/Kickstart mcap is canonical — Dex fills gaps only
   if (launch.liquidity > existing.liquidity) found.set(key, launch);
 }
 
@@ -409,7 +410,8 @@ function pairToLaunch(pair: Rec): LiveLaunch | null {
     icon: typeof info?.imageUrl === "string" ? (info.imageUrl as string) : undefined,
     description: "",
     priceUsd: numeric(pair.priceUsd) ?? 0,
-    mcap: numeric(pair.marketCap) ?? numeric(pair.fdv) ?? 0,
+    // Prefer FDV — matches Kickstart + Jupiter when circulating supply is unverified
+    mcap: numeric(pair.fdv) ?? numeric(pair.marketCap) ?? 0,
     change24h: numeric(pc?.h24) ?? 0,
     change1h: numeric(pc?.h1) ?? 0,
     volume24h: numeric(vol?.h24) ?? 0,
@@ -498,8 +500,8 @@ async function fetchTrackedTokens(found: Map<string, LiveLaunch>): Promise<void>
   }
 }
 
-/** Overlay DexScreener market stats onto Jupiter records — matches DexScreener UI (best-liquidity pair). */
-async function enrichFromDexscreener(found: Map<string, LiveLaunch>): Promise<void> {
+/** Point DexScreener links at the best-liquidity pair — does not override Jupiter mcap/price. */
+async function enrichDexscreenerLinks(found: Map<string, LiveLaunch>): Promise<void> {
   const cas = [...found.keys()];
   if (!cas.length) return;
 
@@ -513,30 +515,13 @@ async function enrichFromDexscreener(found: Map<string, LiveLaunch>): Promise<vo
       for (const [ca, pair] of bestPairPerToken(pairs)) {
         const existing = found.get(ca);
         if (!existing) continue;
-        const dex = pairToLaunch(pair);
-        if (!dex) continue;
+        const dexUrl = typeof pair.url === "string" ? (pair.url as string) : existing.links.dexscreener;
+        const info = pair.info as Rec | undefined;
+        const dexIcon = typeof info?.imageUrl === "string" ? (info.imageUrl as string) : undefined;
         found.set(ca, {
           ...existing,
-          priceUsd: dex.priceUsd > 0 ? dex.priceUsd : existing.priceUsd,
-          mcap: dex.mcap > 0 ? dex.mcap : existing.mcap,
-          change24h: dex.change24h,
-          change1h: dex.change1h,
-          volume24h: dex.volume24h > 0 ? dex.volume24h : existing.volume24h,
-          volume1h: dex.volume1h > 0 ? dex.volume1h : existing.volume1h,
-          liquidity: dex.liquidity > 0 ? dex.liquidity : existing.liquidity,
-          buys24h: dex.buys24h,
-          sells24h: dex.sells24h,
-          buys1h: dex.buys1h,
-          sells1h: dex.sells1h,
-          pairCreatedAt: existing.pairCreatedAt ?? dex.pairCreatedAt,
-          icon: existing.icon ?? dex.icon,
-          links: {
-            ...existing.links,
-            dexscreener: dex.links.dexscreener,
-            website: existing.links.website ?? dex.links.website,
-            x: existing.links.x ?? dex.links.x,
-            telegram: existing.links.telegram ?? dex.links.telegram,
-          },
+          icon: existing.icon ?? dexIcon,
+          links: { ...existing.links, dexscreener: dexUrl },
         });
       }
     } catch { /* batch failed — continue */ }
@@ -732,8 +717,8 @@ export async function fetchLiveFeed(): Promise<{ launches: LiveLaunch[]; source:
       }
     } catch { /* profiles scan optional */ }
 
-    // DexScreener overlay — align mcap/price/volume with DexScreener UI (best-liquidity pair per token)
-    await enrichFromDexscreener(found);
+    // DexScreener — best-liquidity pair links only (mcap/price stay on Jupiter = Kickstart)
+    await enrichDexscreenerLinks(found);
 
     const supplyOverrides = await fetchSupplyOverrides();
     const launches = [...found.values()]
@@ -1747,7 +1732,7 @@ export function liveBrief(feed: LiveLaunch[]): LiveBrief {
       : byMcap[0] ? `$${byMcap[0].symbol} holds the top spot at ${fUsd(byMcap[0].mcap)}` : "Quiet session on Kickstart",
     summary: `${feed.length} Kickstart launch${feed.length !== 1 ? "es" : ""} live on-chain, ${fUsd(totalMcap)} combined market cap with ${fUsd(totalVol)} traded in the last 24h. ${
       mostTraded ? `$${mostTraded.symbol} is the most-traded name (${fUsd(mostTraded.volume24h)} volume). ` : ""
-    }${topMover && topMover.change24h > 0 ? `Momentum is concentrated in $${topMover.symbol}.` : "No breakout momentum today — a session for accumulation lists, not chasing."} All data live from DexScreener; only …EASY contracts qualify.`,
+    }${topMover && topMover.change24h > 0 ? `Momentum is concentrated in $${topMover.symbol}.` : "No breakout momentum today — a session for accumulation lists, not chasing."} Mcap/price from Jupiter (matches Kickstart); only …EASY contracts qualify.`,
     picks,
     watch: [
       byMcap[0] ? `$${byMcap[0].symbol} mcap ${fUsd(byMcap[0].mcap)} — does it hold the #1 spot through the next launch window?` : "Next Kickstart launch window",
