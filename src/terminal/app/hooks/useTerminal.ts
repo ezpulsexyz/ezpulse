@@ -60,6 +60,10 @@ export function useTerminal(target?: TerminalTarget) {
   const [signinNudge, setSigninNudge] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
 
+  // === Real-time Price Feed State ===
+  const [lastPriceUpdate, setLastPriceUpdate] = useState<number | null>(null);
+  const priceUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   const persistSidebarHidden = (hidden: boolean) => {
     try {
       localStorage.setItem("ezpulse-sidebar-hidden", hidden ? "1" : "0");
@@ -260,6 +264,7 @@ export function useTerminal(target?: TerminalTarget) {
   const [booted, setBooted] = useState(false);
   const [bootSlow, setBootSlow] = useState(false);
 
+  // === Core Live Feed Loader (every 60s) ===
   useEffect(() => {
     let alive = true;
     const load = () =>
@@ -268,6 +273,7 @@ export function useTerminal(target?: TerminalTarget) {
         if (feed) {
           setLiveFeed(feed.launches);
           setLastUpdated(Date.now());
+          setLastPriceUpdate(Date.now());
           const w = walletRef.current;
           if (w) {
             setPortfolio((current) => {
@@ -297,6 +303,102 @@ export function useTerminal(target?: TerminalTarget) {
       clearTimeout(failTimer);
     };
   }, []);
+
+  // === Real-time Price Updates (faster targeted refresh) ===
+  const activeCas = useMemo(() => {
+    const set = new Set<string>();
+    if (Array.isArray(liveFeed)) {
+      liveFeed.forEach(c => set.add(c.ca));
+    }
+    watchlist.forEach(ca => set.add(ca));
+    if (selected) set.add(selected.ca);
+    if (portfolio && portfolio !== "loading") {
+      portfolio.holdings.forEach(h => set.add(h.coin.ca));
+    }
+    return Array.from(set);
+  }, [liveFeed, watchlist, selected, portfolio]);
+
+  const refreshPrices = useCallback(async () => {
+    if (activeCas.length === 0) return;
+
+    try {
+      // Lightweight targeted refresh using DexScreener for speed on active tokens
+      const batchSize = 30;
+      const updates = new Map<string, Partial<LiveLaunch>>();
+
+      for (let i = 0; i < activeCas.length; i += batchSize) {
+        const batch = activeCas.slice(i, i + batchSize);
+        try {
+          const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${batch.join(",")}`, {
+            headers: { accept: "application/json" }
+          });
+          if (!res.ok) continue;
+          const data = await res.json();
+          const pairs = Array.isArray(data.pairs) ? data.pairs : [];
+
+          for (const pair of pairs) {
+            const base = pair.baseToken;
+            if (!base?.address) continue;
+            const ca = base.address.toLowerCase();
+            const price = Number(pair.priceUsd);
+            const change24h = Number(pair.priceChange?.h24);
+
+            if (isFinite(price) && price > 0) {
+              updates.set(ca, {
+                priceUsd: price,
+                change24h: isFinite(change24h) ? change24h : undefined,
+              });
+            }
+          }
+        } catch { /* continue to next batch */ }
+      }
+
+      if (updates.size > 0 && Array.isArray(liveFeed)) {
+        const updatedFeed = liveFeed.map(coin => {
+          const update = updates.get(coin.ca.toLowerCase());
+          if (!update) return coin;
+          return {
+            ...coin,
+            priceUsd: update.priceUsd ?? coin.priceUsd,
+            change24h: update.change24h ?? coin.change24h,
+          };
+        });
+
+        setLiveFeed(updatedFeed);
+        setLastPriceUpdate(Date.now());
+
+        // Revalue portfolio with new prices
+        if (connectedWallet) {
+          setPortfolio(current => {
+            if (!current || current === "loading" || !current.balanceSnapshot) return current;
+            return revaluePortfolioFromFeed(current, updatedFeed);
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("Price refresh failed:", err);
+    }
+  }, [activeCas, liveFeed, connectedWallet]);
+
+  // Auto real-time price updates every 15 seconds for active tokens
+  useEffect(() => {
+    if (priceUpdateIntervalRef.current) {
+      clearInterval(priceUpdateIntervalRef.current);
+    }
+
+    // Only run aggressive price updates when we have active tokens
+    if (activeCas.length > 0) {
+      priceUpdateIntervalRef.current = setInterval(() => {
+        void refreshPrices();
+      }, 15000); // every 15 seconds
+    }
+
+    return () => {
+      if (priceUpdateIntervalRef.current) {
+        clearInterval(priceUpdateIntervalRef.current);
+      }
+    };
+  }, [activeCas.length, refreshPrices]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -403,17 +505,17 @@ export function useTerminal(target?: TerminalTarget) {
           icon:
             s.kind === "WHALE"
               ? "🐋"
-              : s.kind === "MOMENTUM"
-                ? s.strength === "BULLISH"
-                  ? "📈"
-                  : "📉"
-                : s.kind === "VOLUME"
-                  ? "🔊"
-                  : s.kind === "LIQUIDITY"
-                    ? "💧"
-                    : s.kind === "RANK"
-                      ? "👑"
-                      : "✓",
+            : s.kind === "MOMENTUM"
+              ? s.strength === "BULLISH"
+                ? "📈"
+                : "📉"
+              : s.kind === "VOLUME"
+                ? "🔊"
+              : s.kind === "LIQUIDITY"
+                ? "💧"
+              : s.kind === "RANK"
+                ? "👑"
+              : "✓",
           strength: s.strength,
           title: s.title,
           detail: s.detail,
@@ -446,6 +548,7 @@ export function useTerminal(target?: TerminalTarget) {
     if (fresh) {
       setLiveFeed(fresh.launches);
       setLastUpdated(Date.now());
+      setLastPriceUpdate(Date.now());
       const w = walletRef.current;
       if (w) {
         setPortfolio((current) => {
@@ -486,6 +589,7 @@ export function useTerminal(target?: TerminalTarget) {
   }, []);
 
   const note = selected ? tokenNote(selected, feed) : null;
+
   return {
     section,
     setSection,
@@ -532,6 +636,7 @@ export function useTerminal(target?: TerminalTarget) {
     paletteOpen,
     setPaletteOpen,
     lastUpdated,
+    lastPriceUpdate,
     booted,
     setBooted,
     bootSlow,
@@ -563,6 +668,7 @@ export function useTerminal(target?: TerminalTarget) {
     closeProject,
     routeProjectCa: target?.projectCa,
     refreshFeed,
+    refreshPrices,
   };
 }
 
