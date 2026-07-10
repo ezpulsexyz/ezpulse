@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { navigateToLanding } from "../../../routes";
 import { fmtUsd } from "../../data";
 import { BLUE, Delta } from "../../components";
-import { kickstartUrl } from "../../kickstart";
+import { jupiterTokenUrl, kickstartUrl } from "../../kickstart";
 import { NAV_GROUPS } from "../types";
 import type { Section } from "../types";
 import { useTerminalContext } from "../TerminalContext";
@@ -223,13 +223,13 @@ export function CommandPalette() {
         keywords: `share card twitter x ${selected.symbol}`,
       },
       {
-        id: "ctx-dex",
-        label: `DexScreener · $${selected.symbol}`,
+        id: "ctx-jup-chart",
+        label: `Jupiter chart · $${selected.symbol}`,
         hint: "Live chart",
         icon: "📊",
         group: "Current token",
-        run: () => { window.open(selected.links.dexscreener, "_blank", "noopener,noreferrer"); close(); },
-        keywords: `dexscreener chart ${selected.symbol}`,
+        run: () => { window.open(jupiterTokenUrl(selected.ca), "_blank", "noopener,noreferrer"); close(); },
+        keywords: `jupiter chart jup.ag ${selected.symbol}`,
       },
       {
         id: "ctx-kick",
