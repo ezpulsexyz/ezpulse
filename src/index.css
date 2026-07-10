@@ -2118,12 +2118,13 @@ button.term-market-stat:hover {
   color: var(--term-text-subtle);
 }
 
-/* Jupiter live chart — tall enough to read on phones/tablets */
-.jup-chart {
-  min-height: 320px;
+/* DexScreener embed — tall enough to read on phones/tablets */
+.dex-chart-embed {
+  height: 420px;
 }
 @media (max-width: 1023px) {
-  .jup-chart {
-    min-height: 280px;
+  .dex-chart-embed {
+    height: min(500px, 62vh);
+    min-height: 380px;
   }
 }

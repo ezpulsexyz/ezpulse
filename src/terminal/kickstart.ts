@@ -747,43 +747,6 @@ const KICKSTART_BUILD_ID_TTL_MS = 60 * 60 * 1000;
 /** Canonical Kickstart project page for any token — kickstart.easya.io/token/{ca}. */
 export const kickstartUrl = (ca: string) => `${KICKSTART_ORIGIN}/token/${ca}`;
 
-/** Jupiter token page — same chart data source as kickstart.easya.io mcap/price. */
-export const jupiterTokenUrl = (ca: string) => `https://jup.ag/tokens/${ca}`;
-
-export type JupiterChartInterval = "15_MINUTE" | "1_HOUR" | "4_HOUR" | "1_DAY";
-
-export interface JupiterCandle {
-  time: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-}
-
-/** OHLCV candles from Jupiter datapi — powers jup.ag token charts. */
-export async function fetchJupiterChart(
-  ca: string,
-  interval: JupiterChartInterval,
-  candles: number,
-  toMs = Date.now(),
-): Promise<JupiterCandle[]> {
-  const params = new URLSearchParams({
-    interval,
-    candles: String(Math.min(Math.max(Math.round(candles), 32), 300)),
-    type: "price",
-    to: String(toMs),
-  });
-  try {
-    const res = await fetch(`https://datapi.jup.ag/v2/charts/${ca}?${params}`, { headers: { accept: "application/json" } });
-    if (!res.ok) return [];
-    const data = (await res.json()) as { candles?: JupiterCandle[] };
-    return Array.isArray(data.candles) ? data.candles : [];
-  } catch {
-    return [];
-  }
-}
-
 function kickstartIconEndpoint(): string | null {
   if (KICKSTART_ICON_URL) return KICKSTART_ICON_URL;
   if (SUPABASE_URL) return `${SUPABASE_URL.replace(/\/$/, "")}/functions/v1/kickstart-token`;

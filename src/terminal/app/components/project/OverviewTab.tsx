@@ -4,7 +4,6 @@ import {
   fmtPrice,
   isVerified,
   isGraduated,
-  jupiterTokenUrl,
   kickstartUrl,
   tokenNote,
   tokenSignalBias,
@@ -12,7 +11,6 @@ import {
   type LiveLaunch,
 } from "../../../kickstart";
 import { HistoryChart } from "../HistoryChart";
-import { JupiterChart } from "../JupiterChart";
 import { ThesisGenerator } from "../ThesisGenerator";
 import { YourPositionCard } from "../YourPositionCard";
 import { PEER_GRID, TermNum, TermRowButton } from "../TermTable";
@@ -146,7 +144,14 @@ export function OverviewTab({
 
       <div className="grid gap-4 xl:grid-cols-3">
         <div className="space-y-4 xl:col-span-2">
-          <JupiterChart ca={token.ca} symbol={token.symbol} />
+          <Card title="Live chart · DexScreener">
+            <iframe
+              title={`${token.symbol} chart`}
+              src={`${token.links.dexscreener}?embed=1&theme=light&trades=0&info=0`}
+              className="dex-chart-embed w-full border-0"
+              loading="lazy"
+            />
+          </Card>
 
           <HistoryChart ca={token.ca} />
 
@@ -349,21 +354,12 @@ export function OverviewTab({
                 Market & chain
               </div>
               <a
-                href={jupiterTokenUrl(token.ca)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2.5 rounded-xl border border-zinc-100 px-3.5 py-2.5 text-[13px] font-semibold text-zinc-700 transition hover:border-indigo-200 hover:text-indigo-700"
-              >
-                📊 <span className="min-w-0 flex-1 truncate">Jupiter chart</span>
-                <span className="text-[10px] text-zinc-300">↗</span>
-              </a>
-              <a
                 href={token.links.dexscreener}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2.5 rounded-xl border border-zinc-100 px-3.5 py-2.5 text-[13px] font-semibold text-zinc-700 transition hover:border-indigo-200 hover:text-indigo-700"
               >
-                📈 <span className="min-w-0 flex-1 truncate">DexScreener</span>
+                📊 <span className="min-w-0 flex-1 truncate">DexScreener chart</span>
                 <span className="text-[10px] text-zinc-300">↗</span>
               </a>
               <a
@@ -373,6 +369,15 @@ export function OverviewTab({
                 className="flex items-center gap-2.5 rounded-xl border border-zinc-100 px-3.5 py-2.5 text-[13px] font-semibold text-zinc-700 transition hover:border-indigo-200 hover:text-indigo-700"
               >
                 🔍 <span className="min-w-0 flex-1 truncate">Solscan explorer</span>
+                <span className="text-[10px] text-zinc-300">↗</span>
+              </a>
+              <a
+                href={`https://jup.ag/tokens/${token.ca}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2.5 rounded-xl border border-zinc-100 px-3.5 py-2.5 text-[13px] font-semibold text-zinc-700 transition hover:border-indigo-200 hover:text-indigo-700"
+              >
+                🪐 <span className="min-w-0 flex-1 truncate">Jupiter token page</span>
                 <span className="text-[10px] text-zinc-300">↗</span>
               </a>
 
