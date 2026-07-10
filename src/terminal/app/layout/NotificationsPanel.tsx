@@ -9,7 +9,7 @@ export function NotificationsPanel() {
 
   const markAllAsRead = () => {
     const allKeys = notifs.map((n) => n.key);
-    setSeenNotifs([...new Set([...seenNotifs, ...allKeys])];
+    setSeenNotifs([...new Set([...seenNotifs, ...allKeys])]);
   };
 
   const markAsRead = (key: string) => {
