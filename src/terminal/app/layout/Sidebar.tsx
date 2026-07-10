@@ -27,20 +27,20 @@ export function Sidebar() {
         className={`term-sidebar fixed inset-y-0 left-0 z-50 flex w-[var(--term-sidebar)] flex-col border-r ${sidebarTranslate} lg:translate-x-0 ${sidebarHidden ? "term-sidebar--collapsed" : ""}`}
         style={{ paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
       >
-        <div className="term-sidebar__head flex items-center justify-between gap-2 px-4 py-4">
+        <div className="term-sidebar__head flex items-center justify-between gap-3 px-4 py-4">
           <a
             href={landingHref()}
             title="Back to ezpulse.xyz"
             onClick={closeSidebar}
-            className="min-w-0"
+            className="flex min-w-0 items-center gap-2"
           >
-            <span className="lg:hidden">
-              <Logo size={26} textClass="text-[13px]" />
-            </span>
-            <span className="hidden lg:inline-flex">
-              <Logo size={26} textClass="text-[13px]" compact={sidebarHidden} />
-            </span>
+            <Logo 
+              size={sidebarHidden ? 24 : 26} 
+              textClass="text-[13px]" 
+              compact={sidebarHidden} 
+            />
           </a>
+
           <button
             type="button"
             onClick={sidebarHidden ? openSidebar : hideSidebar}
