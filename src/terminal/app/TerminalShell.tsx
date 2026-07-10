@@ -2,6 +2,7 @@ import { BootScreen } from "./components/BootScreen";
 import { CommandPalette } from "./components/CommandPalette";
 import { Header } from "./layout/Header";
 import { Sidebar } from "./layout/Sidebar";
+import { StatusBar } from "./layout/StatusBar";
 import { Toasts } from "./layout/Toasts";
 import { WalletConnectModal } from "./components/WalletConnectModal";
 import { SectionRouter } from "./sections/SectionRouter";
@@ -39,7 +40,7 @@ function TerminalBody() {
     >
       <Sidebar />
       <div
-        className={`term-main min-w-0 ${sidebarHidden ? "term-main--with-sidebar-collapsed" : "term-main--with-sidebar"}`}
+        className={`term-main min-w-0 pb-8 ${sidebarHidden ? "term-main--with-sidebar-collapsed" : "term-main--with-sidebar"}`}
       >
         <Header />
         <CommandPalette />
@@ -53,6 +54,9 @@ function TerminalBody() {
         />
         <SectionRouter />
       </div>
+
+      {/* Bloomberg-style bottom status bar */}
+      <StatusBar />
     </div>
   );
 }
