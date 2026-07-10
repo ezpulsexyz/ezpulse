@@ -18,6 +18,7 @@ import {
 } from "../../wallets";
 import { loadSeenNotifs, saveSeenNotifs } from "../notifs";
 import { PROJECT_CATEGORIES, type Notif, type ProjectCategory, type Section, type MarketTab, type TerminalTarget } from "../types";
+import { initDexScreenerSocket, subscribeToPair, unsubscribeFromPair } from "../../dexScreenerSocket";
 
 export function useTerminal(target?: TerminalTarget) {
   const {
@@ -63,6 +64,7 @@ export function useTerminal(target?: TerminalTarget) {
   // === Real-time Price Feed State ===
   const [lastPriceUpdate, setLastPriceUpdate] = useState<number | null>(null);
   const priceUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const wsUnsubscribers = useRef<(() => void)[]>([]);
 
   const persistSidebarHidden = (hidden: boolean) => {
     try {
@@ -304,7 +306,7 @@ export function useTerminal(target?: TerminalTarget) {
     };
   }, []);
 
-  // === Real-time Price Updates (faster targeted refresh) ===
+  // === Real-time Price Updates via DexScreener WebSocket ===
   const activeCas = useMemo(() => {
     const set = new Set<string>();
     if (Array.isArray(liveFeed)) {
@@ -318,11 +320,62 @@ export function useTerminal(target?: TerminalTarget) {
     return Array.from(set);
   }, [liveFeed, watchlist, selected, portfolio]);
 
+  // Initialize DexScreener WebSocket and subscribe to active tokens
+  useEffect(() => {
+    initDexScreenerSocket();
+
+    // Clean up previous subscriptions
+    wsUnsubscribers.current.forEach(unsub => unsub());
+    wsUnsubscribers.current = [];
+
+    // Subscribe to each active token via WebSocket
+    activeCas.forEach((ca) => {
+      const unsub = subscribeToPair(ca, (update) => {
+        if (!update.priceUsd) return;
+
+        setLiveFeed(currentFeed => {
+          if (!Array.isArray(currentFeed)) return currentFeed;
+
+          const updated = currentFeed.map(coin => {
+            if (coin.ca.toLowerCase() !== update.ca.toLowerCase()) return coin;
+            return {
+              ...coin,
+              priceUsd: update.priceUsd ?? coin.priceUsd,
+              change24h: update.change24h ?? coin.change24h,
+              change1h: update.change1h ?? coin.change1h,
+              volume24h: update.volume24h ?? coin.volume24h,
+              volume1h: update.volume1h ?? coin.volume1h,
+              liquidity: update.liquidity ?? coin.liquidity,
+            };
+          });
+
+          // Revalue portfolio with new live prices
+          if (connectedWallet) {
+            setPortfolio(current => {
+              if (!current || current === "loading" || !current.balanceSnapshot) return current;
+              return revaluePortfolioFromFeed(current, updated);
+            });
+          }
+
+          setLastPriceUpdate(Date.now());
+          return updated;
+        });
+      });
+
+      wsUnsubscribers.current.push(unsub);
+    });
+
+    return () => {
+      wsUnsubscribers.current.forEach(unsub => unsub());
+      wsUnsubscribers.current = [];
+    };
+  }, [activeCas, connectedWallet]);
+
+  // Fallback polling every 30s (in case WebSocket misses updates)
   const refreshPrices = useCallback(async () => {
     if (activeCas.length === 0) return;
 
     try {
-      // Lightweight targeted refresh using DexScreener for speed on active tokens
       const batchSize = 30;
       const updates = new Map<string, Partial<LiveLaunch>>();
 
@@ -333,6 +386,7 @@ export function useTerminal(target?: TerminalTarget) {
             headers: { accept: "application/json" }
           });
           if (!res.ok) continue;
+
           const data = await res.json();
           const pairs = Array.isArray(data.pairs) ? data.pairs : [];
 
@@ -350,7 +404,7 @@ export function useTerminal(target?: TerminalTarget) {
               });
             }
           }
-        } catch { /* continue to next batch */ }
+        } catch { /* continue */ }
       }
 
       if (updates.size > 0 && Array.isArray(liveFeed)) {
@@ -367,7 +421,6 @@ export function useTerminal(target?: TerminalTarget) {
         setLiveFeed(updatedFeed);
         setLastPriceUpdate(Date.now());
 
-        // Revalue portfolio with new prices
         if (connectedWallet) {
           setPortfolio(current => {
             if (!current || current === "loading" || !current.balanceSnapshot) return current;
@@ -376,27 +429,22 @@ export function useTerminal(target?: TerminalTarget) {
         }
       }
     } catch (err) {
-      console.warn("Price refresh failed:", err);
+      console.warn("Fallback price refresh failed:", err);
     }
   }, [activeCas, liveFeed, connectedWallet]);
 
-  // Auto real-time price updates every 15 seconds for active tokens
+  // Fallback polling every 30 seconds
   useEffect(() => {
-    if (priceUpdateIntervalRef.current) {
-      clearInterval(priceUpdateIntervalRef.current);
-    }
+    if (priceUpdateIntervalRef.current) clearInterval(priceUpdateIntervalRef.current);
 
-    // Only run aggressive price updates when we have active tokens
     if (activeCas.length > 0) {
       priceUpdateIntervalRef.current = setInterval(() => {
         void refreshPrices();
-      }, 15000); // every 15 seconds
+      }, 30000);
     }
 
     return () => {
-      if (priceUpdateIntervalRef.current) {
-        clearInterval(priceUpdateIntervalRef.current);
-      }
+      if (priceUpdateIntervalRef.current) clearInterval(priceUpdateIntervalRef.current);
     };
   }, [activeCas.length, refreshPrices]);
 
@@ -478,7 +526,7 @@ export function useTerminal(target?: TerminalTarget) {
   }, [target?.section, target?.projectCa, section, feed]);
 
   const watchedCoins = useMemo(
-    () => (watchlist.length ? feed.filter((c) => watchlist.includes(c.ca)) : []),
+    () => (watchlist.length ? feed.filter((c) => watchlist.includes(x => x.ca)) : []),
     [feed, watchlist],
   );
   const verified = verifiedOf(feed);
