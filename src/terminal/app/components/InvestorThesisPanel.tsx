@@ -199,10 +199,8 @@ export function InvestorThesisPanel({ token }: { token: LiveLaunch }) {
   const handleQuote = (postOrThesis: any) => {
     let quoted = "";
     if (postOrThesis.body) {
-      // Local post
       quoted = `> ${postOrThesis.body.slice(0, 180)}${postOrThesis.body.length > 180 ? "..." : ""}\n\n`;
     } else if (postOrThesis.content) {
-      // Backend thesis
       quoted = `> ${postOrThesis.content.slice(0, 180)}${postOrThesis.content.length > 180 ? "..." : ""}\n\n`;
     }
     setQuoteInitialContent(quoted);
@@ -353,6 +351,7 @@ export function InvestorThesisPanel({ token }: { token: LiveLaunch }) {
           }}
           tokenSymbol={token.symbol}
           isVerifiedHolder={isVerifiedHolder}
+          initialContent={quoteInitialContent}
           onSubmit={async (thesis) => {
             if (!wallet) return;
 
