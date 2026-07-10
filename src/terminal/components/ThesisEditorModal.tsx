@@ -13,6 +13,7 @@ interface ThesisEditorModalProps {
   onClose: () => void;
   tokenSymbol: string;
   isVerifiedHolder: boolean;
+  initialContent?: string;
   onSubmit: (thesis: ThesisEditorSubmission) => void | Promise<void>;
 }
 
@@ -21,6 +22,7 @@ export default function ThesisEditorModal({
   onClose,
   tokenSymbol,
   isVerifiedHolder,
+  initialContent = "",
   onSubmit,
 }: ThesisEditorModalProps) {
   const [verdict, setVerdict] = useState<ThesisEditorVerdict>("BULL");
@@ -28,16 +30,23 @@ export default function ThesisEditorModal({
   const [keyPoint, setKeyPoint] = useState("");
   const [keyPoints, setKeyPoints] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [isQuoteMode, setIsQuoteMode] = useState(false);
 
   useEffect(() => {
-    if (!isOpen) {
+    if (isOpen) {
+      if (initialContent) {
+        setContent(initialContent);
+        setIsQuoteMode(true);
+      } else {
+        setContent("");
+        setIsQuoteMode(false);
+      }
       setVerdict("BULL");
-      setContent("");
       setKeyPoint("");
       setKeyPoints([]);
       setSubmitting(false);
     }
-  }, [isOpen]);
+  }, [isOpen, initialContent]);
 
   if (!isOpen) return null;
 
@@ -74,7 +83,9 @@ export default function ThesisEditorModal({
       <div className="thesis-modal flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl lg:rounded-3xl">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-6 py-5">
           <div>
-            <h2 className="text-xl font-semibold tracking-tight">Write Community Thesis</h2>
+            <h2 className="text-xl font-semibold tracking-tight">
+              {isQuoteMode ? "Quote & Reply" : "Write Community Thesis"}
+            </h2>
             <p className="text-sm text-zinc-500">${tokenSymbol}</p>
           </div>
           <button
@@ -88,7 +99,7 @@ export default function ThesisEditorModal({
         </div>
 
         <div className="flex-1 space-y-6 overflow-y-auto p-6">
-          {/* Verdict Selector - more terminal / professional */}
+          {/* Verdict Selector */}
           <div>
             <label className="mb-2 block text-sm font-semibold text-zinc-600">Your Verdict</label>
             <div className="grid grid-cols-3 gap-2">
@@ -114,19 +125,35 @@ export default function ThesisEditorModal({
             <p className="mt-1.5 text-[11px] text-zinc-400">This helps others quickly understand your stance.</p>
           </div>
 
+          {/* Quoted content banner (when replying) */}
+          {isQuoteMode && content.startsWith(">") && (
+            <div className="rounded-2xl border-l-4 border-zinc-300 bg-zinc-50 px-4 py-3 text-sm text-zinc-600">
+              <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Replying to</div>
+              <div className="italic">{content.split("\n")[0]}</div>
+            </div>
+          )}
+
           {/* Main Thesis */}
           <div>
             <div className="mb-2 flex items-center justify-between">
-              <label className="text-sm font-semibold text-zinc-600">Your Thesis</label>
+              <label className="text-sm font-semibold text-zinc-600">
+                {isQuoteMode ? "Your Reply / Additional Thoughts" : "Your Thesis"}
+              </label>
               <span className="text-[10px] text-zinc-400">{content.length}/800</span>
             </div>
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value.slice(0, 800))}
-              placeholder="Be specific. What signals convinced you? What would change your mind?"
+              placeholder={isQuoteMode 
+                ? "Add your own analysis or counterpoint..." 
+                : "Be specific. What signals convinced you? What would change your mind?"}
               className="h-44 w-full resize-y rounded-2xl border border-zinc-200 p-4 text-[15px] leading-relaxed focus:border-zinc-400 focus:outline-none"
             />
-            <p className="mt-1 text-[11px] text-zinc-400">Write like you're explaining it to a smart friend. Avoid hype.</p>
+            <p className="mt-1 text-[11px] text-zinc-400">
+              {isQuoteMode 
+                ? "Build on the quoted thesis with your own view." 
+                : "Write like you're explaining it to a smart friend. Avoid hype."}
+            </p>
           </div>
 
           {/* Key Points */}
@@ -193,7 +220,7 @@ export default function ThesisEditorModal({
             {submitting 
               ? "Posting…" 
               : isVerifiedHolder 
-                ? "Post Thesis" 
+                ? (isQuoteMode ? "Post Reply" : "Post Thesis") 
                 : "Connect & hold to post"}
           </button>
         </div>
