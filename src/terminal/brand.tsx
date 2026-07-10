@@ -7,8 +7,8 @@ export const TELEGRAM_URL = "https://t.me/+FEKfKRWaCrYxZmM1";
 
 /** ezpulse mark: a heartbeat/pulse line in a rounded square. */
 export function PulseMark({ size = 32, className = "" }: { size?: number; className?: string }) {
-  // Better stroke width for small sizes (collapsed sidebar)
-  const strokeWidth = size <= 28 ? 2.2 : 2.4;
+  // Much thicker stroke for small/collapsed sizes
+  const strokeWidth = size < 36 ? 3.5 : 2.6;
 
   return (
     <svg 
@@ -25,12 +25,13 @@ export function PulseMark({ size = 32, className = "" }: { size?: number; classN
         fill={BLUE} 
       />
       <path
-        d="M5 16.5 h5.5 l2.5 -7 l4 13 l3 -9 l1.5 3 H27"
+        d="M4 16.5 h6 l2.5 -8 l4.5 16 l3.5 -11 l2 4.5 H28"
         fill="none" 
         stroke="#fff" 
         strokeWidth={strokeWidth} 
         strokeLinecap="round" 
         strokeLinejoin="round"
+        strokeOpacity="0.95"
       />
     </svg>
   );
