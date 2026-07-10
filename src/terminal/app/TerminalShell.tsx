@@ -1,6 +1,7 @@
 import { BootScreen } from "./components/BootScreen";
 import { CommandPalette } from "./components/CommandPalette";
 import { Header } from "./layout/Header";
+import { NotificationsPanel } from "./layout/NotificationsPanel";
 import { Sidebar } from "./layout/Sidebar";
 import { Toasts } from "./layout/Toasts";
 import { WalletConnectModal } from "./components/WalletConnectModal";
@@ -43,6 +44,7 @@ function TerminalBody() {
       >
         <Header />
         <CommandPalette />
+        <NotificationsPanel />
         <Toasts />
         <WalletConnectModal
           open={walletPickerOpen}
