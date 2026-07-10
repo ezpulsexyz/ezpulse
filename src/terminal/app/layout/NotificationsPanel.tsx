@@ -1,14 +1,24 @@
 import { useTerminalContext } from "../TerminalContext";
 
 export function NotificationsPanel() {
-  const { notifOpen, setNotifOpen, notifs, seenNotifs, setSeenNotifs } = useTerminalContext();
+  const {
+    notifOpen,
+    setNotifOpen,
+    notifs,
+    priceTriggeredNotifs = [],
+    seenNotifs,
+    setSeenNotifs,
+  } = useTerminalContext() as any;
 
   if (!notifOpen) return null;
 
-  const unreadCount = notifs.filter((n) => !seenNotifs.includes(n.key)).length;
+  // Combine signal notifs + price alerts
+  const allNotifs = [...notifs, ...(priceTriggeredNotifs || [])];
+
+  const unreadCount = allNotifs.filter((n: any) => !seenNotifs.includes(n.key)).length;
 
   const markAllAsRead = () => {
-    const allKeys = notifs.map((n) => n.key);
+    const allKeys = allNotifs.map((n: any) => n.key);
     setSeenNotifs([...new Set([...seenNotifs, ...allKeys])]);
   };
 
@@ -18,18 +28,18 @@ export function NotificationsPanel() {
     }
   };
 
-  // Group notifications by token
-  const grouped = notifs.reduce((acc, notif) => {
+  // Group by token
+  const grouped = allNotifs.reduce((acc: any, notif: any) => {
     const ca = notif.token.ca;
     if (!acc[ca]) acc[ca] = [];
     acc[ca].push(notif);
     return acc;
-  }, {} as Record<string, any[]>);
+  }, {});
 
   const tokenCas = Object.keys(grouped);
 
   return (
-    <div className="fixed right-4 top-[72px] z-[120] w-full max-w-sm overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl">
+    <div className="fixed right-2 top-[68px] z-[120] w-[calc(100%-1rem)] max-w-sm overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl sm:right-4 sm:w-full">
       {/* Header */}
       <div className="flex items-center justify-between border-b bg-zinc-50 px-4 py-3">
         <div className="flex items-center gap-2">
@@ -42,25 +52,22 @@ export function NotificationsPanel() {
         </div>
         <div className="flex items-center gap-2 text-sm">
           {unreadCount > 0 && (
-            <button
-              onClick={markAllAsRead}
-              className="text-[11px] font-medium text-zinc-500 hover:text-zinc-700"
-            >
-              Mark all as read
+            <button onClick={markAllAsRead} className="text-[11px] font-medium text-zinc-500 hover:text-zinc-700">
+              Mark all read
             </button>
           )}
-          <button onClick={() => setNotifOpen(false)} className="text-2xl leading-none text-zinc-400 hover:text-zinc-600">
+          <button onClick={() => setNotifOpen(false)} className="text-2xl leading-none text-zinc-400">
             ×
           </button>
         </div>
       </div>
 
-      <div className="max-h-[440px] overflow-y-auto p-2">
-        {notifs.length === 0 ? (
+      <div className="max-h-[70vh] overflow-y-auto p-2 sm:max-h-[440px]">
+        {allNotifs.length === 0 ? (
           <div className="px-4 py-10 text-center">
             <div className="text-4xl">🔔</div>
             <p className="mt-2 text-[13px] font-medium text-zinc-600">No alerts yet</p>
-            <p className="mt-1 text-[11px] text-zinc-400">Add tokens to your watchlist to receive live signals</p>
+            <p className="mt-1 text-[11px] text-zinc-400">Add tokens to watchlist or set price alerts</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -70,7 +77,6 @@ export function NotificationsPanel() {
 
               return (
                 <div key={ca} className="overflow-hidden rounded-xl border border-zinc-100 bg-white">
-                  {/* Token Header */}
                   <div className="flex items-center justify-between border-b bg-zinc-50 px-3 py-2">
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-[13px] font-semibold">${token.symbol}</span>
@@ -79,7 +85,6 @@ export function NotificationsPanel() {
                     <span className="text-[10px] text-zinc-400">{tokenNotifs.length}</span>
                   </div>
 
-                  {/* Alerts */}
                   <div className="divide-y text-sm">
                     {tokenNotifs.map((notif: any) => {
                       const isRead = seenNotifs.includes(notif.key);
@@ -109,7 +114,7 @@ export function NotificationsPanel() {
       </div>
 
       <div className="border-t bg-zinc-50 px-4 py-2 text-center text-[10px] text-zinc-400">
-        Live on-chain signals
+        Live signals + price alerts
       </div>
     </div>
   );
