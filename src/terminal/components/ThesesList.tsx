@@ -240,13 +240,15 @@ export default function ThesesList({
                         type="button"
                         onClick={() => void handleUpvote(thesis.id)}
                         disabled={hasUpvoted}
-                        className={`flex items-center gap-1 rounded-xl px-3 py-1 transition ${
+                        className={`flex items-center gap-2 rounded-xl px-3.5 py-1 text-sm font-medium transition-all active:scale-[0.96] ${
                           hasUpvoted
-                            ? "cursor-default bg-blue-50 text-blue-700"
-                            : "bg-zinc-100 hover:bg-zinc-200 active:bg-zinc-300 disabled:opacity-50"
+                            ? "bg-emerald-100 text-emerald-700 cursor-default"
+                            : "bg-zinc-100 hover:bg-zinc-200 active:bg-zinc-300 text-zinc-700"
                         }`}
                       >
-                        ↑ {thesis.upvotes ?? 0}
+                        <span>↑</span>
+                        <span>{thesis.upvotes ?? 0}</span>
+                        {hasUpvoted && <span className="text-[10px]">Upvoted</span>}
                       </button>
                     </div>
                   </div>
