@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export type ThesisEditorVerdict = "Bullish" | "Bearish" | "Neutral";
+export type ThesisEditorVerdict = "BULL" | "NEUTRAL" | "BEAR";
 
 export interface ThesisEditorSubmission {
   verdict: ThesisEditorVerdict;
@@ -23,7 +23,7 @@ export default function ThesisEditorModal({
   isVerifiedHolder,
   onSubmit,
 }: ThesisEditorModalProps) {
-  const [verdict, setVerdict] = useState<ThesisEditorVerdict>("Bullish");
+  const [verdict, setVerdict] = useState<ThesisEditorVerdict>("BULL");
   const [content, setContent] = useState("");
   const [keyPoint, setKeyPoint] = useState("");
   const [keyPoints, setKeyPoints] = useState<string[]>([]);
@@ -31,7 +31,7 @@ export default function ThesisEditorModal({
 
   useEffect(() => {
     if (!isOpen) {
-      setVerdict("Bullish");
+      setVerdict("BULL");
       setContent("");
       setKeyPoint("");
       setKeyPoints([]);
@@ -63,18 +63,24 @@ export default function ThesisEditorModal({
     }
   };
 
+  const verdictConfig = {
+    BULL: { label: "BULL", color: "bg-emerald-600", text: "text-white" },
+    NEUTRAL: { label: "NEUTRAL", color: "bg-zinc-600", text: "text-white" },
+    BEAR: { label: "BEAR", color: "bg-red-600", text: "text-white" },
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 lg:items-center lg:p-4">
-      <div className="thesis-modal flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl lg:rounded-3xl">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 lg:items-center lg:p-4">
+      <div className="thesis-modal flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl lg:rounded-3xl">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b bg-white px-6 py-5">
           <div>
-            <h2 className="text-xl font-semibold">Write Thesis</h2>
+            <h2 className="text-xl font-semibold tracking-tight">Write Community Thesis</h2>
             <p className="text-sm text-zinc-500">${tokenSymbol}</p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-2xl leading-none text-zinc-400 transition hover:text-zinc-600"
+            className="text-3xl leading-none text-zinc-400 transition hover:text-zinc-600"
             aria-label="Close"
           >
             ×
@@ -82,43 +88,57 @@ export default function ThesisEditorModal({
         </div>
 
         <div className="flex-1 space-y-6 overflow-y-auto p-6">
+          {/* Verdict Selector - more terminal / professional */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-600">Your Verdict</label>
+            <label className="mb-2 block text-sm font-semibold text-zinc-600">Your Verdict</label>
             <div className="grid grid-cols-3 gap-2">
-              {(["Bullish", "Neutral", "Bearish"] as const).map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => setVerdict(v)}
-                  className={`rounded-2xl py-3 text-sm font-medium transition ${
-                    verdict === v ? "bg-blue-600 text-white" : "bg-zinc-100 hover:bg-zinc-200"
-                  }`}
-                >
-                  {v}
-                </button>
-              ))}
+              {(["BULL", "NEUTRAL", "BEAR"] as const).map((v) => {
+                const cfg = verdictConfig[v];
+                const isActive = verdict === v;
+                return (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setVerdict(v)}
+                    className={`rounded-2xl py-3.5 text-sm font-bold tracking-widest transition-all active:scale-[0.985] ${
+                      isActive 
+                        ? `${cfg.color} ${cfg.text} shadow-sm` 
+                        : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
+                    }`}
+                  >
+                    {cfg.label}
+                  </button>
+                );
+              })}
             </div>
+            <p className="mt-1.5 text-[11px] text-zinc-400">This helps others quickly understand your stance.</p>
           </div>
 
+          {/* Main Thesis */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-600">Your Thesis</label>
+            <div className="mb-2 flex items-center justify-between">
+              <label className="text-sm font-semibold text-zinc-600">Your Thesis</label>
+              <span className="text-[10px] text-zinc-400">{content.length}/800</span>
+            </div>
             <textarea
               value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Share your analysis..."
-              className="h-48 w-full resize-y rounded-2xl border border-zinc-200 p-4 text-base focus:border-blue-400 focus:outline-none"
+              onChange={(e) => setContent(e.target.value.slice(0, 800))}
+              placeholder="Be specific. What signals convinced you? What would change your mind?"
+              className="h-44 w-full resize-y rounded-2xl border border-zinc-200 p-4 text-[15px] leading-relaxed focus:border-zinc-400 focus:outline-none"
             />
+            <p className="mt-1 text-[11px] text-zinc-400">Write like you're explaining it to a smart friend. Avoid hype.</p>
           </div>
 
+          {/* Key Points */}
           <div>
-            <label className="mb-2 block text-sm font-medium text-zinc-600">Key Points (Optional)</label>
+            <label className="mb-2 block text-sm font-semibold text-zinc-600">Key Points (Optional)</label>
             <div className="mb-3 flex flex-col gap-2 sm:flex-row">
               <input
                 type="text"
                 value={keyPoint}
                 onChange={(e) => setKeyPoint(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddPoint())}
-                placeholder="Add a key point..."
+                placeholder="e.g. Strong founder execution, low FDV, rising volume"
                 className="flex-1 rounded-2xl border border-zinc-200 px-4 py-3 text-base"
               />
               <button
@@ -166,11 +186,23 @@ export default function ThesisEditorModal({
             type="button"
             onClick={() => void handleSubmit()}
             disabled={!content.trim() || !isVerifiedHolder || submitting}
-            className="flex-1 rounded-2xl bg-emerald-600 py-3.5 text-base font-medium text-white disabled:bg-zinc-300 disabled:text-zinc-500"
+            className={`flex-1 rounded-2xl py-3.5 text-base font-medium text-white transition disabled:bg-zinc-300 disabled:text-zinc-500 ${
+              isVerifiedHolder ? "bg-emerald-600" : "bg-zinc-400"
+            }`}
           >
-            {submitting ? "Posting…" : "Post Thesis"}
+            {submitting 
+              ? "Posting…" 
+              : isVerifiedHolder 
+                ? "Post Thesis" 
+                : "Connect & hold to post"}
           </button>
         </div>
+
+        {!isVerifiedHolder && (
+          <div className="px-6 pb-6 text-center text-[11px] text-amber-600">
+            You need to hold ${tokenSymbol} to post a thesis (any amount qualifies).
+          </div>
+        )}
       </div>
     </div>
   );
