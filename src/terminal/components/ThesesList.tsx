@@ -16,9 +16,9 @@ import { loadInvestorTheses, localPostToSaved, REFRESH_THESES_EVENT } from "../i
 interface ThesesListProps {
   tokenCa: string;
   currentWallet?: string | null;
-  /** Bump to re-fetch after a new thesis is posted */
   refreshKey?: number;
   onCountChange?: (count: number) => void;
+  onQuote?: (thesis: { content: string; verdict: string }) => void;
 }
 
 function normalizeThesis(thesis: SavedInvestorThesis): SavedInvestorThesis {
@@ -34,12 +34,14 @@ export default function ThesesList({
   currentWallet,
   refreshKey = 0,
   onCountChange,
+  onQuote,
 }: ThesesListProps) {
   const [theses, setTheses] = useState<SavedInvestorThesis[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [userUpvotes, setUserUpvotes] = useState<string[]>([]);
   const [toast, setToast] = useState<ToastState>(null);
+  const [expandedIds, setExpandedIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (toast) {
@@ -99,7 +101,7 @@ export default function ThesesList({
     });
     return () => {
       alive = false;
-    };
+    }
   }, [currentWallet, refreshKey]);
 
   const handleUpvote = async (thesisId: string) => {
@@ -129,6 +131,21 @@ export default function ThesesList({
     );
   };
 
+  const toggleExpanded = (id: string) => {
+    setExpandedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleQuoteClick = (thesis: SavedInvestorThesis) => {
+    if (onQuote) {
+      onQuote({
+        content: thesis.content,
+        verdict: thesis.verdict,
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="py-12 text-center text-zinc-400">
@@ -155,14 +172,42 @@ export default function ThesesList({
         </div>
 
         {theses.length === 0 ? (
+          /* Improved Empty State with templates */
           <div className="rounded-2xl border border-dashed border-zinc-300 p-8 text-center">
-            <p className="text-zinc-500">No theses posted yet for this token.</p>
-            <p className="mt-1 text-sm text-zinc-400">Be the first to share your analysis.</p>
+            <p className="text-lg font-semibold text-zinc-700">No theses yet for this token.</p>
+            <p className="mt-1 text-sm text-zinc-500">Be the first to share your analysis.</p>
+
+            <div className="mt-6 grid gap-3 text-left sm:grid-cols-2">
+              {[
+                { verdict: "Bullish", text: "Strong founder execution + clean tokenomics. Low FDV relative to traction. Watching for volume confirmation." },
+                { verdict: "Bearish", text: "High concentration in top wallets. Limited on-chain activity. Need clearer catalysts before committing." }
+              ].map((example, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => {
+                    if (onQuote) {
+                      onQuote({ content: example.text, verdict: example.verdict });
+                    }
+                  }}
+                  className="rounded-xl border border-zinc-200 bg-white p-4 text-left text-sm hover:border-zinc-300 active:bg-zinc-50"
+                >
+                  <div className={`mb-1 inline-block rounded px-2 py-0.5 text-[10px] font-bold ${
+                    example.verdict === "Bullish" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+                  }`}>
+                    {example.verdict}
+                  </div>
+                  <p className="text-zinc-600">{example.text}</p>
+                  <div className="mt-2 text-[10px] text-indigo-600">Use as template →</div>
+                </button>
+              ))}
+            </div>
           </div>
         ) : (
           <div className="space-y-4">
             {theses.map((thesis) => {
               const hasUpvoted = userUpvotes.includes(thesis.id);
+              const isExpanded = expandedIds.includes(thesis.id);
+              const isLong = thesis.content.length > 280;
 
               return (
                 <div key={thesis.id} className="rounded-3xl border border-zinc-200 p-5 lg:p-6">
@@ -174,7 +219,7 @@ export default function ThesesList({
                             ? "bg-emerald-100 text-emerald-700"
                             : thesis.verdict === "Bearish"
                               ? "bg-red-100 text-red-700"
-                              : "bg-zinc-200 text-zinc-600"
+                            : "bg-zinc-200 text-zinc-600"
                         }`}
                       >
                         {thesis.verdict}
@@ -207,7 +252,15 @@ export default function ThesesList({
                   </div>
 
                   <p className="thesis-content mb-3 text-[15px] leading-relaxed text-zinc-700">
-                    {thesis.content}
+                    {isExpanded || !isLong ? thesis.content : thesis.content.slice(0, 280) + "..."}
+                    {isLong && (
+                      <button
+                        onClick={() => toggleExpanded(thesis.id)}
+                        className="ml-1 text-[12px] font-semibold text-indigo-600 hover:underline"
+                      >
+                        {isExpanded ? "Show less" : "Read more"}
+                      </button>
+                    )}
                   </p>
 
                   {thesis.key_points?.length > 0 && (
@@ -220,6 +273,18 @@ export default function ThesesList({
                           <li key={index}>• {point}</li>
                         ))}
                       </ul>
+                    </div>
+                  )}
+
+                  {/* Quote button for backend theses */}
+                  {onQuote && (
+                    <div className="mt-4 border-t border-zinc-100 pt-3">
+                      <button
+                        onClick={() => handleQuoteClick(thesis)}
+                        className="text-[11px] font-semibold text-zinc-500 hover:text-zinc-700"
+                      >
+                        Quote this thesis
+                      </button>
                     </div>
                   )}
                 </div>
