@@ -394,13 +394,13 @@ input, textarea, select, button { color-scheme: light; }
 }
 
 .term-wallet-modal {
-  color: var(--term-text, #18181b);
+  border: 1px solid var(--term-border);
+  background: var(--term-surface);
+  color: var(--term-text);
 }
 
 .term-app[data-theme="dark"] .term-wallet-modal {
-  border-color: var(--term-border);
   background: var(--term-surface-2);
-  color: var(--term-text);
 }
 
 .term-app[data-theme="dark"] .term-wallet-option {
@@ -411,6 +411,100 @@ input, textarea, select, button { color-scheme: light; }
 .term-app[data-theme="dark"] .term-wallet-option:hover {
   border-color: color-mix(in srgb, var(--term-accent) 30%, var(--term-border));
   background: color-mix(in srgb, var(--term-accent) 10%, var(--term-surface-3));
+}
+
+.term-wallet-hint {
+  border: 1px solid var(--term-border);
+  background: var(--term-surface-2);
+  color: var(--term-text-secondary);
+}
+
+.term-wallet-hint__title {
+  color: var(--term-text);
+  font-weight: 600;
+}
+
+.term-wallet-hint__sub {
+  color: var(--term-text-muted);
+}
+
+.term-sync-banner {
+  border: 1px solid var(--term-border);
+  background: var(--term-surface-2);
+  color: var(--term-text-secondary);
+}
+
+.term-pill-muted {
+  border: 1px solid var(--term-border);
+  background: var(--term-surface-2);
+  color: var(--term-text-muted);
+}
+
+.term-alert-card {
+  border: 1px solid var(--term-border);
+  background: var(--term-surface);
+  color: var(--term-text);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.term-alert-card:hover {
+  border-color: color-mix(in srgb, var(--term-accent) 16%, var(--term-border));
+  background: var(--term-hover);
+}
+
+.term-alert-card--on {
+  border-color: color-mix(in srgb, var(--term-accent) 24%, var(--term-border));
+  background: color-mix(in srgb, var(--term-accent) 7%, var(--term-surface));
+}
+
+.term-alert-card--on:hover {
+  background: color-mix(in srgb, var(--term-accent) 10%, var(--term-surface));
+}
+
+.term-alert-card__hint {
+  color: var(--term-text-muted);
+}
+
+.term-toggle {
+  background: var(--term-border);
+}
+
+.term-toggle--on {
+  background: color-mix(in srgb, var(--term-accent) 38%, var(--term-border));
+}
+
+.term-toggle__knob {
+  background: var(--term-surface);
+  box-shadow: 0 1px 2px var(--term-shadow);
+}
+
+.term-wallet-option {
+  border: 1px solid var(--term-border);
+  background: var(--term-surface-2);
+  color: var(--term-text);
+}
+
+.term-wallet-option:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--term-accent) 18%, var(--term-border));
+  background: var(--term-hover);
+}
+
+.term-wallet-option__logo {
+  border: 1px solid var(--term-border);
+  background: var(--term-surface);
+}
+
+.term-wallet-badge {
+  border: 1px solid var(--term-border);
+  background: var(--term-surface-3);
+  color: var(--term-text-muted);
+  font-weight: 600;
+}
+
+.term-wallet-badge--primary {
+  border-color: color-mix(in srgb, var(--term-accent) 28%, var(--term-border));
+  background: color-mix(in srgb, var(--term-accent) 12%, var(--term-surface));
+  color: var(--term-text-secondary);
 }
 
 .term-panel {
@@ -1147,7 +1241,32 @@ button.term-market-stat:hover {
 }
 
 .term-app[data-theme="dark"] .bg-amber-50 {
-  background-color: color-mix(in srgb, #f59e0b 12%, var(--term-surface)) !important;
+  background-color: color-mix(in srgb, #f59e0b 10%, var(--term-surface)) !important;
+}
+
+.term-app[data-theme="dark"] .bg-indigo-50 {
+  background-color: color-mix(in srgb, var(--term-accent) 8%, var(--term-surface)) !important;
+}
+
+.term-app[data-theme="dark"] .text-amber-700,
+.term-app[data-theme="dark"] .text-amber-800 {
+  color: var(--term-text-secondary) !important;
+}
+
+.term-app[data-theme="dark"] .text-indigo-900 {
+  color: var(--term-text-secondary) !important;
+}
+
+.term-app[data-theme="dark"] .border-amber-200 {
+  border-color: var(--term-border) !important;
+}
+
+.term-app[data-theme="dark"] .border-indigo-100 {
+  border-color: var(--term-border-subtle) !important;
+}
+
+.term-app[data-theme="dark"] .hover\:bg-indigo-50\/40:hover {
+  background-color: var(--term-hover) !important;
 }
 
 .term-app[data-theme="dark"] .border-zinc-50,

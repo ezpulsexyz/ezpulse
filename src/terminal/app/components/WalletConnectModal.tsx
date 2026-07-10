@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { BLUE } from "../../components";
 import { supportsMobileConnect } from "../../mobileWalletConnect";
 import { WalletLogo } from "./WalletLogo";
 import {
@@ -40,7 +39,7 @@ export function WalletConnectModal({
 
   return (
     <div
-      className="fixed inset-0 z-[80] flex items-end justify-center bg-black/45 p-4 sm:items-center"
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-black/55 p-4 sm:items-center"
       onClick={() => { if (!connecting) onClose(); }}
       role="presentation"
     >
@@ -49,15 +48,18 @@ export function WalletConnectModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="wallet-connect-title"
-        className="term-wallet-modal w-full max-w-md rounded-2xl border border-zinc-200 bg-white shadow-2xl"
+        className="term-wallet-modal w-full max-w-md rounded-2xl shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-3 border-b border-zinc-100 px-5 py-4">
+        <div
+          className="flex items-start justify-between gap-3 border-b px-5 py-4"
+          style={{ borderColor: "var(--term-border-subtle)" }}
+        >
           <div>
-            <h2 id="wallet-connect-title" className="font-display text-base font-semibold text-zinc-900">
+            <h2 id="wallet-connect-title" className="font-display text-base font-semibold" style={{ color: "var(--term-text)" }}>
               Connect wallet
             </h2>
-            <p className="mt-1 text-[12px] leading-relaxed text-zinc-500">
+            <p className="mt-1 text-[12px] leading-relaxed" style={{ color: "var(--term-text-muted)" }}>
               Read-only sign-in — we only fetch your public address and token balances. No signatures, ever.
             </p>
           </div>
@@ -66,7 +68,8 @@ export function WalletConnectModal({
             onClick={onClose}
             disabled={connecting}
             aria-label="Close"
-            className="term-icon-btn h-7 w-7 shrink-0 border border-zinc-200 text-zinc-500 disabled:opacity-50"
+            className="term-icon-btn h-7 w-7 shrink-0 border disabled:opacity-50"
+            style={{ borderColor: "var(--term-border)", color: "var(--term-text-muted)" }}
           >
             ×
           </button>
@@ -92,14 +95,16 @@ export function WalletConnectModal({
                 type="button"
                 disabled={connecting}
                 onClick={() => onSelect(wallet.id)}
-                className="term-wallet-option flex w-full items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50/70 px-4 py-3 text-left transition hover:border-indigo-300 hover:bg-indigo-50/40 disabled:opacity-60"
+                className="term-wallet-option flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left transition disabled:opacity-60"
               >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-zinc-200 bg-white p-1.5">
+                <span className="term-wallet-option__logo flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full p-1.5">
                   <WalletLogo id={wallet.id} className="h-full w-full" size={28} />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block font-semibold text-[13px] text-zinc-900">{wallet.name}</span>
-                  <span className="block text-[11px] text-zinc-500">
+                  <span className="block font-semibold text-[13px]" style={{ color: "var(--term-text)" }}>
+                    {wallet.name}
+                  </span>
+                  <span className="block text-[11px]" style={{ color: "var(--term-text-muted)" }}>
                     {detected
                       ? "Detected in this browser"
                       : useAppConnect
@@ -110,10 +115,9 @@ export function WalletConnectModal({
                   </span>
                 </span>
                 <span
-                  className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wide ${
-                    detected || useAppConnect || mobile ? "text-white" : "border border-zinc-200 bg-white text-zinc-600"
+                  className={`shrink-0 rounded-full px-3 py-1 text-[10px] uppercase tracking-wide ${
+                    detected || useAppConnect || mobile ? "term-wallet-badge term-wallet-badge--primary" : "term-wallet-badge"
                   }`}
-                  style={detected || useAppConnect || mobile ? { background: BLUE } : undefined}
                 >
                   {actionLabel}
                 </span>
@@ -122,7 +126,10 @@ export function WalletConnectModal({
           })}
         </div>
 
-        <p className="border-t border-zinc-100 px-5 py-3 text-[10px] leading-relaxed text-zinc-400">
+        <p
+          className="border-t px-5 py-3 text-[10px] leading-relaxed"
+          style={{ borderColor: "var(--term-border-subtle)", color: "var(--term-text-subtle)" }}
+        >
           {mobile
             ? "On mobile, pick a wallet to open its app, approve connect, and you’ll land back here in your browser — signed in."
             : `No wallet installed? ${getWalletOption("phantom").name}, ${getWalletOption("solflare").name}, ${getWalletOption("backpack").name}, and ${getWalletOption("jupiter").name} all work.`}

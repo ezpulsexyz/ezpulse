@@ -16,17 +16,17 @@ export function WatchlistSection() {
         sub="Your tracked tokens — with alerts so the market comes to you. Stored locally; connect a wallet to sync across devices."
         right={
           watchlist.length > 0
-            ? <span className="rounded-full bg-amber-50 px-3 py-1.5 text-[11px] font-semibold text-amber-700">★ {watchlist.length} watched</span>
-            : <span className="rounded-full bg-zinc-100 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-zinc-500">No tokens starred</span>
+            ? <span className="term-pill-muted rounded-full px-3 py-1.5 text-[11px] font-semibold">★ {watchlist.length} watched</span>
+            : <span className="term-pill-muted rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest">No tokens starred</span>
         }
       />
 
       {!phantom && watchlist.length > 0 && (
-        <div className="mb-4 flex flex-col gap-3 rounded-2xl border border-indigo-100 bg-indigo-50/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-[12px] leading-relaxed text-indigo-900/80">
+        <div className="term-sync-banner mb-4 flex flex-col gap-3 rounded-2xl px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[12px] leading-relaxed">
             Your watchlist is saved in this browser. Connect a wallet (read-only) to carry it across devices.
           </p>
-          <button onClick={openWalletPicker} className="shrink-0 rounded-full px-5 py-2 text-[11px] font-bold uppercase tracking-wide text-white" style={{ background: BLUE }}>
+          <button type="button" onClick={openWalletPicker} className="term-connect-btn shrink-0 px-5 py-2 text-[11px] font-bold uppercase tracking-wide">
             Connect wallet
           </button>
         </div>
@@ -59,19 +59,19 @@ export function WatchlistSection() {
             <button
               key={k}
               onClick={() => setAlert(k)}
-              className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left transition ${alerts[k] ? "border-indigo-200 bg-indigo-50/50" : "border-zinc-200 bg-white hover:border-zinc-300"}`}
+              className={`term-alert-card flex items-center justify-between rounded-xl px-4 py-3 text-left ${alerts[k] ? "term-alert-card--on" : ""}`}
             >
               <div>
-                <div className="text-[13px] font-semibold text-zinc-900">{label}</div>
-                <div className="text-[11px] text-zinc-400">{hint}</div>
+                <div className="text-[13px] font-semibold">{label}</div>
+                <div className="term-alert-card__hint text-[11px]">{hint}</div>
               </div>
-              <span className={`relative h-5 w-9 shrink-0 rounded-full transition ${alerts[k] ? "" : "bg-zinc-200"}`} style={alerts[k] ? { background: BLUE } : undefined}>
-                <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-all ${alerts[k] ? "left-[18px]" : "left-0.5"}`} />
+              <span className={`term-toggle relative h-5 w-9 shrink-0 rounded-full transition ${alerts[k] ? "term-toggle--on" : ""}`}>
+                <span className={`term-toggle__knob absolute top-0.5 h-4 w-4 rounded-full transition-all ${alerts[k] ? "left-[18px]" : "left-0.5"}`} />
               </span>
             </button>
           ))}
         </div>
-        <p className="mt-3 text-[11px] text-zinc-400">Preferences saved locally. Email & Telegram delivery ship with accounts — alerts currently surface in-app.</p>
+        <p className="mt-3 text-[11px]" style={{ color: "var(--term-text-subtle)" }}>Preferences saved locally. Email & Telegram delivery ship with accounts — alerts currently surface in-app.</p>
       </Card>
 
       {!phantom && !anyWalletDetected() && (
