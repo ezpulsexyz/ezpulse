@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { BootScreen } from "./components/BootScreen";
 import { CommandPalette } from "./components/CommandPalette";
 import { Header } from "./layout/Header";
@@ -23,11 +22,10 @@ function TerminalBody() {
     walletConnecting,
     walletConnectingId,
     signInWallet,
-    selected,
+    priceAlertToken,
+    setPriceAlertToken,
   } = useTerminalContext();
   const { resolved } = useThemeContext();
-
-  const [priceAlertToken, setPriceAlertToken] = useState<any>(null);
 
   if (!booted) {
     return (
@@ -60,20 +58,8 @@ function TerminalBody() {
         />
         <SectionRouter />
 
-        {/* Price Alert Modal */}
         {priceAlertToken && (
           <PriceAlertModal token={priceAlertToken} onClose={() => setPriceAlertToken(null)} />
-        )}
-
-        {/* Quick Price Alert button when viewing a token */}
-        {selected && !priceAlertToken && (
-          <button
-            onClick={() => setPriceAlertToken(selected)}
-            className="fixed bottom-6 right-6 z-[90] flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2.5 text-sm font-semibold shadow-lg transition hover:bg-zinc-50 active:scale-[0.985]"
-          >
-            <span>Set Price Alert</span>
-            <span className="text-lg">🔔</span>
-          </button>
         )}
       </div>
     </div>

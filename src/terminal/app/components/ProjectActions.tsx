@@ -1,4 +1,5 @@
 import { isGraduated, isVerified, kickstartUrl, type LiveLaunch } from "../../kickstart";
+import { useTerminalContext } from "../TerminalContext";
 
 export function ProjectActions({
   token,
@@ -13,6 +14,7 @@ export function ProjectActions({
   onWatch: () => void;
   onFounder?: () => void;
 }) {
+  const { setPriceAlertToken } = useTerminalContext();
   const graduated = isGraduated(token);
   const verified = isVerified(token);
 
@@ -38,6 +40,15 @@ export function ProjectActions({
       <button type="button" onClick={onShare} className="term-action term-action--outline">
         <ShareIcon />
         Share
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setPriceAlertToken(token)}
+        className="term-action term-action--outline"
+      >
+        <AlertIcon />
+        Set Price Alert
       </button>
 
       {verified && onFounder && (
@@ -74,6 +85,14 @@ function WatchIcon({ filled }: { filled: boolean }) {
   return (
     <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill={filled ? "currentColor" : "none"} aria-hidden>
       <path d="M8 3l1.6 3.2 3.6.52-2.6 2.54.61 3.56L8 11.1l-3.21 1.72.61-3.56L3.8 6.72l3.6-.52L8 3z" stroke="currentColor" strokeWidth="1.25" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function AlertIcon() {
+  return (
+    <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden>
+      <path d="M8 2v1.5M4.5 12.5A4.5 4.5 0 0111.5 12.5M8 4.5a2.5 2.5 0 00-2.5 2.5v1.5l-1 1.5h7l-1-1.5V7A2.5 2.5 0 008 4.5z" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }

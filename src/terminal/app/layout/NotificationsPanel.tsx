@@ -8,7 +8,7 @@ export function NotificationsPanel() {
     priceTriggeredNotifs = [],
     seenNotifs,
     setSeenNotifs,
-  } = useTerminalContext() as any;
+  } = useTerminalContext();
 
   if (!notifOpen) return null;
 
