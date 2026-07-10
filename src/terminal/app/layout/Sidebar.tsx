@@ -35,7 +35,7 @@ export function Sidebar() {
             className="group flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-zinc-100 active:bg-zinc-200 dark:hover:bg-zinc-800"
           >
             <Logo 
-              size={sidebarHidden ? 28 : 26} 
+              size={sidebarHidden ? 32 : 26} 
               textClass="text-[13px]" 
               compact={sidebarHidden} 
             />
