@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { BootScreen } from "./components/BootScreen";
 import { CommandPalette } from "./components/CommandPalette";
 import { Header } from "./layout/Header";
 import { NotificationsPanel } from "./layout/NotificationsPanel";
+import { PriceAlertModal } from "./components/PriceAlertModal";
 import { Sidebar } from "./layout/Sidebar";
 import { Toasts } from "./layout/Toasts";
 import { WalletConnectModal } from "./components/WalletConnectModal";
@@ -21,8 +23,11 @@ function TerminalBody() {
     walletConnecting,
     walletConnectingId,
     signInWallet,
+    selected,
   } = useTerminalContext();
   const { resolved } = useThemeContext();
+
+  const [priceAlertToken, setPriceAlertToken] = useState<any>(null);
 
   if (!booted) {
     return (
@@ -54,6 +59,10 @@ function TerminalBody() {
           onSelect={(id) => void signInWallet(id)}
         />
         <SectionRouter />
+
+        {priceAlertToken && (
+          <PriceAlertModal token={priceAlertToken} onClose={() => setPriceAlertToken(null)} />
+        )}
       </div>
     </div>
   );
