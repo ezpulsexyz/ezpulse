@@ -361,8 +361,31 @@ function mergeDex(found: Map<string, LiveLaunch>, launch: LiveLaunch): void {
   const key = launch.ca.toLowerCase();
   const existing = found.get(key);
   if (!existing) { found.set(key, launch); return; }
-  if (existing.source === "KICKSTART") return; // Jupiter is canonical — keep it
+  if (existing.source === "KICKSTART") return; // Jupiter metadata kept — market stats overlaid later via enrichFromDexscreener
   if (launch.liquidity > existing.liquidity) found.set(key, launch);
+}
+
+function pairLiquidity(pair: Rec): number {
+  const liq = pair.liquidity as Rec | undefined;
+  return numeric(liq?.usd) ?? 0;
+}
+
+function tokenCaFromPair(pair: Rec): string {
+  const base = pair.baseToken as Rec | undefined;
+  return typeof base?.address === "string" ? (base.address as string) : "";
+}
+
+/** Pick the highest-liquidity Solana pair per base token — matches DexScreener's primary pair. */
+function bestPairPerToken(pairs: Rec[]): Map<string, Rec> {
+  const best = new Map<string, Rec>();
+  for (const pair of pairs) {
+    if (pair.chainId !== "solana") continue;
+    const ca = tokenCaFromPair(pair).toLowerCase();
+    if (!ca) continue;
+    const existing = best.get(ca);
+    if (!existing || pairLiquidity(pair) > pairLiquidity(existing)) best.set(ca, pair);
+  }
+  return best;
 }
 
 function pairToLaunch(pair: Rec): LiveLaunch | null {
@@ -385,19 +408,19 @@ function pairToLaunch(pair: Rec): LiveLaunch | null {
     ca,
     icon: typeof info?.imageUrl === "string" ? (info.imageUrl as string) : undefined,
     description: "",
-    priceUsd: pair.priceUsd ? parseFloat(String(pair.priceUsd)) : 0,
-    mcap: typeof pair.marketCap === "number" ? (pair.marketCap as number) : 0,
-    change24h: typeof pc?.h24 === "number" ? (pc.h24 as number) : 0,
-    change1h: typeof pc?.h1 === "number" ? (pc.h1 as number) : 0,
-    volume24h: typeof vol?.h24 === "number" ? (vol.h24 as number) : 0,
-    volume1h: typeof vol?.h1 === "number" ? (vol.h1 as number) : 0,
-    buys24h: typeof t24?.buys === "number" ? (t24.buys as number) : 0,
-    sells24h: typeof t24?.sells === "number" ? (t24.sells as number) : 0,
-    buys1h: typeof t1?.buys === "number" ? (t1.buys as number) : 0,
-    sells1h: typeof t1?.sells === "number" ? (t1.sells as number) : 0,
-    liquidity: typeof liq?.usd === "number" ? (liq.usd as number) : 0,
-    pairCreatedAt: typeof pair.pairCreatedAt === "number" ? (pair.pairCreatedAt as number) : undefined,
-    source: "KICKSTART" as const,
+    priceUsd: numeric(pair.priceUsd) ?? 0,
+    mcap: numeric(pair.marketCap) ?? numeric(pair.fdv) ?? 0,
+    change24h: numeric(pc?.h24) ?? 0,
+    change1h: numeric(pc?.h1) ?? 0,
+    volume24h: numeric(vol?.h24) ?? 0,
+    volume1h: numeric(vol?.h1) ?? 0,
+    buys24h: numeric(t24?.buys) ?? 0,
+    sells24h: numeric(t24?.sells) ?? 0,
+    buys1h: numeric(t1?.buys) ?? 0,
+    sells1h: numeric(t1?.sells) ?? 0,
+    liquidity: numeric(liq?.usd) ?? 0,
+    pairCreatedAt: numeric(pair.pairCreatedAt),
+    source: "DEXSCREENER" as const,
     links: {
       website: websites.find((w) => w.includes("kickstart.easya.io")) ?? websites[0],
       x: social("twitter"),
@@ -466,11 +489,55 @@ async function fetchTrackedTokens(found: Map<string, LiveLaunch>): Promise<void>
       if (!res.ok) continue;
       const data = (await res.json()) as Rec;
       const pairs: Rec[] = Array.isArray(data.pairs) ? (data.pairs as Rec[]) : [];
-      for (const pair of pairs) {
-        if (pair.chainId !== "solana") continue;
+      for (const pair of bestPairPerToken(pairs).values()) {
         const launch = pairToLaunch(pair);
         if (!launch) continue;
         mergeDex(found, launch);
+      }
+    } catch { /* batch failed — continue */ }
+  }
+}
+
+/** Overlay DexScreener market stats onto Jupiter records — matches DexScreener UI (best-liquidity pair). */
+async function enrichFromDexscreener(found: Map<string, LiveLaunch>): Promise<void> {
+  const cas = [...found.keys()];
+  if (!cas.length) return;
+
+  for (let i = 0; i < cas.length; i += 30) {
+    const batch = cas.slice(i, i + 30);
+    try {
+      const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${batch.join(",")}`, { headers: { accept: "application/json" } });
+      if (!res.ok) continue;
+      const data = (await res.json()) as Rec;
+      const pairs: Rec[] = Array.isArray(data.pairs) ? (data.pairs as Rec[]) : [];
+      for (const [ca, pair] of bestPairPerToken(pairs)) {
+        const existing = found.get(ca);
+        if (!existing) continue;
+        const dex = pairToLaunch(pair);
+        if (!dex) continue;
+        found.set(ca, {
+          ...existing,
+          priceUsd: dex.priceUsd > 0 ? dex.priceUsd : existing.priceUsd,
+          mcap: dex.mcap > 0 ? dex.mcap : existing.mcap,
+          change24h: dex.change24h,
+          change1h: dex.change1h,
+          volume24h: dex.volume24h > 0 ? dex.volume24h : existing.volume24h,
+          volume1h: dex.volume1h > 0 ? dex.volume1h : existing.volume1h,
+          liquidity: dex.liquidity > 0 ? dex.liquidity : existing.liquidity,
+          buys24h: dex.buys24h,
+          sells24h: dex.sells24h,
+          buys1h: dex.buys1h,
+          sells1h: dex.sells1h,
+          pairCreatedAt: existing.pairCreatedAt ?? dex.pairCreatedAt,
+          icon: existing.icon ?? dex.icon,
+          links: {
+            ...existing.links,
+            dexscreener: dex.links.dexscreener,
+            website: existing.links.website ?? dex.links.website,
+            x: existing.links.x ?? dex.links.x,
+            telegram: existing.links.telegram ?? dex.links.telegram,
+          },
+        });
       }
     } catch { /* batch failed — continue */ }
   }
@@ -625,8 +692,7 @@ export async function fetchLiveFeed(): Promise<{ launches: LiveLaunch[]; source:
         if (!res.ok) continue;
         const data = (await res.json()) as Rec;
         const pairs: Rec[] = Array.isArray(data.pairs) ? (data.pairs as Rec[]) : [];
-        for (const pair of pairs) {
-          if (pair.chainId !== "solana") continue;
+        for (const pair of bestPairPerToken(pairs).values()) {
           const base = pair.baseToken as Rec | undefined;
           const ca = typeof base?.address === "string" ? (base.address as string) : "";
           const info = pair.info as Rec | undefined;
@@ -656,7 +722,7 @@ export async function fetchLiveFeed(): Promise<{ launches: LiveLaunch[]; source:
           if (pairRes.ok) {
             const pairData = (await pairRes.json()) as Rec;
             const pairs: Rec[] = Array.isArray(pairData.pairs) ? (pairData.pairs as Rec[]) : [];
-            for (const pair of pairs) {
+            for (const pair of bestPairPerToken(pairs).values()) {
               const launch = pairToLaunch(pair);
               if (!launch) continue;
               mergeDex(found, launch);
@@ -665,6 +731,9 @@ export async function fetchLiveFeed(): Promise<{ launches: LiveLaunch[]; source:
         }
       }
     } catch { /* profiles scan optional */ }
+
+    // DexScreener overlay — align mcap/price/volume with DexScreener UI (best-liquidity pair per token)
+    await enrichFromDexscreener(found);
 
     const supplyOverrides = await fetchSupplyOverrides();
     const launches = [...found.values()]

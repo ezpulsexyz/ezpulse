@@ -20,7 +20,97 @@ import {
 
 type Rec = Record<string, unknown>;
 
-const num = (v: unknown) => (typeof v === "number" && isFinite(v) ? v : 0);
+const num = (v: unknown) => {
+  if (typeof v === "number" && isFinite(v)) return v;
+  if (typeof v === "string" && v.trim() !== "" && isFinite(Number(v))) return Number(v);
+  return 0;
+};
+
+function pairLiquidity(pair: Rec): number {
+  const liq = pair.liquidity as Rec | undefined;
+  return num(liq?.usd);
+}
+
+function tokenCaFromPair(pair: Rec): string {
+  const base = pair.baseToken as Rec | undefined;
+  return typeof base?.address === "string" ? (base.address as string) : "";
+}
+
+function bestPairPerToken(pairs: Rec[]): Map<string, Rec> {
+  const best = new Map<string, Rec>();
+  for (const pair of pairs) {
+    if (pair.chainId !== "solana") continue;
+    const ca = tokenCaFromPair(pair).toLowerCase();
+    if (!ca) continue;
+    const existing = best.get(ca);
+    if (!existing || pairLiquidity(pair) > pairLiquidity(existing)) best.set(ca, pair);
+  }
+  return best;
+}
+
+function snapFromPair(p: Rec): Snap | null {
+  const base = p.baseToken as Rec | undefined;
+  const ca = String(base?.address ?? "");
+  if (!ca) return null;
+  const pc = p.priceChange as Rec | undefined;
+  const vol = p.volume as Rec | undefined;
+  const tx = p.txns as Rec | undefined;
+  const t24 = tx?.h24 as Rec | undefined;
+  const t1 = tx?.h1 as Rec | undefined;
+  const created = p.pairCreatedAt;
+  return {
+    ca,
+    symbol: String(base?.symbol ?? "?"),
+    price: num(p.priceUsd),
+    mcap: num(p.marketCap) || num(p.fdv),
+    liquidity: num((p.liquidity as Rec)?.usd),
+    volume24h: num(vol?.h24),
+    volume1h: num(vol?.h1),
+    change24h: num(pc?.h24),
+    buys24h: num(t24?.buys),
+    sells24h: num(t24?.sells),
+    buys1h: num(t1?.buys),
+    sells1h: num(t1?.sells),
+    holders: null,
+    curve: null,
+    graduated: false,
+    pairCreatedAt: typeof created === "number" ? created : null,
+    hasX: false,
+  };
+}
+
+async function enrichSnapsFromDex(found: Map<string, Snap>): Promise<void> {
+  const cas = [...found.keys()];
+  for (let i = 0; i < cas.length; i += 30) {
+    const batch = cas.slice(i, i + 30);
+    try {
+      const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${batch.join(",")}`);
+      if (!res.ok) continue;
+      const pairs = ((await res.json()) as Rec).pairs as Rec[] ?? [];
+      for (const [ca, p] of bestPairPerToken(pairs)) {
+        const existing = found.get(ca);
+        if (!existing) continue;
+        const dex = snapFromPair(p);
+        if (!dex) continue;
+        found.set(ca, {
+          ...existing,
+          price: dex.price > 0 ? dex.price : existing.price,
+          mcap: dex.mcap > 0 ? dex.mcap : existing.mcap,
+          liquidity: dex.liquidity > 0 ? dex.liquidity : existing.liquidity,
+          volume24h: dex.volume24h > 0 ? dex.volume24h : existing.volume24h,
+          volume1h: dex.volume1h > 0 ? dex.volume1h : existing.volume1h,
+          change24h: dex.change24h,
+          buys24h: dex.buys24h,
+          sells24h: dex.sells24h,
+          buys1h: dex.buys1h,
+          sells1h: dex.sells1h,
+        });
+      }
+    } catch {
+      /* batch failed */
+    }
+  }
+}
 
 const TRACKED_CAS = [
   "FKshTXX4wUcirV9b4LhLrNP4cxAsA2VBAFdMEw5EASY",
@@ -97,42 +187,18 @@ async function fetchFeed(): Promise<Snap[]> {
     }
   }
 
+  await enrichSnapsFromDex(found);
+
   const missing = TRACKED_CAS.filter((ca) => !found.has(ca.toLowerCase()));
   if (missing.length) {
     try {
       const res = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${missing.join(",")}`);
       if (res.ok) {
         const pairs = ((await res.json()) as Rec).pairs as Rec[] ?? [];
-        for (const p of pairs) {
-          if (p.chainId !== "solana") continue;
-          const base = p.baseToken as Rec | undefined;
-          const ca = String(base?.address ?? "");
-          if (!ca || found.has(ca.toLowerCase())) continue;
-          const pc = p.priceChange as Rec | undefined;
-          const vol = p.volume as Rec | undefined;
-          const tx = p.txns as Rec | undefined;
-          const t24 = tx?.h24 as Rec | undefined;
-          const t1 = tx?.h1 as Rec | undefined;
-          const created = p.pairCreatedAt;
-          found.set(ca.toLowerCase(), {
-            ca,
-            symbol: String(base?.symbol ?? "?"),
-            price: p.priceUsd ? parseFloat(String(p.priceUsd)) : 0,
-            mcap: num(p.marketCap),
-            liquidity: num((p.liquidity as Rec)?.usd),
-            volume24h: num(vol?.h24),
-            volume1h: num(vol?.h1),
-            change24h: num(pc?.h24),
-            buys24h: num(t24?.buys),
-            sells24h: num(t24?.sells),
-            buys1h: num(t1?.buys),
-            sells1h: num(t1?.sells),
-            holders: null,
-            curve: null,
-            graduated: false,
-            pairCreatedAt: typeof created === "number" ? created : null,
-            hasX: false,
-          });
+        for (const p of bestPairPerToken(pairs).values()) {
+          const snap = snapFromPair(p);
+          if (!snap || found.has(snap.ca.toLowerCase())) continue;
+          found.set(snap.ca.toLowerCase(), snap);
         }
       }
     } catch {
