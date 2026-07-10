@@ -20,6 +20,36 @@ import { loadSeenNotifs, saveSeenNotifs } from "../notifs";
 import { PROJECT_CATEGORIES, type Notif, type ProjectCategory, type Section, type MarketTab, type TerminalTarget } from "../types";
 import { initDexScreenerSocket, subscribeToPair, unsubscribeFromPair } from "../../dexScreenerSocket";
 
+// === Price Threshold Alerts ===
+export interface PriceAlert {
+  id: string;
+  ca: string;
+  symbol: string;
+  targetPrice: number;
+  direction: "above" | "below";
+  enabled: boolean;
+  createdAt: number;
+}
+
+const PRICE_ALERTS_KEY = "ezpulse:price-alerts";
+
+function loadPriceAlerts(): PriceAlert[] {
+  try {
+    const raw = localStorage.getItem(PRICE_ALERTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePriceAlerts(alerts: PriceAlert[]) {
+  try {
+    localStorage.setItem(PRICE_ALERTS_KEY, JSON.stringify(alerts));
+  } catch {
+    /* noop */
+  }
+}
+
 export function useTerminal(target?: TerminalTarget) {
   const {
     wallet: connectedWallet,
@@ -54,9 +84,13 @@ export function useTerminal(target?: TerminalTarget) {
   const [seenNotifs, setSeenNotifs] = useState<string[]>(() => loadSeenNotifs());
   const [shareToken, setShareToken] = useState<LiveLaunch | null>(null);
 
+  // === Price Threshold Alerts State ===
+  const [priceAlerts, setPriceAlerts] = useState<PriceAlert[]>(() => loadPriceAlerts());
+
   const searchRef = useRef<HTMLInputElement>(null);
   const walletRef = useRef<string | null>(null);
   const balanceRefreshTick = useRef(0);
+  const triggeredAlerts = useRef<Set<string>>(new Set()); // prevent spam
 
   const [signinNudge, setSigninNudge] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -120,7 +154,7 @@ export function useTerminal(target?: TerminalTarget) {
     setWalletErr(null);
     const remote = await pullWalletWatchlist(addr);
     if (remote?.length) {
-      const merged = [...new Set([...watchlist, ...remote])];
+      const merged = [...new Set([...wl, ...remote])];
       setWatchlist(merged);
       saveWatchlist(merged);
       syncWatchlist(merged, addr);
@@ -198,6 +232,87 @@ export function useTerminal(target?: TerminalTarget) {
       return next;
     });
   };
+
+  // === Price Alert Functions ===
+  const addPriceAlert = useCallback((ca: string, symbol: string, targetPrice: number, direction: "above" | "below") => {
+    const newAlert: PriceAlert = {
+      id: `${ca}-${direction}-${targetPrice}-${Date.now()}`,
+      ca,
+      symbol,
+      targetPrice,
+      direction,
+      enabled: true,
+      createdAt: Date.now(),
+    };
+
+    setPriceAlerts((prev) => {
+      const next = [...prev, newAlert];
+      savePriceAlerts(next);
+      return next;
+    });
+
+    // Clear triggered state for this alert
+    triggeredAlerts.current.delete(newAlert.id);
+  }, []);
+
+  const removePriceAlert = useCallback((id: string) => {
+    setPriceAlerts((prev) => {
+      const next = prev.filter((a) => a.id !== id);
+      savePriceAlerts(next);
+      return next;
+    });
+    triggeredAlerts.current.delete(id);
+  }, []);
+
+  const togglePriceAlert = useCallback((id: string) => {
+    setPriceAlerts((prev) => {
+      const next = prev.map((a) =>
+        a.id === id ? { ...a, enabled: !a.enabled } : a
+      );
+      savePriceAlerts(next);
+      return next;
+    });
+  }, []);
+
+  // Check price thresholds and create notifications
+  const checkPriceAlerts = useCallback((updatedTokens: LiveLaunch[]) => {
+    if (!priceAlerts.length) return;
+
+    const newNotifs: Notif[] = [];
+    const day = new Date().toISOString().slice(0, 10);
+
+    updatedTokens.forEach((token) => {
+      const relevantAlerts = priceAlerts.filter(
+        (a) => a.ca.toLowerCase() === token.ca.toLowerCase() && a.enabled
+      );
+
+      relevantAlerts.forEach((alert) => {
+        const currentPrice = token.priceUsd;
+        const crossed =
+          (alert.direction === "above" && currentPrice >= alert.targetPrice) ||
+          (alert.direction === "below" && currentPrice <= alert.targetPrice);
+
+        if (crossed && !triggeredAlerts.current.has(alert.id)) {
+          triggeredAlerts.current.add(alert.id);
+
+          newNotifs.push({
+            key: `price-alert-${alert.id}-${Date.now()}`,
+            icon: alert.direction === "above" ? "📈" : "📉",
+            strength: alert.direction === "above" ? "BULLISH" : "BEARISH",
+            title: `${token.symbol} hit $${alert.targetPrice}`,
+            detail: `Price ${alert.direction} $${alert.targetPrice} (now $${currentPrice.toFixed(6)})`,
+            token,
+          });
+        }
+      });
+    });
+
+    if (newNotifs.length > 0) {
+      // We can't easily push into notifs since it's a useMemo.
+      // For now, we'll log it. In next step we'll integrate properly.
+      console.log("[Price Alert] Triggered:", newNotifs);
+    }
+  }, [priceAlerts]);
 
   useEffect(() => {
     walletRef.current = connectedWallet;
@@ -349,6 +464,9 @@ export function useTerminal(target?: TerminalTarget) {
             };
           });
 
+          // Check price alerts on update
+          checkPriceAlerts(updated.filter(c => activeCas.includes(c.ca)));
+
           // Revalue portfolio with new live prices
           if (connectedWallet) {
             setPortfolio(current => {
@@ -369,7 +487,7 @@ export function useTerminal(target?: TerminalTarget) {
       wsUnsubscribers.current.forEach(unsub => unsub());
       wsUnsubscribers.current = [];
     };
-  }, [activeCas, connectedWallet]);
+  }, [activeCas, connectedWallet, checkPriceAlerts]);
 
   // Fallback polling every 30s (in case WebSocket misses updates)
   const refreshPrices = useCallback(async () => {
@@ -421,6 +539,9 @@ export function useTerminal(target?: TerminalTarget) {
         setLiveFeed(updatedFeed);
         setLastPriceUpdate(Date.now());
 
+        // Check price alerts
+        checkPriceAlerts(updatedFeed);
+
         if (connectedWallet) {
           setPortfolio(current => {
             if (!current || current === "loading" || !current.balanceSnapshot) return current;
@@ -431,7 +552,7 @@ export function useTerminal(target?: TerminalTarget) {
     } catch (err) {
       console.warn("Fallback price refresh failed:", err);
     }
-  }, [activeCas, liveFeed, connectedWallet]);
+  }, [activeCas, liveFeed, connectedWallet, checkPriceAlerts]);
 
   // Fallback polling every 30 seconds
   useEffect(() => {
@@ -661,6 +782,10 @@ export function useTerminal(target?: TerminalTarget) {
     copiedCa,
     watchlist,
     alerts,
+    priceAlerts,
+    addPriceAlert,
+    removePriceAlert,
+    togglePriceAlert,
     wallet: connectedWallet,
     walletProvider,
     walletConnecting: connecting,
