@@ -32,12 +32,13 @@ export function Sidebar() {
             href={landingHref()}
             title="Back to ezpulse.xyz"
             onClick={closeSidebar}
-            className="group flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-zinc-100 active:bg-zinc-200 dark:hover:bg-zinc-800"
+            className="term-sidebar-logo-link group flex shrink-0 items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-zinc-100 active:bg-zinc-200 dark:hover:bg-zinc-800"
           >
-            <Logo 
-              size={sidebarHidden ? 32 : 26} 
-              textClass="text-[13px]" 
-              compact={sidebarHidden} 
+            <Logo
+              size={sidebarHidden ? 32 : 26}
+              textClass="text-[13px]"
+              compact={sidebarHidden}
+              className="term-sidebar-logo"
             />
           </a>
 

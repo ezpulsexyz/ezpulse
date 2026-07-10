@@ -11,11 +11,11 @@ export function PulseMark({ size = 32, className = "" }: { size?: number; classN
   const strokeWidth = size < 36 ? 3.5 : 2.6;
 
   return (
-    <svg 
-      width={size} 
-      height={size} 
-      viewBox="0 0 32 32" 
-      className={className} 
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 32 32"
+      className={`block shrink-0 ${className}`.trim()}
       aria-label="ezpulse logo"
     >
       <rect 
@@ -60,15 +60,17 @@ export function Logo({
   textClass = "text-[15px]",
   dark = false,
   compact = false,
+  className = "",
 }: {
   size?: number;
   textClass?: string;
   dark?: boolean;
   compact?: boolean;
+  className?: string;
 }) {
-  if (compact) return <PulseMark size={size} />;
+  if (compact) return <PulseMark size={size} className={className} />;
   return (
-    <span className="flex items-center gap-2">
+    <span className={`flex shrink-0 items-center gap-2 ${className}`.trim()}>
       <PulseMark size={size} />
       <Wordmark className={textClass} dark={dark} />
     </span>
