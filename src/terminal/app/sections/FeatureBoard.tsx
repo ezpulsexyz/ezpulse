@@ -79,11 +79,7 @@ export function FeatureBoard() {
     setLoading(true);
     const counts = await fetchVoteCounts();
     if (counts) {
-      const map: Record<string, number> = {};
-      counts.forEach((row: any) => {
-        map[row.feature_id] = row.vote_count;
-      });
-      setVotes(map);
+      setVotes(counts);
     }
     setLoading(false);
   };
@@ -94,36 +90,43 @@ export function FeatureBoard() {
 
   const handleVote = async (featureId: string) => {
     if (!wallet) {
-      alert("Connect your wallet to vote");
+      alert("Connect your wallet to vote on features");
       return;
     }
 
-    // Optimistic update
-    const alreadyVoted = userVotes.has(featureId);
-    const newVotes = { ...votes };
+    const hasVoted = userVotes.has(featureId);
+    const newUserVotes = new Set(userVotes);
 
-    if (alreadyVoted) {
-      newVotes[featureId] = Math.max(0, (newVotes[featureId] || 1) - 1);
-      const newUserVotes = new Set(userVotes);
+    // Optimistic UI update
+    if (hasVoted) {
       newUserVotes.delete(featureId);
-      setUserVotes(newUserVotes);
+      setVotes((prev) => ({
+        ...prev,
+        [featureId]: Math.max(0, (prev[featureId] || 1) - 1),
+      }));
     } else {
-      newVotes[featureId] = (newVotes[featureId] || 0) + 1;
-      const newUserVotes = new Set(userVotes);
       newUserVotes.add(featureId);
-      setUserVotes(newUserVotes);
+      setVotes((prev) => ({
+        ...prev,
+        [featureId]: (prev[featureId] || 0) + 1,
+      }));
     }
+    setUserVotes(newUserVotes);
 
-    setVotes(newVotes);
+    // Correct call: syncVote(featureId, voted: boolean)
+    await syncVote(featureId, !hasVoted);
 
-    // Sync with backend
-    await syncVote(featureId, wallet);
-    await loadVotes(); // refresh accurate counts
+    // Refresh real counts from server
+    await loadVotes();
   };
 
   const getStatusBadge = (status: Feature["status"]) => {
-    if (status === "done") return <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600">Shipped in V2</span>;
-    if (status === "in-progress") return <span className="rounded bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600">In Progress</span>;
+    if (status === "done") {
+      return <span className="rounded bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-600">Shipped in V2</span>;
+    }
+    if (status === "in-progress") {
+      return <span className="rounded bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600">In Progress</span>;
+    }
     return <span className="rounded bg-zinc-500/10 px-2 py-0.5 text-[10px] font-medium text-zinc-600">Planned</span>;
   };
 
@@ -140,44 +143,48 @@ export function FeatureBoard() {
         <p className="mt-1 text-sm text-zinc-500">Vote on what matters to you. Your votes help shape the roadmap.</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {sortedFeatures.map((feature) => {
-          const voteCount = votes[feature.id] || 0;
-          const hasVoted = userVotes.has(feature.id);
+      {loading ? (
+        <div className="py-12 text-center text-sm text-zinc-500">Loading features...</div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2">
+          {sortedFeatures.map((feature) => {
+            const voteCount = votes[feature.id] || 0;
+            const hasVoted = userVotes.has(feature.id);
 
-          return (
-            <div
-              key={feature.id}
-              className="group rounded-2xl border border-zinc-200 bg-white p-5 transition hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1 pr-4">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-semibold text-lg tracking-tight">{feature.title}</h3>
-                    {getStatusBadge(feature.status)}
+            return (
+              <div
+                key={feature.id}
+                className="group rounded-2xl border border-zinc-200 bg-white p-5 transition hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 pr-4">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-lg tracking-tight">{feature.title}</h3>
+                      {getStatusBadge(feature.status)}
+                    </div>
+                    <p className="mt-2 text-sm leading-snug text-zinc-600 dark:text-zinc-400">
+                      {feature.description}
+                    </p>
+                    <div className="mt-3 text-[10px] text-zinc-400">{feature.category}</div>
                   </div>
-                  <p className="mt-2 text-sm leading-snug text-zinc-600 dark:text-zinc-400">
-                    {feature.description}
-                  </p>
-                  <div className="mt-3 text-[10px] text-zinc-400">{feature.category}</div>
-                </div>
 
-                <button
-                  onClick={() => handleVote(feature.id)}
-                  disabled={!wallet}
-                  className={`flex flex-col items-center justify-center rounded-xl border px-4 py-2 text-center transition active:scale-[0.985] ${hasVoted
-                    ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                    : "border-zinc-200 hover:bg-zinc-50 dark:border-zinc-800"}
+                  <button
+                    onClick={() => handleVote(feature.id)}
+                    disabled={!wallet}
+                    className={`flex flex-col items-center justify-center rounded-xl border px-4 py-2 text-center transition active:scale-[0.985] ${hasVoted
+                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                      : "border-zinc-200 hover:bg-zinc-50 dark:border-zinc-800"}
                   `}
-                >
-                  <div className="text-xl font-bold tabular-nums">{voteCount}</div>
-                  <div className="text-[10px] font-medium tracking-wider">{hasVoted ? "VOTED" : "VOTE"}</div>
-                </button>
+                  >
+                    <div className="text-xl font-bold tabular-nums">{voteCount}</div>
+                    <div className="text-[10px] font-medium tracking-wider">{hasVoted ? "VOTED" : "VOTE"}</div>
+                  </button>
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {!wallet && (
         <p className="mt-6 text-center text-xs text-zinc-400">Connect your wallet to vote on features.</p>
