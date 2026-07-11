@@ -32,13 +32,12 @@ export function Sidebar() {
             href={landingHref()}
             title="Back to ezpulse.xyz"
             onClick={closeSidebar}
-            className="term-sidebar-logo-link group flex shrink-0 items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-zinc-100 active:bg-zinc-200 dark:hover:bg-zinc-800"
+            className="group flex min-w-0 items-center gap-2 rounded-lg px-2 py-1.5 transition hover:bg-zinc-100 active:bg-zinc-200 dark:hover:bg-zinc-800"
           >
-            <Logo
-              size={sidebarHidden ? 32 : 26}
-              textClass="text-[13px]"
-              compact={sidebarHidden}
-              className="term-sidebar-logo"
+            <Logo 
+              size={sidebarHidden ? 32 : 26} 
+              textClass="text-[13px]" 
+              compact={sidebarHidden} 
             />
           </a>
 
@@ -119,7 +118,11 @@ export function Sidebar() {
           className="term-sidebar__footer absolute bottom-0 left-0 right-0 border-t px-3 py-3"
           style={{ borderColor: "var(--term-border-subtle)", background: "var(--term-surface)" }}
         >
-          <ThemeToggle variant="row" />
+          <div className="flex items-center justify-between px-1">
+            <ThemeToggle variant="row" />
+            <span className="rounded bg-zinc-900 px-1.5 py-0.5 text-[9px] font-bold text-white">V2</span>
+          </div>
+
           <div className="term-status-card mt-2 flex items-center gap-2 px-3 py-2">
             <div className={`h-2 w-2 shrink-0 rounded-full ${feed.length ? "bg-emerald-500" : "bg-amber-400"}`} />
             <div className="min-w-0">
