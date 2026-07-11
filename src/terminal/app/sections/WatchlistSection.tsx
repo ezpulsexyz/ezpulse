@@ -4,6 +4,7 @@ import { BLUE, Card } from "../../components";
 import { PageHead, EmptyState } from "../components/PageLayout";
 import { WalletConnectHint } from "../components/WalletConnectHint";
 import { TerminalCoinTable } from "../components/TerminalCoinTable";
+import { ThresholdAlertsManager } from "../components/ThresholdAlertsManager";
 import { useTerminalContext } from "../TerminalContext";
 
 export function WatchlistSection() {
@@ -47,7 +48,9 @@ export function WatchlistSection() {
         <TerminalCoinTable coins={watchedCoins} title="★ Watched tokens · live" />
       )}
 
-      <Card title="🔔 Alert preferences" className="mt-4" pad>
+      <ThresholdAlertsManager />
+
+      <Card title="🔔 Signal alerts" className="mt-4" pad>
         <div className="grid gap-3 sm:grid-cols-2">
           {([
             ["priceMove", "Price moves", "Alert when a watched token moves ±10% in 24h"],
@@ -71,7 +74,9 @@ export function WatchlistSection() {
             </button>
           ))}
         </div>
-        <p className="mt-3 text-[11px]" style={{ color: "var(--term-text-subtle)" }}>Preferences saved locally. Email & Telegram delivery ship with accounts — alerts currently surface in-app.</p>
+        <p className="mt-3 text-[11px]" style={{ color: "var(--term-text-subtle)" }}>
+          Automatic signals for watched tokens. Custom price/mcap thresholds are managed above. All alerts surface in-app for now.
+        </p>
       </Card>
 
       {!phantom && !anyWalletDetected() && (

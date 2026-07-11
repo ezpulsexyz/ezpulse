@@ -8,8 +8,7 @@ import { useTerminalContext } from "../TerminalContext";
 export function Header() {
   const {
     openSidebar, query, setQuery, searchRef, results, feed, loading, lastUpdated,
-    notifOpen, setNotifOpen, notifs, unseenCount, openNotifs, phantom, watchlist,
-    openWalletPicker, signOutPhantom, walletProvider, goto, openToken, setPaletteOpen,
+    unseenCount, openNotifs, phantom, signOutPhantom, walletProvider, setPaletteOpen,
   } = useTerminalContext();
 
   return (
@@ -103,50 +102,6 @@ export function Header() {
                 </span>
               )}
             </button>
-            {notifOpen && <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />}
-            {notifOpen && (
-              <div className="term-panel term-notif-panel fixed inset-x-2 z-50 overflow-hidden rounded-md sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-1 sm:w-72">
-                <div className="flex items-center justify-between border-b px-3 py-2" style={{ borderColor: "var(--term-border-subtle)" }}>
-                  <span className="font-mono text-[9px] font-semibold uppercase tracking-[0.12em]" style={{ color: "var(--term-text-subtle)" }}>Alerts</span>
-                  <button onClick={() => { setNotifOpen(false); goto("watchlist"); }} className="font-mono text-[10px]" style={{ color: "var(--term-text-muted)" }}>Preferences</button>
-                </div>
-                <div className="max-h-[min(18rem,45vh)] overflow-y-auto scrollbar-thin">
-                  {!phantom && (
-                    <div className="px-3 py-5 text-center text-[11px]" style={{ color: "var(--term-text-muted)" }}>
-                      <button onClick={() => { setNotifOpen(false); openWalletPicker(); }} className="font-medium" style={{ color: "var(--term-text-secondary)" }}>Connect wallet</button> to star tokens and get alerts.
-                    </div>
-                  )}
-                  {phantom && watchlist.length === 0 && (
-                    <div className="px-3 py-5 text-center text-[11px]" style={{ color: "var(--term-text-muted)" }}>Star tokens to get alerts when signals fire.</div>
-                  )}
-                  {watchlist.length > 0 && notifs.length === 0 && (
-                    <div className="px-3 py-5 text-center text-[11px]" style={{ color: "var(--term-text-muted)" }}>No alerts on {watchlist.length} watched token{watchlist.length !== 1 ? "s" : ""}.</div>
-                  )}
-                  {notifs.map((n) => (
-                    <button
-                      key={n.key}
-                      onClick={() => { setNotifOpen(false); openToken(n.token); }}
-                      className="flex w-full items-start gap-2 border-b px-3 py-2.5 text-left last:border-0"
-                      style={{ borderColor: "var(--term-border-subtle)" }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "var(--term-hover)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                    >
-                      <span className="mt-0.5 shrink-0 font-mono text-[9px] uppercase" style={{ color: "var(--term-text-subtle)" }}>{n.strength.slice(0, 1)}</span>
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-center gap-1.5">
-                          <span className="truncate text-[11px] font-medium" style={{ color: "var(--term-text)" }}>{n.title}</span>
-                          <span className={`shrink-0 rounded px-1 py-px font-mono text-[7px] font-semibold uppercase tracking-wide text-white ${n.strength === "BULLISH" ? "bg-emerald-700" : "bg-red-600"}`}>{n.strength}</span>
-                        </span>
-                        <span className="mt-0.5 block truncate font-mono text-[10px]" style={{ color: "var(--term-text-muted)" }}>{n.token.name} ${n.token.symbol}</span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                <div className="term-panel-muted px-3 py-1.5 font-mono text-[9px]">
-                  Recomputed every 60s
-                </div>
-              </div>
-            )}
           </div>
 
           {phantom ? (

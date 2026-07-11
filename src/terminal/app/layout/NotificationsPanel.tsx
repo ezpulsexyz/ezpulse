@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useTerminalContext } from "../TerminalContext";
 import { saveSeenNotifs } from "../notifs";
 
@@ -5,21 +6,26 @@ export function NotificationsPanel() {
   const {
     notifOpen,
     setNotifOpen,
-    notifs,
-    priceTriggeredNotifs = [],
+    allNotifs,
     seenNotifs,
     setSeenNotifs,
+    openToken,
+    goto,
+    watchlist,
+    priceAlerts,
   } = useTerminalContext();
+
+  const unreadCount = allNotifs.filter((n) => !seenNotifs.includes(n.key)).length;
+
+  const sorted = useMemo(
+    () => [...allNotifs].reverse(),
+    [allNotifs],
+  );
 
   if (!notifOpen) return null;
 
-  // Combine signal notifs + price alerts
-  const allNotifs = [...notifs, ...(priceTriggeredNotifs || [])];
-
-  const unreadCount = allNotifs.filter((n: any) => !seenNotifs.includes(n.key)).length;
-
   const markAllAsRead = () => {
-    const allKeys = allNotifs.map((n: any) => n.key);
+    const allKeys = allNotifs.map((n) => n.key);
     const next = [...new Set([...seenNotifs, ...allKeys])];
     setSeenNotifs(next);
     saveSeenNotifs(next);
@@ -33,94 +39,133 @@ export function NotificationsPanel() {
     }
   };
 
-  // Group by token
-  const grouped = allNotifs.reduce((acc: any, notif: any) => {
-    const ca = notif.token.ca;
-    if (!acc[ca]) acc[ca] = [];
-    acc[ca].push(notif);
-    return acc;
-  }, {});
-
-  const tokenCas = Object.keys(grouped);
+  const isThreshold = (key: string) => key.startsWith("price-alert-");
 
   return (
-    <div className="fixed right-2 top-[68px] z-[120] w-[calc(100%-1rem)] max-w-sm overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl sm:right-4 sm:w-full">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b bg-zinc-50 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold tracking-tight">Notifications</span>
-          {unreadCount > 0 && (
-            <span className="rounded-full bg-red-500 px-2 py-px text-[10px] font-bold text-white">
-              {unreadCount}
+    <>
+      <div className="fixed inset-0 z-[110]" onClick={() => setNotifOpen(false)} aria-hidden />
+      <div className="term-panel term-notif-panel fixed right-2 z-[120] w-[calc(100%-1rem)] max-w-sm overflow-hidden rounded-xl sm:right-4">
+        <div
+          className="flex items-center justify-between border-b px-4 py-3"
+          style={{ borderColor: "var(--term-border-subtle)", background: "var(--term-surface-2)" }}
+        >
+          <div className="flex items-center gap-2">
+            <span className="font-display text-sm font-semibold" style={{ color: "var(--term-text)" }}>
+              Notifications
+            </span>
+            {unreadCount > 0 && (
+              <span className="rounded-full bg-red-600 px-2 py-px font-mono text-[9px] font-bold text-white">
+                {unreadCount}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && (
+              <button
+                type="button"
+                onClick={markAllAsRead}
+                className="font-mono text-[10px] font-medium"
+                style={{ color: "var(--term-text-muted)" }}
+              >
+                Mark read
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setNotifOpen(false)}
+              className="term-icon-btn h-6 w-6 border-0 bg-transparent text-base"
+              style={{ color: "var(--term-text-muted)" }}
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+
+        <div className="max-h-[min(24rem,55vh)] overflow-y-auto scrollbar-thin sm:max-h-[28rem]">
+          {sorted.length === 0 ? (
+            <div className="px-4 py-10 text-center">
+              <div className="text-3xl">🔔</div>
+              <p className="mt-2 text-[13px] font-medium" style={{ color: "var(--term-text-secondary)" }}>
+                No alerts yet
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed" style={{ color: "var(--term-text-muted)" }}>
+                {watchlist.length > 0
+                  ? "Signal alerts appear when watched tokens move. Set custom thresholds from any token page."
+                  : "Star tokens on your watchlist or set threshold alerts on any project."}
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y" style={{ borderColor: "var(--term-border-subtle)" }}>
+              {sorted.map((notif) => {
+                const isRead = seenNotifs.includes(notif.key);
+                const threshold = isThreshold(notif.key);
+                return (
+                  <button
+                    key={notif.key}
+                    type="button"
+                    onClick={() => {
+                      markAsRead(notif.key);
+                      setNotifOpen(false);
+                      openToken(notif.token);
+                    }}
+                    className={`flex w-full items-start gap-3 px-4 py-3 text-left transition ${isRead ? "opacity-55" : ""}`}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "var(--term-hover)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                  >
+                    <span className="mt-0.5 text-lg">{notif.icon}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-center gap-2">
+                        <span className="truncate text-[12px] font-semibold" style={{ color: "var(--term-text)" }}>
+                          {notif.title}
+                        </span>
+                        {!isRead && <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-red-500" />}
+                      </span>
+                      <span className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                        <span
+                          className={`rounded px-1 py-px font-mono text-[7px] font-semibold uppercase tracking-wide text-white ${
+                            notif.strength === "BULLISH" ? "bg-emerald-700" : "bg-red-600"
+                          }`}
+                        >
+                          {notif.strength}
+                        </span>
+                        <span
+                          className="rounded px-1 py-px font-mono text-[7px] font-semibold uppercase tracking-wide"
+                          style={{ background: "var(--term-surface-3)", color: "var(--term-text-subtle)" }}
+                        >
+                          {threshold ? "Threshold" : "Signal"}
+                        </span>
+                      </span>
+                      <span className="mt-1 block line-clamp-2 text-[11px]" style={{ color: "var(--term-text-muted)" }}>
+                        {notif.detail}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div
+          className="flex items-center justify-between gap-2 border-t px-4 py-2"
+          style={{ borderColor: "var(--term-border-subtle)", background: "var(--term-surface-2)" }}
+        >
+          <button
+            type="button"
+            onClick={() => { setNotifOpen(false); goto("watchlist"); }}
+            className="font-mono text-[10px] font-medium"
+            style={{ color: "var(--term-text-muted)" }}
+          >
+            Alert preferences
+          </button>
+          {priceAlerts.length > 0 && (
+            <span className="font-mono text-[9px] tabular-nums" style={{ color: "var(--term-text-subtle)" }}>
+              {priceAlerts.filter((a) => a.enabled).length} threshold{priceAlerts.filter((a) => a.enabled).length !== 1 ? "s" : ""} active
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2 text-sm">
-          {unreadCount > 0 && (
-            <button onClick={markAllAsRead} className="text-[11px] font-medium text-zinc-500 hover:text-zinc-700">
-              Mark all read
-            </button>
-          )}
-          <button onClick={() => setNotifOpen(false)} className="text-2xl leading-none text-zinc-400">
-            ×
-          </button>
-        </div>
       </div>
-
-      <div className="max-h-[70vh] overflow-y-auto p-2 sm:max-h-[440px]">
-        {allNotifs.length === 0 ? (
-          <div className="px-4 py-10 text-center">
-            <div className="text-4xl">🔔</div>
-            <p className="mt-2 text-[13px] font-medium text-zinc-600">No alerts yet</p>
-            <p className="mt-1 text-[11px] text-zinc-400">Add tokens to watchlist or set price alerts</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {tokenCas.map((ca) => {
-              const tokenNotifs = grouped[ca];
-              const token = tokenNotifs[0].token;
-
-              return (
-                <div key={ca} className="overflow-hidden rounded-xl border border-zinc-100 bg-white">
-                  <div className="flex items-center justify-between border-b bg-zinc-50 px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-[13px] font-semibold">${token.symbol}</span>
-                      <span className="text-[11px] text-zinc-500 truncate">{token.name}</span>
-                    </div>
-                    <span className="text-[10px] text-zinc-400">{tokenNotifs.length}</span>
-                  </div>
-
-                  <div className="divide-y text-sm">
-                    {tokenNotifs.map((notif: any) => {
-                      const isRead = seenNotifs.includes(notif.key);
-                      return (
-                        <div
-                          key={notif.key}
-                          onClick={() => markAsRead(notif.key)}
-                          className={`flex cursor-pointer items-start gap-3 px-3 py-3 hover:bg-zinc-50 ${isRead ? "opacity-60" : ""}`}
-                        >
-                          <div className="mt-0.5 text-lg">{notif.icon}</div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 font-medium">
-                              <span>{notif.title}</span>
-                              {!isRead && <span className="ml-auto h-2 w-2 rounded-full bg-red-500" />}
-                            </div>
-                            <p className="mt-0.5 line-clamp-2 text-xs text-zinc-500">{notif.detail}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      <div className="border-t bg-zinc-50 px-4 py-2 text-center text-[10px] text-zinc-400">
-        Live signals + price alerts
-      </div>
-    </div>
+    </>
   );
 }

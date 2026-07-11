@@ -29,7 +29,7 @@ export function Toasts() {
       )}
       {priceAlertToast && (
         <div className="fixed bottom-5 left-1/2 z-[95] w-[calc(100%-2rem)] max-w-md -translate-x-1/2 animate-fade-up">
-          <div className="flex items-start gap-3 rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-xl">
+          <div className="term-panel flex items-start gap-3 rounded-2xl px-4 py-3 shadow-xl">
             <button
               type="button"
               onClick={() => {
@@ -41,14 +41,15 @@ export function Toasts() {
             >
               <span className="text-xl">{priceAlertToast.icon}</span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[13px] font-semibold text-zinc-900">{priceAlertToast.title}</span>
-                <span className="mt-0.5 block text-[11px] text-zinc-500">{priceAlertToast.detail}</span>
+                <span className="block text-[13px] font-semibold" style={{ color: "var(--term-text)" }}>{priceAlertToast.title}</span>
+                <span className="mt-0.5 block text-[11px]" style={{ color: "var(--term-text-muted)" }}>{priceAlertToast.detail}</span>
               </span>
             </button>
             <button
               type="button"
               onClick={() => setPriceAlertToast(null)}
-              className="shrink-0 text-lg leading-none text-zinc-400 hover:text-zinc-600"
+              className="shrink-0 text-lg leading-none"
+              style={{ color: "var(--term-text-subtle)" }}
               aria-label="Dismiss"
             >
               ×

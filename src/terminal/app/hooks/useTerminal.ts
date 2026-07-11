@@ -26,9 +26,18 @@ import {
   type PriceSocketStatus,
   type PriceUpdate,
 } from "../../dexScreenerSocket";
-import { fmtUsd } from "../../data";
+import {
+  alertCrossed,
+  formatAlertMetricLabel,
+  formatAlertTarget,
+  formatAlertValue,
+  getAlertMetricValue,
+  metricHasValue,
+  normalizeAlertMetric,
+  type AlertMetric,
+} from "../alerts";
 
-export type AlertMetric = "price" | "mcap";
+export type { AlertMetric } from "../alerts";
 
 // === Price Threshold Alerts ===
 export interface PriceAlert {
@@ -55,7 +64,7 @@ function loadPriceAlerts(): PriceAlert[] {
       ca: a.ca ?? "",
       symbol: a.symbol ?? "",
       targetPrice: a.targetPrice ?? 0,
-      metric: a.metric === "mcap" ? "mcap" : "price",
+      metric: normalizeAlertMetric(a.metric),
       direction: a.direction === "below" ? "below" : "above",
       enabled: a.enabled !== false,
       createdAt: a.createdAt ?? 0,
@@ -313,9 +322,12 @@ export function useTerminal(target?: TerminalTarget) {
 
   const togglePriceAlert = useCallback((id: string) => {
     setPriceAlerts((prev) => {
-      const next = prev.map((a) =>
-        a.id === id ? { ...a, enabled: !a.enabled } : a
-      );
+      const next = prev.map((a) => {
+        if (a.id !== id) return a;
+        const enabled = !a.enabled;
+        if (enabled) triggeredAlerts.current.delete(id);
+        return { ...a, enabled };
+      });
       savePriceAlerts(next);
       return next;
     });
@@ -326,7 +338,6 @@ export function useTerminal(target?: TerminalTarget) {
     if (!priceAlerts.length) return;
 
     const newNotifs: Notif[] = [];
-    const day = new Date().toISOString().slice(0, 10);
 
     updatedTokens.forEach((token) => {
       const relevantAlerts = priceAlerts.filter(
@@ -334,30 +345,26 @@ export function useTerminal(target?: TerminalTarget) {
       );
 
       relevantAlerts.forEach((alert) => {
-        const isMcap = alert.metric === "mcap";
-        const currentValue = isMcap ? token.mcap : token.priceUsd;
-        if (!currentValue || currentValue <= 0) return;
+        const currentValue = getAlertMetricValue(alert.metric, token);
+        if (!metricHasValue(alert.metric, currentValue)) return;
 
-        const crossed =
-          (alert.direction === "above" && currentValue >= alert.targetPrice) ||
-          (alert.direction === "below" && currentValue <= alert.targetPrice);
+        if (!alertCrossed(alert.metric, alert.direction, currentValue, alert.targetPrice)) return;
+        if (triggeredAlerts.current.has(alert.id)) return;
 
-        if (crossed && !triggeredAlerts.current.has(alert.id)) {
-          triggeredAlerts.current.add(alert.id);
+        triggeredAlerts.current.add(alert.id);
 
-          const targetLabel = isMcap ? fmtUsd(alert.targetPrice) : `$${alert.targetPrice}`;
-          const nowLabel = isMcap ? fmtUsd(currentValue) : `$${currentValue.toFixed(6)}`;
-          const metricLabel = isMcap ? "Mcap" : "Price";
+        const targetLabel = formatAlertTarget(alert.metric, alert.targetPrice, alert.direction);
+        const nowLabel = formatAlertValue(alert.metric, currentValue);
+        const metricLabel = formatAlertMetricLabel(alert.metric);
 
-          newNotifs.push({
-            key: `price-alert-${alert.id}-${Date.now()}`,
-            icon: alert.direction === "above" ? "📈" : "📉",
-            strength: alert.direction === "above" ? "BULLISH" : "BEARISH",
-            title: `${token.symbol} hit ${targetLabel}`,
-            detail: `${metricLabel} ${alert.direction} ${targetLabel} (now ${nowLabel})`,
-            token,
-          });
-        }
+        newNotifs.push({
+          key: `price-alert-${alert.id}-${Date.now()}`,
+          icon: alert.direction === "above" ? "📈" : "📉",
+          strength: alert.direction === "above" ? "BULLISH" : "BEARISH",
+          title: `${token.symbol} · ${metricLabel} ${targetLabel}`,
+          detail: `Now ${nowLabel} · threshold ${alert.direction} ${targetLabel}`,
+          token,
+        });
       });
     });
 
@@ -985,6 +992,7 @@ export function useTerminal(target?: TerminalTarget) {
     totalMcap,
     totalVol,
     notifs,
+    allNotifs,
     unseenCount,
     topMover,
     results,
