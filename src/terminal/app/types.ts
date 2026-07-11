@@ -32,7 +32,18 @@ export const PROJECT_CATEGORIES: ProjectCategory[] = [
   "Utility",
 ];
 
-export type Section = "market" | "projects" | "signals" | "record" | "watchlist" | "portfolio" | "smart" | "indexes" | "thesis";
+export type Section =
+  | "market"
+  | "projects"
+  | "signals"
+  | "record"
+  | "watchlist"
+  | "portfolio"
+  | "smart"
+  | "indexes"
+  | "thesis"
+  | "roadmap";
+
 export type MarketTab = "ALL" | "TRENDING" | "VERIFIED" | "BONDED" | "BONDING" | "UPCOMING";
 
 export type TerminalTarget = { section?: Section; marketTab?: MarketTab; projectCa?: string };
@@ -104,5 +115,6 @@ export const NAV_GROUPS: { workflow: string; items: { id: Section; label: string
     { id: "indexes", label: "EasyA Indexes" },
     { id: "portfolio", label: "Portfolio" },
     { id: "smart", label: "Smart Investing", soon: true },
+    { id: "roadmap", label: "Feature Board" },
   ]},
 ];
