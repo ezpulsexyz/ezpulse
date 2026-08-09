@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://ezpulse.xyz/sitemap.xml
