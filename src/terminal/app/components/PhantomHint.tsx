@@ -1,1 +1,0 @@
-export { WalletConnectHint as PhantomHint, WalletConnectHint } from "./WalletConnectHint";
